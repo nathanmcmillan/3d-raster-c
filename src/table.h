@@ -38,7 +38,7 @@ unsigned long table_string_hashcode(void *key);
 bool table_address_equal(void *a, void *b);
 unsigned long table_address_hashcode(void *key);
 
-Table *create_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
+Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
 
 void table_put(Table *this, void *key, void *value);
 void *table_get(Table *this, void *key);
@@ -65,7 +65,7 @@ struct TableIter {
     TableItem *item;
 };
 
-TableIter create_table_iterator(Table *this);
+TableIter new_table_iterator(Table *this);
 bool table_iterator_has_next(TableIter *iter);
 TablePair table_iterator_next(TableIter *iter);
 

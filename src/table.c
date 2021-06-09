@@ -4,7 +4,7 @@
 
 #include "table.h"
 
-static const float LOAD_FACTOR = 0.80;
+static const float LOAD_FACTOR = 0.80f;
 
 static const unsigned int INITIAL_BINS = 1 << 3;
 
@@ -32,7 +32,7 @@ unsigned long table_address_hashcode(void *key) {
     return (unsigned long)key;
 }
 
-Table *create_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
+Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
     Table *this = safe_malloc(sizeof(Table));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
@@ -214,7 +214,7 @@ void table_delete(Table *this) {
     free(this);
 }
 
-TableIter create_table_iterator(Table *this) {
+TableIter new_table_iterator(Table *this) {
     TableIter iter;
     iter.pointer = this;
     if (this->size == 0) {

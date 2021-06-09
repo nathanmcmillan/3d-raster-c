@@ -29,7 +29,7 @@ struct UIntTable {
     UIntTableItem **items;
 };
 
-UIntTable *create_uint_table();
+UIntTable *new_uint_table();
 
 void uint_table_put(UIntTable *this, unsigned int key, void *value);
 void *uint_table_get(UIntTable *this, unsigned int key);
@@ -56,7 +56,7 @@ struct UIntTableIter {
     UIntTableItem *item;
 };
 
-UIntTableIter create_uint_table_iterator(UIntTable *this);
+UIntTableIter new_uint_table_iterator(UIntTable *this);
 bool uint_table_iterator_has_next(UIntTableIter *iter);
 UIntTablePair uint_table_iterator_next(UIntTableIter *iter);
 

@@ -4,7 +4,7 @@
 
 #include "set.h"
 
-static const float LOAD_FACTOR = 0.80;
+static const float LOAD_FACTOR = 0.80f;
 
 static const unsigned int INITIAL_BINS = 1 << 3;
 
@@ -32,7 +32,7 @@ unsigned long set_address_hashcode(void *key) {
     return (unsigned long)key;
 }
 
-set *create_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
+set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
     set *this = safe_malloc(sizeof(set));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
@@ -207,7 +207,7 @@ void set_delete(set *this) {
     free(this);
 }
 
-set_iterator create_set_iterator(set *this) {
+set_iterator new_set_iterator(set *this) {
     set_iterator iter;
     iter.pointer = this;
     if (this->size == 0) {

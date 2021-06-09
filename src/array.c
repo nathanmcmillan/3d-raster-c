@@ -22,17 +22,17 @@ void array_init(Array *this, unsigned int length) {
     array_init_with_capacity(this, length, length);
 }
 
-Array *create_array_with_capacity(unsigned int length, unsigned int capacity) {
+Array *new_array_with_capacity(unsigned int length, unsigned int capacity) {
     Array *this = safe_malloc(sizeof(Array));
     array_init_with_capacity(this, length, capacity);
     return this;
 }
 
-Array *create_array(unsigned int length) {
-    return create_array_with_capacity(length, length);
+Array *new_array(unsigned int length) {
+    return new_array_with_capacity(length, length);
 }
 
-Array *create_array_with_items(unsigned int length, unsigned int capacity, void **items) {
+Array *new_array_with_items(unsigned int length, unsigned int capacity, void **items) {
     Array *this = safe_malloc(sizeof(Array));
     this->items = items;
     this->length = length;
@@ -41,13 +41,13 @@ Array *create_array_with_items(unsigned int length, unsigned int capacity, void 
 }
 
 void **array_copy_items(Array *this) {
-    size_t size = this->length * sizeof(void *);
+    usize size = this->length * sizeof(void *);
     void **copy = safe_malloc(size);
     memcpy(copy, this->items, size);
     return copy;
 }
 
-Array *create_array_copy(Array *from) {
+Array *new_array_copy(Array *from) {
     Array *this = safe_malloc(sizeof(Array));
     this->items = array_copy_items(from);
     this->length = from->length;

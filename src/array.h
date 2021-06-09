@@ -24,12 +24,12 @@ bool find_address(void *item, void *has);
 void array_init_with_capacity(Array *this, unsigned int length, unsigned int capacity);
 void array_init(Array *this, unsigned int length);
 
-Array *create_array_with_capacity(unsigned int length, unsigned int capacity);
-Array *create_array(unsigned int length);
-Array *create_array_with_items(unsigned int length, unsigned int capacity, void **items);
+Array *new_array_with_capacity(unsigned int length, unsigned int capacity);
+Array *new_array(unsigned int length);
+Array *new_array_with_items(unsigned int length, unsigned int capacity, void **items);
 
 void **array_copy_items(Array *this);
-Array *create_array_copy(Array *this);
+Array *new_array_copy(Array *this);
 
 void array_push(Array *this, void *item);
 void array_insert(Array *this, unsigned int index, void *item);

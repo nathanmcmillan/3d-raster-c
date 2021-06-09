@@ -29,10 +29,10 @@ Slice slice_simple_init(const usize member_size, const usize length) {
 Slice array_to_slice(void *const array, const usize member_size, const usize length) {
     usize array_memory = length * member_size;
     usize memory = sizeof(SliceHead) + array_memory;
-    SliceHead *new_head = safe_malloc(memory);
-    new_head->length = length;
-    new_head->capacity = length;
-    SliceHead *data = (SliceHead *)new_head + 1;
+    SliceHead *new = safe_malloc(memory);
+    new->length = length;
+    new->capacity = length;
+    SliceHead *data = (SliceHead *)new + 1;
     memcpy(data, array, array_memory);
     return data;
 }
@@ -62,10 +62,10 @@ int slice_cap(const Slice a) {
 
 SliceHead *slice_resize(const Slice head, const usize member_size, const usize length) {
     usize memory = sizeof(SliceHead) + length * member_size;
-    SliceHead *new_head = safe_realloc(head, memory);
-    new_head->length = length;
-    new_head->capacity = length;
-    return new_head;
+    SliceHead *new = safe_realloc(head, memory);
+    new->length = length;
+    new->capacity = length;
+    return new;
 }
 
 Slice slice_expand(const Slice a, const Slice b) {
@@ -74,8 +74,8 @@ Slice slice_expand(const Slice a, const Slice b) {
     usize length_a = head_a->length;
     usize length_b = head_b->length;
     usize length = length_a + length_b;
-    SliceHead *new_head = slice_resize(head_a, sizeof(void *), length);
-    SliceHead *data = (SliceHead *)new_head + 1;
+    SliceHead *new = slice_resize(head_a, sizeof(void *), length);
+    SliceHead *data = (SliceHead *)new + 1;
     memcpy(data + length_a * sizeof(void *), b, length_b * sizeof(void *));
     return data;
 }

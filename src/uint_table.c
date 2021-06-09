@@ -18,7 +18,7 @@ unsigned long uint_table_address_hashcode(unsigned int key) {
     return (unsigned long)key;
 }
 
-UIntTable *create_uint_table() {
+UIntTable *new_uint_table() {
     UIntTable *this = safe_malloc(sizeof(UIntTable));
     this->size = 0;
     this->bins = INITIAL_BINS;
@@ -198,7 +198,7 @@ void uint_table_delete(UIntTable *this) {
     free(this);
 }
 
-UIntTableIter create_uint_table_iterator(UIntTable *this) {
+UIntTableIter new_uint_table_iterator(UIntTable *this) {
     UIntTableIter iter;
     iter.pointer = this;
     if (this->size == 0) {

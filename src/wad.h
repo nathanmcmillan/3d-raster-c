@@ -31,9 +31,9 @@ struct Wad {
     union WadUnion value;
 };
 
-Wad *create_wad_object();
-Wad *create_wad_array();
-Wad *create_wad_string(String *value);
+Wad *new_wad_object();
+Wad *new_wad_array();
+Wad *new_wad_string(String *value);
 
 WadObject *wad_get_object(Wad *element);
 WadArray *wad_get_array(Wad *element);

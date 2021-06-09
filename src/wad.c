@@ -4,21 +4,21 @@
 
 #include "wad.h"
 
-Wad *create_wad_object() {
+Wad *new_wad_object() {
     Wad *e = safe_calloc(1, sizeof(Wad));
     e->type = WAD_OBJECT;
-    e->value.object = create_table(&table_string_equal, &table_string_hashcode);
+    e->value.object = new_table(&table_string_equal, &table_string_hashcode);
     return e;
 }
 
-Wad *create_wad_array() {
+Wad *new_wad_array() {
     Wad *e = safe_calloc(1, sizeof(Wad));
     e->type = WAD_ARRAY;
-    e->value.array = create_array(0);
+    e->value.array = new_array(0);
     return e;
 }
 
-Wad *create_wad_string(String *value) {
+Wad *new_wad_string(String *value) {
     Wad *e = safe_calloc(1, sizeof(Wad));
     e->type = WAD_STRING;
     e->value.str = string_copy(value);
@@ -101,7 +101,7 @@ Wad *wad_get_required_from_array(Wad *array, unsigned int index) {
 }
 
 TableIter wad_object_iterator(Wad *object) {
-    return create_table_iterator(wad_get_object(object));
+    return new_table_iterator(wad_get_object(object));
 }
 
 unsigned int wad_get_size(Wad *element) {
@@ -122,13 +122,13 @@ void wad_delete(Wad *element) {
     free(element);
 }
 
-static int parse_wad_skip_whitespace(String *str, size_t i) {
+static int parse_wad_skip_whitespace(String *str, usize i) {
     i++;
     char c = str[i];
     if (c != '\n' and c != ' ') {
         return i - 1;
     }
-    size_t len = string_len(str);
+    usize len = string_len(str);
     do {
         i++;
         if (i == len) {
@@ -141,9 +141,9 @@ static int parse_wad_skip_whitespace(String *str, size_t i) {
 
 Wad *wad_parse(String *str) {
 
-    Wad *wad = create_wad_object();
+    Wad *wad = new_wad_object();
 
-    Array *stack = create_array(0);
+    Array *stack = new_array(0);
     array_push(stack, wad);
 
     String *key = string_init("");
@@ -152,15 +152,15 @@ Wad *wad_parse(String *str) {
     char pc = '\0';
     bool parsing_key = true;
 
-    size_t len = string_len(str);
+    usize len = string_len(str);
 
-    for (size_t i = 0; i < len; i++) {
+    for (usize i = 0; i < len; i++) {
         char c = str[i];
         if (c == '\n') {
             if (parsing_key) {
             } else if (pc != '}' and pc != ']') {
                 Wad *head = stack->items[0];
-                Wad *child = create_wad_string(value);
+                Wad *child = new_wad_string(value);
                 if (head->type == WAD_ARRAY) {
                     array_push(wad_get_array(head), child);
                 } else {
@@ -179,7 +179,7 @@ Wad *wad_parse(String *str) {
         } else if (c == ',') {
             if (pc != '}' and pc != ']') {
                 Wad *head = stack->items[0];
-                Wad *child = create_wad_string(value);
+                Wad *child = new_wad_string(value);
                 if (head->type == WAD_ARRAY) {
                     array_push(wad_get_array(head), child);
                 } else {
@@ -192,7 +192,7 @@ Wad *wad_parse(String *str) {
             pc = c;
             i = parse_wad_skip_whitespace(str, i);
         } else if (c == '{') {
-            Wad *map = create_wad_object();
+            Wad *map = new_wad_object();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
                 array_push(wad_get_array(head), map);
@@ -205,7 +205,7 @@ Wad *wad_parse(String *str) {
             pc = c;
             i = parse_wad_skip_whitespace(str, i);
         } else if (c == '[') {
-            Wad *ls = create_wad_array();
+            Wad *ls = new_wad_array();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
                 array_push(wad_get_array(head), ls);
@@ -220,7 +220,7 @@ Wad *wad_parse(String *str) {
         } else if (c == '}') {
             if (pc != ',' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
                 Wad *head = stack->items[0];
-                wad_add_to_object(head, key, create_wad_string(value));
+                wad_add_to_object(head, key, new_wad_string(value));
                 string_zero(key);
                 string_zero(value);
             }
@@ -236,7 +236,7 @@ Wad *wad_parse(String *str) {
         } else if (c == ']') {
             if (pc != ',' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
                 Wad *head = stack->items[0];
-                array_push(wad_get_array(head), create_wad_string(value));
+                array_push(wad_get_array(head), new_wad_string(value));
                 string_zero(value);
             }
             array_remove_index(stack, 0);
@@ -259,7 +259,7 @@ Wad *wad_parse(String *str) {
 
     if (pc != ',' and pc != ']' and pc != '}' and pc != '\n') {
         Wad *head = stack->items[0];
-        wad_add_to_object(head, key, create_wad_string(value));
+        wad_add_to_object(head, key, new_wad_string(value));
     }
 
     string_free(key);
@@ -273,7 +273,7 @@ String *wad_to_string(Wad *element) {
     case WAD_OBJECT: {
         WadObject *map = wad_get_object(element);
         String *str = string_init("{");
-        TableIter iter = create_table_iterator(map);
+        TableIter iter = new_table_iterator(map);
         while (table_iterator_has_next(&iter)) {
             TablePair pair = table_iterator_next(&iter);
             String *in = wad_to_string(pair.value);
