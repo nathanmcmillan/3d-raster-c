@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "string_util.h"
+#include "strings.h"
 
-static string_head *string_head_init(usize length, usize capacity) {
-    usize memory = sizeof(string_head) + length + 1;
-    string_head *head = (string_head *)safe_malloc(memory);
+static StringHead *string_head_init(usize length, usize capacity) {
+    usize memory = sizeof(StringHead) + length + 1;
+    StringHead *head = (StringHead *)safe_malloc(memory);
     memset(head, 0, memory);
     head->length = length;
     head->capacity = capacity;
@@ -14,7 +14,7 @@ static string_head *string_head_init(usize length, usize capacity) {
 }
 
 String *string_init_with_length(char *init, usize length) {
-    string_head *head = string_head_init(length, length);
+    StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memcpy(s, init, length);
     s[length] = '\0';
@@ -22,7 +22,7 @@ String *string_init_with_length(char *init, usize length) {
 }
 
 String *string_allocate(usize length) {
-    string_head *head = string_head_init(length, length);
+    StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memset(s, '\0', length + 1);
     return (String *)s;
@@ -34,29 +34,29 @@ String *string_init(char *init) {
 }
 
 String *string_copy(String *this) {
-    string_head *head = (string_head *)((char *)this - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return string_init_with_length(this, head->length);
 }
 
 usize string_len(String *s) {
-    string_head *head = (string_head *)((char *)s - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)s - sizeof(StringHead));
     return head->length;
 }
 
 usize string_cap(String *s) {
-    string_head *head = (string_head *)((char *)s - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)s - sizeof(StringHead));
     return head->capacity;
 }
 
 void string_free(String *s) {
-    free((char *)s - sizeof(string_head));
+    free((char *)s - sizeof(StringHead));
 }
 
 String *string_concat(String *a, String *b) {
     usize len1 = string_len(a);
     usize len2 = string_len(b);
     usize len = len1 + len2;
-    string_head *head = string_head_init(len, len);
+    StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
     memcpy(s, a, len1);
     memcpy(s + len1, b, len2 + 1);
@@ -69,7 +69,7 @@ String *string_concat_list(String **list, int size) {
     for (int i = 0; i < size; i++) {
         len += string_len(list[i]);
     }
-    string_head *head = string_head_init(len, len);
+    StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
     usize pos = 0;
     for (int i = 0; i < size; i++) {
@@ -91,7 +91,7 @@ String *string_concat_varg(int size, ...) {
     }
     va_end(ap);
 
-    string_head *head = string_head_init(len, len);
+    StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
 
     usize pos = 0;
@@ -110,22 +110,22 @@ String *string_concat_varg(int size, ...) {
 
 String *substring(String *a, usize start, usize end) {
     usize len = end - start;
-    string_head *head = string_head_init(len, len);
+    StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
     memcpy(s, a + start, len);
     s[len] = '\0';
     return (String *)s;
 }
 
-static string_head *string_resize(string_head *head, usize capacity) {
-    usize memory = sizeof(string_head) + capacity + 1;
-    string_head *new = safe_realloc(head, memory);
+static StringHead *string_resize(StringHead *head, usize capacity) {
+    usize memory = sizeof(StringHead) + capacity + 1;
+    StringHead *new = safe_realloc(head, memory);
     new->capacity = capacity;
     return new;
 }
 
 String *string_append(String *this, char *b) {
-    string_head *head = (string_head *)((char *)this - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     usize len_a = head->length;
     usize len_b = strlen(b);
     usize len = len_a + len_b;
@@ -140,7 +140,7 @@ String *string_append(String *this, char *b) {
 }
 
 String *string_append_char(String *this, char b) {
-    string_head *head = (string_head *)((char *)this - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     usize len = head->length + 1;
     if (len > head->capacity) {
         head = string_resize(head, len * 2);
@@ -167,7 +167,7 @@ bool string_equal(String *a, String *b) {
 }
 
 void string_zero(String *this) {
-    string_head *head = (string_head *)((char *)this - sizeof(string_head));
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     head->length = 0;
     this[0] = '\0';
 }

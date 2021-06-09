@@ -11,26 +11,26 @@
 #include "mem.h"
 #include "pie.h"
 
-typedef struct list list;
+typedef struct List List;
 
-struct list {
+struct List {
     void *item;
-    list *next;
+    List *next;
 };
 
-list *list_init();
-void list_add(list *this, void *item);
-void list_push(list *this, void *item);
-void list_remove(list *this, void *item);
-void list_remove_index(list *this, unsigned int index);
-void list_insert(list *this, unsigned int index, void *item);
-void list_insert_sort(list *this, int (*compare)(void *, void *), void *item);
-void *list_find(list *this, bool(find)(void *, void *), void *has);
-void *list_get(list *this, unsigned int index);
-bool list_is_empty(list *this);
-bool list_not_empty(list *this);
-unsigned int list_size(list *this);
-void **list_to_array(list *this);
-void list_free(list *this);
+List *list_init();
+void list_add(List *this, void *item);
+void list_push(List *this, void *item);
+void list_remove(List *this, void *item);
+void list_remove_index(List *this, unsigned int index);
+void list_insert(List *this, unsigned int index, void *item);
+void list_insert_sort(List *this, int (*compare)(void *, void *), void *item);
+void *list_find(List *this, bool(find)(void *, void *), void *has);
+void *list_get(List *this, unsigned int index);
+bool list_is_empty(List *this);
+bool list_not_empty(List *this);
+unsigned int list_size(List *this);
+void **list_to_array(List *this);
+void list_free(List *this);
 
 #endif

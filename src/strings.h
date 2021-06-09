@@ -17,9 +17,9 @@
 
 typedef char String;
 
-typedef struct string_head string_head;
+typedef struct StringHead StringHead;
 
-PACK(struct string_head {
+PACK(struct StringHead {
     usize length;
     usize capacity;
     char **chars;

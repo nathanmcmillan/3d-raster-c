@@ -12,23 +12,24 @@
 #include "mem.h"
 #include "pie.h"
 
-typedef struct table_item table_item;
+typedef struct TableItem TableItem;
+typedef struct Table Table;
+typedef struct TablePair TablePair;
+typedef struct TableIter TableIter;
 
-struct table_item {
+struct TableItem {
     unsigned long hash;
     void *key;
     void *value;
-    table_item *next;
+    TableItem *next;
 };
 
-typedef struct table table;
-
-struct table {
+struct Table {
     bool (*equals_fn)(void *, void *);
     unsigned long (*hashcode_fn)(void *);
     unsigned int size;
     unsigned int bins;
-    table_item **items;
+    TableItem **items;
 };
 
 bool table_string_equal(void *a, void *b);
@@ -37,39 +38,35 @@ unsigned long table_string_hashcode(void *key);
 bool table_address_equal(void *a, void *b);
 unsigned long table_address_hashcode(void *key);
 
-table *create_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
+Table *create_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
 
-void table_put(table *this, void *key, void *value);
-void *table_get(table *this, void *key);
-bool table_has(table *this, void *key);
+void table_put(Table *this, void *key, void *value);
+void *table_get(Table *this, void *key);
+bool table_has(Table *this, void *key);
 
-void *table_remove(table *this, void *key);
-void table_clear(table *this);
+void *table_remove(Table *this, void *key);
+void table_clear(Table *this);
 
-bool table_is_empty(table *this);
-bool table_not_empty(table *this);
-unsigned int table_size(table *this);
+bool table_is_empty(Table *this);
+bool table_not_empty(Table *this);
+unsigned int table_size(Table *this);
 
-void release_table(table *this);
-void delete_table(table *this);
+void release_table(Table *this);
+void delete_table(Table *this);
 
-typedef struct table_pair table_pair;
-
-struct table_pair {
+struct TablePair {
     void *key;
     void *value;
 };
 
-typedef struct table_iterator table_iterator;
-
-struct table_iterator {
-    table *pointer;
+struct TableIter {
+    Table *pointer;
     unsigned int bin;
-    table_item *item;
+    TableItem *item;
 };
 
-table_iterator create_table_iterator(table *this);
-bool table_iterator_has_next(table_iterator *iter);
-table_pair table_iterator_next(table_iterator *iter);
+TableIter create_table_iterator(Table *this);
+bool table_iterator_has_next(TableIter *iter);
+TablePair table_iterator_next(TableIter *iter);
 
 #endif

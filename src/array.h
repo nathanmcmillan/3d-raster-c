@@ -11,9 +11,9 @@
 
 #include "mem.h"
 
-typedef struct array array;
+typedef struct Array Array;
 
-struct array {
+struct Array {
     void **items;
     unsigned int length;
     unsigned int capacity;
@@ -21,34 +21,34 @@ struct array {
 
 bool find_address(void *item, void *has);
 
-void array_init_with_capacity(array *this, unsigned int length, unsigned int capacity);
-void array_init(array *this, unsigned int length);
+void array_init_with_capacity(Array *this, unsigned int length, unsigned int capacity);
+void array_init(Array *this, unsigned int length);
 
-array *create_array_with_capacity(unsigned int length, unsigned int capacity);
-array *create_array(unsigned int length);
-array *create_array_with_items(unsigned int length, unsigned int capacity, void **items);
+Array *create_array_with_capacity(unsigned int length, unsigned int capacity);
+Array *create_array(unsigned int length);
+Array *create_array_with_items(unsigned int length, unsigned int capacity, void **items);
 
-void **array_copy_items(array *this);
-array *create_array_copy(array *this);
+void **array_copy_items(Array *this);
+Array *create_array_copy(Array *this);
 
-void array_push(array *this, void *item);
-void array_insert(array *this, unsigned int index, void *item);
-void array_insert_sort(array *this, int (*compare)(void *, void *), void *item);
+void array_push(Array *this, void *item);
+void array_insert(Array *this, unsigned int index, void *item);
+void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item);
 
-void *array_find(array *this, bool(find)(void *, void *), void *has);
-void *array_get(array *this, unsigned int index);
+void *array_find(Array *this, bool(find)(void *, void *), void *has);
+void *array_get(Array *this, unsigned int index);
 
-void *array_pop(array *this);
-void array_remove(array *this, void *item);
-void array_remove_index(array *this, unsigned int index);
+void *array_pop(Array *this);
+void array_remove(Array *this, void *item);
+void array_remove_index(Array *this, unsigned int index);
 
-void array_clear(array *this);
+void array_clear(Array *this);
 
-bool array_is_empty(array *this);
-bool array_not_empty(array *this);
-unsigned int array_size(array *this);
+bool array_is_empty(Array *this);
+bool array_not_empty(Array *this);
+unsigned int array_size(Array *this);
 
-void release_array(array *this);
-void delete_array(array *this);
+void release_array(Array *this);
+void delete_array(Array *this);
 
 #endif

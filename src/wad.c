@@ -25,14 +25,14 @@ Wad *create_wad_string(String *value) {
     return e;
 }
 
-wad_object *wad_get_object(Wad *element) {
+WadObject *wad_get_object(Wad *element) {
     if (element == NULL) {
         return NULL;
     }
     return element->value.object;
 }
 
-wad_array *wad_get_array(Wad *element) {
+WadArray *wad_get_array(Wad *element) {
     if (element == NULL) {
         return NULL;
     }
@@ -100,7 +100,7 @@ Wad *wad_get_required_from_array(Wad *array, unsigned int index) {
     return element;
 }
 
-table_iterator wad_object_iterator(Wad *object) {
+TableIter wad_object_iterator(Wad *object) {
     return create_table_iterator(wad_get_object(object));
 }
 
@@ -143,7 +143,7 @@ Wad *parse_wad(String *str) {
 
     Wad *wad = create_wad_object();
 
-    array *stack = create_array(0);
+    Array *stack = create_array(0);
     array_push(stack, wad);
 
     String *key = string_init("");
@@ -271,11 +271,11 @@ Wad *parse_wad(String *str) {
 String *wad_to_string(Wad *element) {
     switch (element->type) {
     case WAD_OBJECT: {
-        wad_object *map = wad_get_object(element);
+        WadObject *map = wad_get_object(element);
         String *str = string_init("{");
-        table_iterator iter = create_table_iterator(map);
+        TableIter iter = create_table_iterator(map);
         while (table_iterator_has_next(&iter)) {
-            table_pair pair = table_iterator_next(&iter);
+            TablePair pair = table_iterator_next(&iter);
             String *in = wad_to_string(pair.value);
             str = string_append(str, pair.key);
             if (in[0] != '[' and in[0] != '{') {
@@ -291,7 +291,7 @@ String *wad_to_string(Wad *element) {
         return str;
     }
     case WAD_ARRAY: {
-        wad_array *ls = wad_get_array(element);
+        WadArray *ls = wad_get_array(element);
         String *str = string_init("[");
         unsigned int len = ls->length;
         for (unsigned int i = 0; i < len; i++) {

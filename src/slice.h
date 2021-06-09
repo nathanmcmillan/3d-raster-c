@@ -16,30 +16,30 @@
 #include "mem.h"
 #include "pie.h"
 
-typedef void *slice;
-typedef struct slice_head slice_head;
+typedef void *Slice;
+typedef struct SliceHead SliceHead;
 
-PACK(struct slice_head {
+PACK(struct SliceHead {
     usize length;
     usize capacity;
-    void **slice;
+    void **Slice;
 });
 
-slice slice_init(const usize member_size, const usize length, const usize capacity);
-slice slice_simple_init(const usize member_size, const usize length);
-slice array_to_slice(void *const array, const usize member_size, const usize length);
-void slice_free(const slice a);
-usize slice_len_size(const slice a);
-int slice_len(const slice a);
-usize slice_cap_size(const slice a);
-int slice_cap(const slice a);
-slice_head *slice_resize(const slice head, const usize member_size, const usize length);
-slice slice_expand(const slice a, const slice b);
-slice slice_push(const slice a, void *const b);
-slice slice_push_int(const slice a, const int b);
-slice slice_push_float(const slice a, const float b);
-void *slice_pop(const slice a);
-int slice_pop_int(const slice a);
-float slice_pop_float(const slice a);
+Slice slice_init(const usize member_size, const usize length, const usize capacity);
+Slice slice_simple_init(const usize member_size, const usize length);
+Slice array_to_slice(void *const array, const usize member_size, const usize length);
+void slice_free(const Slice a);
+usize slice_len_size(const Slice a);
+int slice_len(const Slice a);
+usize slice_cap_size(const Slice a);
+int slice_cap(const Slice a);
+SliceHead *slice_resize(const Slice head, const usize member_size, const usize length);
+Slice slice_expand(const Slice a, const Slice b);
+Slice slice_push(const Slice a, void *const b);
+Slice slice_push_int(const Slice a, const int b);
+Slice slice_push_float(const Slice a, const float b);
+void *slice_pop(const Slice a);
+int slice_pop_int(const Slice a);
+float slice_pop_float(const Slice a);
 
 #endif

@@ -4,31 +4,31 @@
 
 #include "list.h"
 
-list *list_init() {
-    return safe_calloc(1, sizeof(list));
+List *list_init() {
+    return safe_calloc(1, sizeof(List));
 }
 
-void list_add(list *this, void *item) {
+void list_add(List *this, void *item) {
     if (this->item == NULL) {
         this->item = item;
         return;
     }
-    list *link = this->next;
-    list *node = safe_calloc(1, sizeof(list));
+    List *link = this->next;
+    List *node = safe_calloc(1, sizeof(List));
     node->item = item;
     node->next = link;
     this->next = node;
 }
 
-void list_push(list *this, void *item) {
+void list_push(List *this, void *item) {
     if (this->item == NULL) {
         this->item = item;
         return;
     }
-    list *tail = safe_calloc(1, sizeof(list));
+    List *tail = safe_calloc(1, sizeof(List));
     tail->item = item;
     while (true) {
-        list *next = this->next;
+        List *next = this->next;
         if (next == NULL) {
             this->next = tail;
             return;
@@ -37,12 +37,12 @@ void list_push(list *this, void *item) {
     }
 }
 
-void list_remove(list *this, void *item) {
+void list_remove(List *this, void *item) {
     if (this->item == NULL) {
         return;
     }
     do {
-        list *next = this->next;
+        List *next = this->next;
         if (this->item == item) {
             if (next == NULL) {
                 this->item = NULL;
@@ -57,13 +57,13 @@ void list_remove(list *this, void *item) {
     } while (this);
 }
 
-void list_remove_index(list *this, unsigned int index) {
+void list_remove_index(List *this, unsigned int index) {
     if (this->item == NULL) {
         return;
     }
     unsigned int i = 0;
     do {
-        list *next = this->next;
+        List *next = this->next;
         if (i == index) {
             if (next == NULL) {
                 this->item = NULL;
@@ -78,16 +78,16 @@ void list_remove_index(list *this, unsigned int index) {
     } while (this);
 }
 
-void list_insert(list *this, unsigned int index, void *item) {
+void list_insert(List *this, unsigned int index, void *item) {
     if (this->item == NULL) {
         this->item = item;
         return;
     }
-    list *tail = safe_calloc(1, sizeof(list));
+    List *tail = safe_calloc(1, sizeof(List));
     tail->item = item;
     unsigned int i = 0;
     while (true) {
-        list *next = this->next;
+        List *next = this->next;
         if (next == NULL or i == index) {
             tail->next = next;
             this->next = tail;
@@ -98,15 +98,15 @@ void list_insert(list *this, unsigned int index, void *item) {
     }
 }
 
-void list_insert_sort(list *this, int (*compare)(void *, void *), void *item) {
+void list_insert_sort(List *this, int (*compare)(void *, void *), void *item) {
     if (this->item == NULL) {
         this->item = item;
         return;
     }
-    list *tail = safe_calloc(1, sizeof(list));
+    List *tail = safe_calloc(1, sizeof(List));
     tail->item = item;
     while (true) {
-        list *next = this->next;
+        List *next = this->next;
         if (next == NULL or compare(item, this->item) <= 0) {
             tail->next = next;
             this->next = tail;
@@ -116,7 +116,7 @@ void list_insert_sort(list *this, int (*compare)(void *, void *), void *item) {
     }
 }
 
-void *list_find(list *this, bool(find)(void *x, void *), void *has) {
+void *list_find(List *this, bool(find)(void *x, void *), void *has) {
     if (this->item == NULL) {
         return NULL;
     }
@@ -132,7 +132,7 @@ void *list_find(list *this, bool(find)(void *x, void *), void *has) {
     }
 }
 
-void *list_get(list *this, unsigned int index) {
+void *list_get(List *this, unsigned int index) {
     if (this->item == NULL) {
         return NULL;
     }
@@ -145,15 +145,15 @@ void *list_get(list *this, unsigned int index) {
     return this->item;
 }
 
-bool list_is_empty(list *this) {
+bool list_is_empty(List *this) {
     return this->item == NULL;
 }
 
-bool list_not_empty(list *this) {
+bool list_not_empty(List *this) {
     return this->item != NULL;
 }
 
-unsigned int list_size(list *this) {
+unsigned int list_size(List *this) {
     if (this->item == NULL) {
         return 0;
     }
@@ -167,7 +167,7 @@ unsigned int list_size(list *this) {
     }
 }
 
-void **list_to_array(list *this) {
+void **list_to_array(List *this) {
     unsigned int size = list_size(this);
     if (size == 0) {
         return NULL;
@@ -180,9 +180,9 @@ void **list_to_array(list *this) {
     return array;
 }
 
-void list_free(list *this) {
+void list_free(List *this) {
     do {
-        list *node = this->next;
+        List *node = this->next;
         free(this);
         this = node;
     } while (this);
