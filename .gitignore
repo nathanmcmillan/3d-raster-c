@@ -1,0 +1,7 @@
+.vscode/
+build/
+
+SDL2.dll
+ctags.opts
+
+compile.bat
