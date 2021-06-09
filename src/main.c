@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
     String *font_str = cat("res/tic-80-wide-font.wad");
     printf("font: %s\n", font_str);
 
-    Wad *font_wad = parse_wad(font_str);
+    Wad *font_wad = wad_parse(font_str);
 
     Texture *font = new_texture();
 

@@ -113,10 +113,10 @@ unsigned int wad_get_size(Wad *element) {
     return 0;
 }
 
-void delete_wad(Wad *element) {
+void wad_delete(Wad *element) {
     switch (element->type) {
-    case WAD_OBJECT: delete_table(wad_get_object(element)); break;
-    case WAD_ARRAY: delete_array(wad_get_array(element)); break;
+    case WAD_OBJECT: table_delete(wad_get_object(element)); break;
+    case WAD_ARRAY: array_delete(wad_get_array(element)); break;
     case WAD_STRING: string_free(wad_get_string(element)); break;
     }
     free(element);
@@ -139,7 +139,7 @@ static int parse_wad_skip_whitespace(String *str, size_t i) {
     return i - 1;
 }
 
-Wad *parse_wad(String *str) {
+Wad *wad_parse(String *str) {
 
     Wad *wad = create_wad_object();
 

@@ -42,8 +42,8 @@ bool uint_table_is_empty(UIntTable *this);
 bool uint_table_not_empty(UIntTable *this);
 unsigned int uint_table_size(UIntTable *this);
 
-void release_uint_table(UIntTable *this);
-void delete_uint_table(UIntTable *this);
+void uint_table_release(UIntTable *this);
+void uint_table_delete(UIntTable *this);
 
 struct UIntTablePair {
     unsigned int key;

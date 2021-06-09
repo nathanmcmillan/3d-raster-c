@@ -49,8 +49,8 @@ bool set_is_empty(set *this);
 bool set_not_empty(set *this);
 unsigned int set_size(set *this);
 
-void release_set(set *this);
-void delete_set(set *this);
+void set_release(set *this);
+void set_delete(set *this);
 
 typedef struct set_iterator set_iterator;
 

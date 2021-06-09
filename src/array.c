@@ -167,11 +167,11 @@ unsigned int array_size(Array *this) {
     return this->length;
 }
 
-void release_array(Array *this) {
+void array_release(Array *this) {
     free(this->items);
 }
 
-void delete_array(Array *this) {
-    release_array(this);
+void array_delete(Array *this) {
+    array_release(this);
     free(this);
 }

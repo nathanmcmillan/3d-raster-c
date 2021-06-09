@@ -51,8 +51,8 @@ bool table_is_empty(Table *this);
 bool table_not_empty(Table *this);
 unsigned int table_size(Table *this);
 
-void release_table(Table *this);
-void delete_table(Table *this);
+void table_release(Table *this);
+void table_delete(Table *this);
 
 struct TablePair {
     void *key;

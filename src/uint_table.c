@@ -188,13 +188,13 @@ unsigned int uint_table_size(UIntTable *this) {
     return this->size;
 }
 
-void release_uint_table(UIntTable *this) {
+void uint_table_release(UIntTable *this) {
     uint_table_clear(this);
     free(this->items);
 }
 
-void delete_uint_table(UIntTable *this) {
-    release_uint_table(this);
+void uint_table_delete(UIntTable *this) {
+    uint_table_release(this);
     free(this);
 }
 

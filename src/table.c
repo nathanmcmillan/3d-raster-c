@@ -204,13 +204,13 @@ unsigned int table_size(Table *this) {
     return this->size;
 }
 
-void release_table(Table *this) {
+void table_release(Table *this) {
     table_clear(this);
     free(this->items);
 }
 
-void delete_table(Table *this) {
-    release_table(this);
+void table_delete(Table *this) {
+    table_release(this);
     free(this);
 }
 

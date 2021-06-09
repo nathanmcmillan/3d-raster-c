@@ -50,8 +50,8 @@ Wad *wad_get_required_from_array(Wad *array, unsigned int index);
 TableIter wad_object_iterator(Wad *object);
 unsigned int wad_get_size(Wad *element);
 
-void delete_wad(Wad *element);
-Wad *parse_wad(String *str);
+void wad_delete(Wad *element);
+Wad *wad_parse(String *str);
 
 String *wad_to_string(Wad *element);
 

@@ -197,13 +197,13 @@ unsigned int set_size(set *this) {
     return this->size;
 }
 
-void release_set(set *this) {
+void set_release(set *this) {
     set_clear(this);
     free(this->items);
 }
 
-void delete_set(set *this) {
-    release_set(this);
+void set_delete(set *this) {
+    set_release(this);
     free(this);
 }
 

@@ -48,7 +48,7 @@ bool array_is_empty(Array *this);
 bool array_not_empty(Array *this);
 unsigned int array_size(Array *this);
 
-void release_array(Array *this);
-void delete_array(Array *this);
+void array_release(Array *this);
+void array_delete(Array *this);
 
 #endif
