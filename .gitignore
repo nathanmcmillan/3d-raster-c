@@ -1,7 +1,10 @@
 .vscode/
 build/
 
-SDL2.dll
+.DS_Store
+
+tags
 ctags.opts
 
+SDL2.dll
 compile.bat
