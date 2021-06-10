@@ -59,11 +59,22 @@ static void poll_events() {
     }
 }
 
-static void game_update(Game *game) {
+static void game_call(Game *game, char *call) {
     lua_State *vm = game->vm;
-    lua_getglobal(vm, "update");
-    lua_pcall(vm, 0, 0, 0);
+    lua_getglobal(vm, call);
+    int error = lua_pcall(vm, 0, 0, 0);
+    if (error != LUA_OK) {
+        fprintf(stderr, "lua error: %s\n", lua_tostring(vm, -1));
+    }
     lua_pop(vm, lua_gettop(vm));
+}
+
+static void game_update(Game *game) {
+    game_call(game, "update");
+}
+
+static void game_draw(Game *game) {
+    game_call(game, "draw");
 }
 
 static void window_update(Window *win) {
@@ -81,8 +92,10 @@ static void main_loop(Game *game) {
     while (run) {
         poll_events();
 
-        canvas_clear(canvas);
         game_update(game);
+
+        canvas_clear(canvas);
+        game_draw(game);
         window_update(win);
 
         sleeping(time);
@@ -127,7 +140,7 @@ int main(int argc, char **argv) {
 
     static luaL_Reg graphics[] = {{"rect", vm_canvas_rect}, {NULL, NULL}};
     luaL_newlib(vm, graphics);
-    lua_setglobal(vm, "draw");
+    lua_setglobal(vm, "graphics");
 
     lua_pushlightuserdata(vm, canvas);
     lua_setglobal(vm, "canvas");
@@ -137,11 +150,11 @@ int main(int argc, char **argv) {
     game->vm = vm;
 
     String *font_str = cat("res/tic-80-wide-font.wad");
-    printf("font: %s\n", font_str);
-
     Wad *font_wad = wad_parse(font_str);
 
     Texture *font = new_texture();
+
+    game_call(game, "load");
 
     SDL_StartTextInput();
 
