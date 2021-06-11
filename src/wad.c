@@ -122,7 +122,7 @@ void wad_delete(Wad *element) {
     free(element);
 }
 
-static int parse_wad_skip_whitespace(String *str, usize i) {
+static int skip_space(String *str, usize i) {
     i++;
     char c = str[i];
     if (c != '\n' and c != ' ') {
@@ -171,11 +171,11 @@ Wad *wad_parse(String *str) {
                 string_zero(value);
             }
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == ':') {
             parsing_key = false;
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == ',') {
             if (pc != '}' and pc != ']') {
                 Wad *head = stack->items[0];
@@ -190,7 +190,7 @@ Wad *wad_parse(String *str) {
                 string_zero(value);
             }
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == '{') {
             Wad *map = new_wad_object();
             Wad *head = stack->items[0];
@@ -203,7 +203,7 @@ Wad *wad_parse(String *str) {
             }
             array_insert(stack, 0, map);
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == '[') {
             Wad *ls = new_wad_array();
             Wad *head = stack->items[0];
@@ -216,7 +216,7 @@ Wad *wad_parse(String *str) {
             array_insert(stack, 0, ls);
             parsing_key = false;
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == '}') {
             if (pc != ',' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
                 Wad *head = stack->items[0];
@@ -232,7 +232,7 @@ Wad *wad_parse(String *str) {
                 parsing_key = true;
             }
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (c == ']') {
             if (pc != ',' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
                 Wad *head = stack->items[0];
@@ -247,7 +247,7 @@ Wad *wad_parse(String *str) {
                 parsing_key = true;
             }
             pc = c;
-            i = parse_wad_skip_whitespace(str, i);
+            i = skip_space(str, i);
         } else if (parsing_key) {
             pc = c;
             key = string_append_char(key, c);

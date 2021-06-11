@@ -25,8 +25,8 @@ function Thing:new(world, entity, x, z)
 end
 
 function Thing:update()
-  self.x = self.x + 10
-  self.y = self.y + 12
+  this.x = this.x + 10
+  this.y = this.y + 12
 end
 
 return Thing

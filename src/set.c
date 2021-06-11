@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "set.h"
+#include "Set.h"
 
 static const float LOAD_FACTOR = 0.80f;
 
@@ -32,17 +32,17 @@ unsigned long set_address_hashcode(void *key) {
     return (unsigned long)key;
 }
 
-set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
-    set *this = safe_malloc(sizeof(set));
+Set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
+    Set *this = safe_malloc(sizeof(Set));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
     this->size = 0;
     this->bins = INITIAL_BINS;
-    this->items = safe_calloc(this->bins, sizeof(set_item *));
+    this->items = safe_calloc(this->bins, sizeof(SetItem *));
     return this;
 }
 
-static unsigned int get_bin(set *this, unsigned long hash) {
+static unsigned int get_bin(Set *this, unsigned long hash) {
     return (this->bins - 1) & hash;
 }
 
@@ -50,7 +50,7 @@ static unsigned long hash_mix(unsigned long hash) {
     return hash ^ (hash >> 16);
 }
 
-static void resize(set *this) {
+static void resize(Set *this) {
 
     unsigned int old_bins = this->bins;
     unsigned int bins = old_bins << 1;
@@ -59,21 +59,21 @@ static void resize(set *this) {
         return;
     }
 
-    set_item **old_items = this->items;
-    set_item **items = safe_calloc(bins, sizeof(set_item *));
+    SetItem **old_items = this->items;
+    SetItem **items = safe_calloc(bins, sizeof(SetItem *));
 
     for (unsigned int i = 0; i < old_bins; i++) {
-        set_item *item = old_items[i];
+        SetItem *item = old_items[i];
         if (item == NULL) {
             continue;
         }
         if (item->next == NULL) {
             items[(bins - 1) & item->hash] = item;
         } else {
-            set_item *low_head = NULL;
-            set_item *low_tail = NULL;
-            set_item *high_head = NULL;
-            set_item *high_tail = NULL;
+            SetItem *low_head = NULL;
+            SetItem *low_tail = NULL;
+            SetItem *high_head = NULL;
+            SetItem *high_tail = NULL;
             do {
                 if ((old_bins & item->hash) == 0) {
                     if (low_tail == NULL) {
@@ -111,11 +111,11 @@ static void resize(set *this) {
     this->items = items;
 }
 
-void set_add(set *this, void *key) {
+void set_add(Set *this, void *key) {
     unsigned long hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
-    set_item *item = this->items[bin];
-    set_item *previous = NULL;
+    SetItem *item = this->items[bin];
+    SetItem *previous = NULL;
     while (item != NULL) {
         if (hash == item->hash and this->equals_fn(key, item->key)) {
             return;
@@ -123,7 +123,7 @@ void set_add(set *this, void *key) {
         previous = item;
         item = item->next;
     }
-    item = safe_malloc(sizeof(set_item));
+    item = safe_malloc(sizeof(SetItem));
     item->hash = hash;
     item->key = key;
     item->next = NULL;
@@ -138,10 +138,10 @@ void set_add(set *this, void *key) {
     }
 }
 
-bool set_has(set *this, void *key) {
+bool set_has(Set *this, void *key) {
     unsigned long hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
-    set_item *item = this->items[bin];
+    SetItem *item = this->items[bin];
     while (item != NULL) {
         if (hash == item->hash and this->equals_fn(key, item->key)) {
             return true;
@@ -151,11 +151,11 @@ bool set_has(set *this, void *key) {
     return false;
 }
 
-void set_remove(set *this, void *key) {
+void set_remove(Set *this, void *key) {
     unsigned long hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
-    set_item *item = this->items[bin];
-    set_item *previous = NULL;
+    SetItem *item = this->items[bin];
+    SetItem *previous = NULL;
     while (item != NULL) {
         if (hash == item->hash and this->equals_fn(key, item->key)) {
             if (previous == NULL) {
@@ -171,12 +171,12 @@ void set_remove(set *this, void *key) {
     }
 }
 
-void set_clear(set *this) {
+void set_clear(Set *this) {
     unsigned int bins = this->bins;
     for (unsigned int i = 0; i < bins; i++) {
-        set_item *item = this->items[i];
+        SetItem *item = this->items[i];
         while (item != NULL) {
-            set_item *next = item->next;
+            SetItem *next = item->next;
             free(item);
             item = next;
         }
@@ -185,30 +185,30 @@ void set_clear(set *this) {
     this->size = 0;
 }
 
-bool set_is_empty(set *this) {
+bool set_is_empty(Set *this) {
     return this->size == 0;
 }
 
-bool set_not_empty(set *this) {
+bool set_not_empty(Set *this) {
     return this->size != 0;
 }
 
-unsigned int set_size(set *this) {
+unsigned int set_size(Set *this) {
     return this->size;
 }
 
-void set_release(set *this) {
+void set_release(Set *this) {
     set_clear(this);
     free(this->items);
 }
 
-void set_delete(set *this) {
+void set_delete(Set *this) {
     set_release(this);
     free(this);
 }
 
-set_iterator new_set_iterator(set *this) {
-    set_iterator iter;
+SetIterator new_set_iterator(Set *this) {
+    SetIterator iter;
     iter.pointer = this;
     if (this->size == 0) {
         iter.bin = 0;
@@ -216,7 +216,7 @@ set_iterator new_set_iterator(set *this) {
     } else {
         unsigned int bins = this->bins;
         for (unsigned int i = 0; i < bins; i++) {
-            set_item *start = this->items[i];
+            SetItem *start = this->items[i];
             if (start) {
                 iter.bin = i;
                 iter.item = start;
@@ -227,12 +227,12 @@ set_iterator new_set_iterator(set *this) {
     return iter;
 }
 
-bool set_iterator_has_next(set_iterator *iter) {
+bool set_iterator_has_next(SetIterator *iter) {
     return iter->item;
 }
 
-void *set_iterator_next(set_iterator *iter) {
-    set_item *item = iter->item;
+void *set_iterator_next(SetIterator *iter) {
+    SetItem *item = iter->item;
     if (item == NULL) {
         return NULL;
     }
@@ -242,7 +242,7 @@ void *set_iterator_next(set_iterator *iter) {
         unsigned int bin = iter->bin;
         unsigned int stop = iter->pointer->bins;
         for (bin = bin + 1; bin < stop; bin++) {
-            set_item *start = iter->pointer->items[bin];
+            SetItem *start = iter->pointer->items[bin];
             if (start) {
                 item = start;
                 break;

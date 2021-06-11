@@ -51,6 +51,7 @@ TableIter wad_object_iterator(Wad *object);
 unsigned int wad_get_size(Wad *element);
 
 void wad_delete(Wad *element);
+
 Wad *wad_parse(String *str);
 
 String *wad_to_string(Wad *element);

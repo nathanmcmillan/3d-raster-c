@@ -149,8 +149,11 @@ int main(int argc, char **argv) {
     game->win = win;
     game->vm = vm;
 
-    String *font_str = cat("res/tic-80-wide-font.wad");
+    String *font_str = cat("pack/paint/tic_80_wide_font.wad");
     Wad *font_wad = wad_parse(font_str);
+
+    String *map_str = cat("pack/maps/base.wad");
+    Wad *map_wad = wad_parse(map_str);
 
     Texture *font = new_texture();
 

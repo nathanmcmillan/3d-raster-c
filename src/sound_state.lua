@@ -5,8 +5,8 @@
 local module = {}
 
 function module:load()
-  self.sound_edit = require 'sound_edit'
-  self.sound_edit:load()
+  this.sound_edit = require 'sound_edit'
+  this.sound_edit:load()
 end
 
 return module
