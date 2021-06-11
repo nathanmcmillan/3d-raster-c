@@ -9,21 +9,21 @@ const float wind_resistance = 0.88;
 
 unsigned int thing_unique_id = 0;
 
-void thing_remove_from_cells(thing *this) {
-    world *map = this->map;
+void thing_remove_from_cells(Thing *this) {
+    World *map = this->map;
     for (int r = this->r_min; r <= this->r_max; r++)
         for (int c = this->c_min; c <= this->c_max; c++)
             cell_remove_thing(&map->cells[c + r * map->cell_columns], this);
 }
 
-void thing_add_to_cells(thing *this) {
+void thing_add_to_cells(Thing *this) {
     float box = this->box;
     int c_min = (int)(this->x - box) >> WORLD_CELL_SHIFT;
     int c_max = (int)(this->x + box) >> WORLD_CELL_SHIFT;
     int r_min = (int)(this->z - box) >> WORLD_CELL_SHIFT;
     int r_max = (int)(this->z + box) >> WORLD_CELL_SHIFT;
 
-    world *map = this->map;
+    World *map = this->map;
     for (int r = r_min; r <= r_max; r++)
         for (int c = c_min; c <= c_max; c++)
             cell_add_thing(&map->cells[c + r * map->cell_columns], this);
@@ -34,15 +34,15 @@ void thing_add_to_cells(thing *this) {
     this->r_max = r_max;
 }
 
-bool thing_collision(thing *this, thing *b) {
+bool thing_collision(Thing *this, Thing *b) {
     float block = this->box + b->box;
-    return !(fabs(this->x - b->x) > block || fabs(this->z - b->z) > block);
+    return !(fabs(this->x - b->x) > block or fabs(this->z - b->z) > block);
 }
 
-void thing_resolve_collision(thing *this, thing *b) {
+void thing_resolve_collision(Thing *this, Thing *b) {
     float block = this->box + b->box;
 
-    if (fabs(this->x - b->x) > block || fabs(this->z - b->z) > block)
+    if (fabs(this->x - b->x) > block or fabs(this->z - b->z) > block)
         return;
 
     if (fabs(this->previous_x - b->x) > fabs(this->previous_z - b->z)) {
@@ -62,7 +62,7 @@ void thing_resolve_collision(thing *this, thing *b) {
     }
 }
 
-void thing_line_collision(thing *this, line *ld) {
+void thing_line_collision(Thing *this, Line *ld) {
 
     float box = this->box;
 
@@ -98,7 +98,7 @@ void thing_line_collision(thing *this, line *ld) {
     if (ld->middle != NULL) {
         collision = true;
     } else {
-        if (this->y + this->height > ld->plus->ceiling || this->y + 1.0f < ld->plus->floor) {
+        if (this->y + this->height > ld->plus->ceiling or this->y + 1.0f < ld->plus->floor) {
             collision = true;
         }
     }
@@ -148,13 +148,13 @@ void thing_line_collision(thing *this, line *ld) {
 void thing_nop_update(UNUSED void *this) {
 }
 
-void thing_standard_update(thing *this) {
+void thing_standard_update(Thing *this) {
     if (this->ground) {
         this->dx *= wind_resistance;
         this->dz *= wind_resistance;
     }
 
-    if (FLOAT_NOT_ZERO(this->dx) || FLOAT_NOT_ZERO(this->dz)) {
+    if (FLOAT_NOT_ZERO(this->dx) or FLOAT_NOT_ZERO(this->dz)) {
         this->previous_x = this->x;
         this->previous_z = this->z;
 
@@ -172,13 +172,13 @@ void thing_standard_update(thing *this) {
         Set *collided = new_set(set_address_equal, set_address_hashcode);
         Set *collisions = new_set(set_address_equal, set_address_hashcode);
 
-        world *map = this->map;
+        World *map = this->map;
 
         for (int r = r_min; r <= r_max; r++) {
             for (int c = c_min; c <= c_max; c++) {
-                cell *current_cell = &map->cells[c + r * map->cell_columns];
+                Cell *current_cell = &map->cells[c + r * map->cell_columns];
                 for (int i = 0; i < current_cell->thing_count; i++) {
-                    thing *t = current_cell->things[i];
+                    Thing *t = current_cell->things[i];
 
                     if (set_has(collisions, t))
                         continue;
@@ -194,12 +194,12 @@ void thing_standard_update(thing *this) {
         set_delete(collisions);
 
         while (set_not_empty(collided)) {
-            thing *closest = NULL;
+            Thing *closest = NULL;
             float manhattan = FLT_MAX;
 
             SetIterator iter = new_set_iterator(collided);
             while (set_iterator_has_next(&iter)) {
-                thing *b = set_iterator_next(&iter);
+                Thing *b = set_iterator_next(&iter);
                 float distance = fabs(this->previous_x - b->x) + fabs(this->previous_z - b->z);
                 if (distance < manhattan) {
                     manhattan = distance;
@@ -216,7 +216,7 @@ void thing_standard_update(thing *this) {
 
         for (int r = r_min; r <= r_max; r++) {
             for (int c = c_min; c <= c_max; c++) {
-                cell *current_cell = &this->map->cells[c + r * this->map->cell_columns];
+                Cell *current_cell = &this->map->cells[c + r * this->map->cell_columns];
                 for (int i = 0; i < current_cell->line_count; i++)
                     thing_line_collision(this, current_cell->lines[i]);
             }
@@ -225,7 +225,7 @@ void thing_standard_update(thing *this) {
         thing_add_to_cells(this);
     }
 
-    if (this->ground == false || FLOAT_NOT_ZERO(this->dy)) {
+    if (this->ground == false or FLOAT_NOT_ZERO(this->dy)) {
 
         this->dy -= gravity;
         this->y += this->dy;
@@ -240,7 +240,7 @@ void thing_standard_update(thing *this) {
     }
 }
 
-void thing_initialize(thing *this, world *map, float x, float z, float r, float box, float height) {
+void thing_initialize(Thing *this, World *map, float x, float z, float r, float box, float height) {
 
     this->id = thing_unique_id++;
     this->map = map;

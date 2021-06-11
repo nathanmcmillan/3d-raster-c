@@ -180,7 +180,7 @@ void **list_to_array(List *this) {
     return array;
 }
 
-void list_free(List *this) {
+void list_delete(List *this) {
     do {
         List *node = this->next;
         free(this);

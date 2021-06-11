@@ -48,7 +48,7 @@ usize string_cap(String *s) {
     return head->capacity;
 }
 
-void string_free(String *s) {
+void string_delete(String *s) {
     free((char *)s - sizeof(StringHead));
 }
 

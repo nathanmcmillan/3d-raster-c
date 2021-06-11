@@ -344,7 +344,7 @@ void matrix_multiply_vector3(float *out, float *matrix, float *vec) {
     out[2] = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];
 }
 
-void matrix_multiply_vector4(vec4 *out, float *matrix, vec4 *vec) {
+void matrix_multiply_vector4(Vec4 *out, float *matrix, Vec4 *vec) {
 
     out->x = vec->x * matrix[0] + vec->y * matrix[4] + vec->z * matrix[8] + vec->w * matrix[12];
     out->y = vec->x * matrix[1] + vec->y * matrix[5] + vec->z * matrix[9] + vec->w * matrix[13];
@@ -352,21 +352,21 @@ void matrix_multiply_vector4(vec4 *out, float *matrix, vec4 *vec) {
     out->w = vec->x * matrix[3] + vec->y * matrix[7] + vec->z * matrix[11] + vec->w * matrix[15];
 }
 
-void matrix_look_at(float *matrix, vec3 *eye, vec3 *center) {
+void matrix_look_at(float *matrix, Vec3 *eye, Vec3 *center) {
 
-    vec3 forward = {
+    Vec3 forward = {
         center->x - eye->x,
         center->y - eye->y,
         center->z - eye->z,
     };
     vector3_normalize(&forward);
 
-    vec3 any = {0, 1, 0};
+    Vec3 any = {0, 1, 0};
 
-    vec3 side;
+    Vec3 side;
     VECTOR_3_CROSS(side, forward, any);
 
-    vec3 up;
+    Vec3 up;
     VECTOR_3_CROSS(up, side, forward);
 
     matrix[0] = side.x;
@@ -440,18 +440,18 @@ void matrix_frustum_planes(float *frustum, float *matrix) {
     }
 }
 
-void matrix_frustum_corners(vec4 *corners, float *matrix) {
+void matrix_frustum_corners(Vec4 *corners, float *matrix) {
 
-    corners[0] = (vec4){-1, -1, -1, 1}; // Left  Bottom Near
-    corners[1] = (vec4){1, -1, -1, 1};  // Right Bottom Near
-    corners[2] = (vec4){-1, 1, -1, 1};  // Left  Top    Near
-    corners[3] = (vec4){1, 1, -1, 1};   // Right Top    Near
-    corners[4] = (vec4){-1, -1, 1, 1};  // Left  Bottom Far
-    corners[5] = (vec4){1, -1, 1, 1};   // Right Bottom Far
-    corners[6] = (vec4){-1, 1, 1, 1};   // Left  Top    Far
-    corners[7] = (vec4){1, 1, 1, 1};    // Right Top    Far
+    corners[0] = (Vec4){-1, -1, -1, 1}; // Left  Bottom Near
+    corners[1] = (Vec4){1, -1, -1, 1};  // Right Bottom Near
+    corners[2] = (Vec4){-1, 1, -1, 1};  // Left  Top    Near
+    corners[3] = (Vec4){1, 1, -1, 1};   // Right Top    Near
+    corners[4] = (Vec4){-1, -1, 1, 1};  // Left  Bottom Far
+    corners[5] = (Vec4){1, -1, 1, 1};   // Right Bottom Far
+    corners[6] = (Vec4){-1, 1, 1, 1};   // Left  Top    Far
+    corners[7] = (Vec4){1, 1, 1, 1};    // Right Top    Far
 
-    vec4 transform;
+    Vec4 transform;
     for (int i = 0; i < 8; i++) {
         matrix_multiply_vector4(&transform, matrix, &corners[i]);
         corners[i].x = transform.x / transform.w;

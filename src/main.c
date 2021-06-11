@@ -64,7 +64,7 @@ static void game_call(Game *game, char *call) {
     lua_getglobal(vm, call);
     int error = lua_pcall(vm, 0, 0, 0);
     if (error != LUA_OK) {
-        fprintf(stderr, "lua error: %s\n", lua_tostring(vm, -1));
+        fprintf(stderr, "Lua error: %s\n", lua_tostring(vm, -1));
     }
     lua_pop(vm, lua_gettop(vm));
 }
@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
 
     int error = luaL_dofile(vm, "src/main.lua");
     if (error != LUA_OK) {
-        fprintf(stderr, "lua error: %s\n", lua_tostring(vm, -1));
+        fprintf(stderr, "Lua error: %s\n", lua_tostring(vm, -1));
         exit(1);
     }
 
@@ -154,6 +154,9 @@ int main(int argc, char **argv) {
 
     String *map_str = cat("pack/maps/base.wad");
     Wad *map_wad = wad_parse(map_str);
+    printf("map to string: %s\n", wad_to_string(map_wad));
+    printf("map: %s\n", wad_get_string_from_object(map_wad, "map"));
+    wad_delete(map_wad);
 
     Texture *font = new_texture();
 

@@ -45,6 +45,7 @@ bool wad_get_bool(Wad *element);
 void wad_add_to_object(Wad *element, char *key, Wad *value);
 Wad *wad_get_from_object(Wad *object, char *key);
 Wad *wad_get_required_from_object(Wad *object, char *key);
+String *wad_get_string_from_object(Wad *object, char *key);
 Wad *wad_get_from_array(Wad *array, unsigned int index);
 Wad *wad_get_required_from_array(Wad *array, unsigned int index);
 TableIter wad_object_iterator(Wad *object);

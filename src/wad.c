@@ -87,6 +87,11 @@ Wad *wad_get_required_from_object(Wad *object, char *key) {
     return element;
 }
 
+String *wad_get_string_from_object(Wad *object, char *key) {
+    Wad *element = table_get(wad_get_object(object), key);
+    return wad_get_string(element);
+}
+
 Wad *wad_get_from_array(Wad *array, unsigned int index) {
     return array_get(wad_get_array(array), index);
 }
@@ -117,7 +122,7 @@ void wad_delete(Wad *element) {
     switch (element->type) {
     case WAD_OBJECT: table_delete(wad_get_object(element)); break;
     case WAD_ARRAY: array_delete(wad_get_array(element)); break;
-    case WAD_STRING: string_free(wad_get_string(element)); break;
+    case WAD_STRING: string_delete(wad_get_string(element)); break;
     }
     free(element);
 }
@@ -156,9 +161,14 @@ Wad *wad_parse(String *str) {
 
     for (usize i = 0; i < len; i++) {
         char c = str[i];
-        if (c == '\n') {
-            if (parsing_key) {
-            } else if (pc != '}' and pc != ']') {
+        if (c == '#') {
+            pc = c;
+            i++;
+            while (i < len and str[c] != '\n') {
+                i++;
+            }
+        } else if (c == '\n' or c == ' ') {
+            if (!parsing_key and pc != '}' and pc != ']') {
                 Wad *head = stack->items[0];
                 Wad *child = new_wad_string(value);
                 if (head->type == WAD_ARRAY) {
@@ -172,23 +182,8 @@ Wad *wad_parse(String *str) {
             }
             pc = c;
             i = skip_space(str, i);
-        } else if (c == ':') {
+        } else if (c == '=') {
             parsing_key = false;
-            pc = c;
-            i = skip_space(str, i);
-        } else if (c == ',') {
-            if (pc != '}' and pc != ']') {
-                Wad *head = stack->items[0];
-                Wad *child = new_wad_string(value);
-                if (head->type == WAD_ARRAY) {
-                    array_push(wad_get_array(head), child);
-                } else {
-                    wad_add_to_object(head, key, child);
-                    string_zero(key);
-                    parsing_key = true;
-                }
-                string_zero(value);
-            }
             pc = c;
             i = skip_space(str, i);
         } else if (c == '{') {
@@ -218,7 +213,7 @@ Wad *wad_parse(String *str) {
             pc = c;
             i = skip_space(str, i);
         } else if (c == '}') {
-            if (pc != ',' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
+            if (pc != ' ' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
                 Wad *head = stack->items[0];
                 wad_add_to_object(head, key, new_wad_string(value));
                 string_zero(key);
@@ -234,7 +229,7 @@ Wad *wad_parse(String *str) {
             pc = c;
             i = skip_space(str, i);
         } else if (c == ']') {
-            if (pc != ',' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
+            if (pc != ' ' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
                 Wad *head = stack->items[0];
                 array_push(wad_get_array(head), new_wad_string(value));
                 string_zero(value);
@@ -251,19 +246,38 @@ Wad *wad_parse(String *str) {
         } else if (parsing_key) {
             pc = c;
             key = string_append_char(key, c);
+        } else if (c == '"') {
+            i++;
+            if (i == len)
+                break;
+            char e = str[i];
+            while (i < len) {
+                if (e == '"' or e == '\n') {
+                    break;
+                } else if (e == '\\' and i + 1 < len and str[i + 1] == '"') {
+                    value = string_append_char(value, '"');
+                    i += 2;
+                    e = str[i];
+                } else {
+                    value = string_append_char(value, e);
+                    i++;
+                    e = str[i];
+                }
+            }
+            pc = c;
         } else {
             pc = c;
             value = string_append_char(value, c);
         }
     }
 
-    if (pc != ',' and pc != ']' and pc != '}' and pc != '\n') {
+    if (pc != ' ' and pc != ']' and pc != '}' and pc != '\n') {
         Wad *head = stack->items[0];
         wad_add_to_object(head, key, new_wad_string(value));
     }
 
-    string_free(key);
-    string_free(value);
+    string_delete(key);
+    string_delete(value);
 
     return wad;
 }
@@ -279,15 +293,15 @@ String *wad_to_string(Wad *element) {
             String *in = wad_to_string(pair.value);
             str = string_append(str, pair.key);
             if (in[0] != '[' and in[0] != '{') {
-                str = string_append(str, ":");
+                str = string_append_char(str, '=');
             }
             str = string_append(str, in);
             if (table_iterator_has_next(&iter)) {
-                str = string_append(str, ",");
+                str = string_append_char(str, ' ');
             }
-            string_free(in);
+            string_delete(in);
         }
-        str = string_append(str, "}");
+        str = string_append_char(str, '}');
         return str;
     }
     case WAD_ARRAY: {
@@ -298,11 +312,11 @@ String *wad_to_string(Wad *element) {
             String *in = wad_to_string(ls->items[i]);
             str = string_append(str, in);
             if (i < len - 1) {
-                str = string_append(str, ",");
+                str = string_append_char(str, ' ');
             }
-            string_free(in);
+            string_delete(in);
         }
-        str = string_append(str, "]");
+        str = string_append_char(str, ']');
         return str;
     }
     case WAD_STRING: return string_copy(wad_get_string(element));

@@ -37,7 +37,7 @@ Slice array_to_slice(void *const array, const usize member_size, const usize len
     return data;
 }
 
-void slice_free(const Slice a) {
+void slice_delete(const Slice a) {
     SliceHead *head = slice_get_head(a);
     free(head);
 }

@@ -26,7 +26,7 @@ void euler_to_quaternion(quaternion *out, float x, float y, float z) {
     out[3] = cr * cp * cy + sr * sp * sy;
 }
 
-void quaternion_to_euler(vec3 *out, quaternion *in) {
+void quaternion_to_euler(Vec3 *out, quaternion *in) {
 
     float sinr_cosp = 2.0f * (in[3] * in[0] + in[1] * in[2]);
     float cosr_cosp = 1.0f - 2.0f * (in[0] * in[0] + in[1] * in[1]);

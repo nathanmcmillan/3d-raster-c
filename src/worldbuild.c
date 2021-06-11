@@ -4,7 +4,7 @@
 
 #include "worldbuild.h"
 
-static void build_cell_lines(world *this, line *ld) {
+static void build_cell_lines(World *this, Line *ld) {
 
     double dx = fabs(ld->vb.x - ld->va.x);
     double dy = fabs(ld->vb.y - ld->va.y);
@@ -44,7 +44,7 @@ static void build_cell_lines(world *this, line *ld) {
     }
 
     while (n > 0) {
-        cell *c = &this->cells[(x >> WORLD_CELL_SHIFT) + (y >> WORLD_CELL_SHIFT) * this->cell_columns];
+        Cell *c = &this->cells[(x >> WORLD_CELL_SHIFT) + (y >> WORLD_CELL_SHIFT) * this->cell_columns];
         cell_add_line(c, ld);
 
         if (error > 0) {
@@ -59,7 +59,7 @@ static void build_cell_lines(world *this, line *ld) {
     }
 }
 
-static void build_lines(world *this, sector *sec) {
+static void build_lines(World *this, Sector *sec) {
     int line_count = sec->line_count;
 
     if (line_count == 0) {
@@ -71,8 +71,8 @@ static void build_lines(world *this, sector *sec) {
     float ceil = sec->ceiling;
     float top = sec->top;
 
-    sector *plus;
-    sector *minus;
+    Sector *plus;
+    Sector *minus;
 
     if (sec->outside == NULL) {
         plus = NULL;
@@ -82,13 +82,13 @@ static void build_lines(world *this, sector *sec) {
         minus = sec->outside;
     }
 
-    line **lines = sec->lines;
+    Line **lines = sec->lines;
 
     float u = 0.0;
 
     for (int i = 0; i < line_count; i++) {
 
-        line *ld = lines[i];
+        Line *ld = lines[i];
 
         build_cell_lines(this, ld);
 
@@ -114,24 +114,24 @@ static void build_lines(world *this, sector *sec) {
     }
 }
 
-void world_build_map(world *this) {
+void world_build_map(World *this) {
 
     const int cell_size = 1 << WORLD_CELL_SHIFT;
 
     float top = 0;
     float left = 0;
 
-    sector **sectors = this->sectors;
+    Sector **sectors = this->sectors;
     int sector_count = this->sector_count;
 
     for (int i = 0; i < sector_count; i++) {
-        sector *s = sectors[i];
+        Sector *s = sectors[i];
 
         int vector_count = s->vec_count;
-        vec **vecs = s->vecs;
+        Vec **vecs = s->vecs;
 
         for (int k = 0; k < vector_count; k++) {
-            vec *v = vecs[k];
+            Vec *v = vecs[k];
 
             if (v->x > left) {
                 left = v->x;
@@ -146,9 +146,9 @@ void world_build_map(world *this) {
     Array *sector_inside_lists = safe_calloc(sector_count, sizeof(Array));
 
     for (int i = 0; i < sector_count; i++) {
-        sector *s = sectors[i];
+        Sector *s = sectors[i];
 
-        vec **s_vecs = s->vecs;
+        Vec **s_vecs = s->vecs;
         int s_vec_count = s->vec_count;
 
         Array *s_temp_inside_list = &sector_inside_lists[i];
@@ -159,9 +159,9 @@ void world_build_map(world *this) {
                 continue;
             }
 
-            sector *o = sectors[k];
+            Sector *o = sectors[k];
 
-            vec **o_vecs = o->vecs;
+            Vec **o_vecs = o->vecs;
             int o_vec_count = o->vec_count;
 
             bool contained = true;
@@ -189,14 +189,14 @@ void world_build_map(world *this) {
     }
 
     for (int i = 0; i < sector_count; i++) {
-        sector *s = sectors[i];
+        Sector *s = sectors[i];
         Array *s_temp_inside_list = &sector_inside_lists[i];
         unsigned int s_inside_count = s_temp_inside_list->length;
 
         Array *dead = new_array(0);
 
         for (unsigned int k = 0; k < s_inside_count; k++) {
-            sector *o = s_temp_inside_list->items[k];
+            Sector *o = s_temp_inside_list->items[k];
             int index_of_o;
             for (index_of_o = 0; index_of_o < sector_count; index_of_o++) {
                 if (sectors[index_of_o] == o) {
@@ -215,12 +215,12 @@ void world_build_map(world *this) {
         }
 
         for (unsigned int k = 0; k < s_inside_count; k++) {
-            ((sector *)s_temp_inside_list->items[k])->outside = s;
+            ((Sector *)s_temp_inside_list->items[k])->outside = s;
         }
 
         array_delete(dead);
 
-        s->inside = (sector **)array_copy_items(s_temp_inside_list);
+        s->inside = (Sector **)array_copy_items(s_temp_inside_list);
         s->inside_count = s_temp_inside_list->length;
     }
 
@@ -233,7 +233,7 @@ void world_build_map(world *this) {
     this->cell_rows = (int)ceil(top / cell_size);
     this->cell_columns = (int)ceil(left / cell_size);
     this->cell_count = this->cell_rows * this->cell_columns;
-    this->cells = safe_calloc(this->cell_count, sizeof(cell));
+    this->cells = safe_calloc(this->cell_count, sizeof(Cell));
 
     for (int i = 0; i < sector_count; i++) {
         triangulate_sector(sectors[i], WORLD_SCALE);

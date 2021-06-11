@@ -9,7 +9,6 @@
 
 #include "math_util.h"
 #include "mem.h"
-
 #include "triangle.h"
 #include "vec.h"
 
@@ -18,29 +17,29 @@
 
 extern unsigned int sector_unique_id;
 
-typedef struct line line;
-typedef struct wall wall;
-typedef struct sector sector;
+typedef struct Line Line;
+typedef struct Wall Wall;
+typedef struct Sector Sector;
 
-struct line {
-    sector *plus;
-    sector *minus;
-    vec va;
-    vec vb;
-    wall *top;
-    wall *middle;
-    wall *bottom;
-    vec normal;
+struct Line {
+    Sector *plus;
+    Sector *minus;
+    Vec va;
+    Vec vb;
+    Wall *top;
+    Wall *middle;
+    Wall *bottom;
+    Vec normal;
 };
 
-line *line_init(vec va, vec vb, int low, int mid, int top);
-void line_set_sectors(line *this, sector *plus, sector *minus);
-vec_ok line_intersect(line *this, line *with);
+Line *line_init(Vec va, Vec vb, int low, int mid, int top);
+void line_set_sectors(Line *this, Sector *plus, Sector *minus);
+VecOk line_intersect(Line *this, Line *with);
 
-struct wall {
-    line *ld;
-    vec va;
-    vec vb;
+struct Wall {
+    Line *ld;
+    Vec va;
+    Vec vb;
     float floor;
     float ceiling;
     int texture;
@@ -50,14 +49,14 @@ struct wall {
     float t;
 };
 
-wall *wall_init(line *ld, vec va, vec vb, int texture);
-void wall_set(wall *this, float floor, float ceiling, float u, float v, float s, float t);
+Wall *wall_init(Line *ld, Vec va, Vec vb, int texture);
+void wall_set(Wall *this, float floor, float ceiling, float u, float v, float s, float t);
 
-struct sector {
+struct Sector {
     unsigned int id;
-    vec **vecs;
+    Vec **vecs;
     int vec_count;
-    line **lines;
+    Line **lines;
     int line_count;
     float bottom;
     float floor;
@@ -65,17 +64,17 @@ struct sector {
     float top;
     int floor_texture;
     int ceiling_texture;
-    triangle **triangles;
+    Triangle **triangles;
     int triangle_count;
-    sector **inside;
+    Sector **inside;
     int inside_count;
-    sector *outside;
+    Sector *outside;
 };
 
-sector *sector_init(vec **vecs, int vec_count, line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture);
-bool sector_contains(sector *this, float x, float y);
-sector *sector_find(sector *this, float x, float y);
-bool sector_has_floor(sector *this);
-bool sector_has_ceiling(sector *this);
+Sector *sector_init(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture);
+bool sector_contains(Sector *this, float x, float y);
+Sector *sector_find(Sector *this, float x, float y);
+bool sector_has_floor(Sector *this);
+bool sector_has_ceiling(Sector *this);
 
 #endif

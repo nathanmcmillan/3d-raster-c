@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 
-struct input {
+struct Input {
     int mouse_x;
     int mouse_y;
     bool mouse_down;
@@ -24,6 +24,6 @@ struct input {
     bool console;
 };
 
-typedef struct input input;
+typedef struct Input Input;
 
 #endif

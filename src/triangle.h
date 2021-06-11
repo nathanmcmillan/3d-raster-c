@@ -8,17 +8,16 @@
 #include <stdbool.h>
 
 #include "mem.h"
-
 #include "vec.h"
 
-typedef struct triangle triangle;
+typedef struct Triangle Triangle;
 
-struct triangle {
+struct Triangle {
     float height;
     int texture;
-    vec va;
-    vec vb;
-    vec vc;
+    Vec va;
+    Vec vb;
+    Vec vc;
     float u1;
     float v1;
     float u2;
@@ -28,6 +27,6 @@ struct triangle {
     float normal;
 };
 
-triangle *new_triangle(float height, int texture, vec va, vec vb, vec vc, bool floor, float scale);
+Triangle *new_triangle(float height, int texture, Vec va, Vec vb, Vec vc, bool floor, float scale);
 
 #endif

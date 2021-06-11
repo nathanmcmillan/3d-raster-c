@@ -31,6 +31,6 @@ bool list_is_empty(List *this);
 bool list_not_empty(List *this);
 unsigned int list_size(List *this);
 void **list_to_array(List *this);
-void list_free(List *this);
+void list_delete(List *this);
 
 #endif

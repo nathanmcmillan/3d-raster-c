@@ -11,6 +11,7 @@
 
 #include "math_util.h"
 #include "mem.h"
+#include "pie.h"
 #include "sector.h"
 #include "set.h"
 #include "sprite.h"
@@ -23,82 +24,82 @@ extern const float wind_resistance;
 
 extern unsigned int thing_unique_id;
 
-enum thing_type { THING_TYPE_HERO, THING_TYPE_BARON, THING_TYPE_SCENERY };
+enum ThingType { THING_TYPE_HERO, THING_TYPE_BARON, THING_TYPE_SCENERY };
 
-typedef enum thing_type thing_type;
+typedef enum ThingType ThingType;
 
-typedef struct world world;
-typedef struct cell cell;
-typedef struct thing thing;
-typedef struct particle particle;
-typedef struct decal decal;
+typedef struct World World;
+typedef struct Cell Cell;
+typedef struct Thing Thing;
+typedef struct Particle Particle;
+typedef struct Decal Decal;
 
-struct world {
+struct World {
     char *name;
-    thing **things;
+    Thing **things;
     int thing_cap;
     int thing_count;
-    thing **thing_sprites;
+    Thing **thing_sprites;
     int thing_sprites_cap;
     int thing_sprites_count;
-    thing **thing_models;
+    Thing **thing_models;
     int thing_models_cap;
     int thing_models_count;
-    particle **particles;
+    Particle **particles;
     int particle_cap;
     int particle_count;
-    decal **decals;
+    Decal **decals;
     int decal_cap;
     int decal_count;
-    sector **sectors;
+    Sector **sectors;
     int sector_cap;
     int sector_count;
-    cell *cells;
+    Cell *cells;
     int cell_columns;
     int cell_rows;
     int cell_count;
 };
 
-world *new_world();
+World *new_world();
 
-void world_add_thing(world *this, thing *t);
-void world_remove_thing(world *this, thing *t);
-void world_add_particle(world *this, particle *t);
-void world_remove_particle(world *this, particle *t);
-void world_add_decal(world *this, decal *t);
-void world_remove_decal(world *this, decal *t);
-void world_add_sector(world *this, sector *s);
-sector *world_find_sector(world *this, float x, float y);
-void world_load_map(world *this);
-void world_update(world *this);
+void world_add_thing(World *this, Thing *t);
+void world_remove_thing(World *this, Thing *t);
+void world_add_particle(World *this, Particle *t);
+void world_remove_particle(World *this, Particle *t);
+void world_add_decal(World *this, Decal *t);
+void world_remove_decal(World *this, Decal *t);
+void world_add_sector(World *this, Sector *s);
+Sector *world_find_sector(World *this, float x, float y);
+void world_load_map(World *this);
+void world_update(World *this);
 
-struct cell {
-    line **lines;
+struct Cell {
+    Line **lines;
     int line_count;
-    thing **things;
+    Thing **things;
     int thing_cap;
     int thing_count;
-    particle **particles;
+    Particle **particles;
     int particle_cap;
     int particle_count;
-    decal **decals;
+    Decal **decals;
     int decal_cap;
     int decal_count;
 };
 
-void cell_add_line(cell *this, line *ld);
-void cell_add_thing(cell *this, thing *t);
-void cell_remove_thing(cell *this, thing *t);
-void cell_add_particle(cell *this, particle *t);
-void cell_remove_particle(cell *this, particle *t);
-void cell_add_decal(cell *this, decal *t);
-void cell_remove_decal(cell *this, decal *t);
+void cell_add_line(Cell *this, Line *ld);
+void cell_add_thing(Cell *this, Thing *t);
+void cell_remove_thing(Cell *this, Thing *t);
+void cell_add_particle(Cell *this, Particle *t);
+void cell_remove_particle(Cell *this, Particle *t);
+void cell_add_decal(Cell *this, Decal *t);
+void cell_remove_decal(Cell *this, Decal *t);
 
-struct thing {
+struct Thing {
     unsigned int id;
-    thing_type type;
-    world *map;
-    sector *sec;
+    ThingType type;
+    World *map;
+    Sector *sec;
     int health;
     float box;
     float height;
@@ -119,16 +120,16 @@ struct thing {
     int c_max;
     int r_max;
     int sprite_id;
-    sprite *sprite_data;
+    Sprite *sprite_data;
     void (*update)(void *);
 };
 
-void thing_initialize(thing *this, world *map, float x, float y, float r, float box, float height);
-void thing_block_borders(thing *this);
+void thing_initialize(Thing *this, World *map, float x, float y, float r, float box, float height);
+void thing_block_borders(Thing *this);
 void thing_nop_update(void *this);
-void thing_standard_update(thing *this);
+void thing_standard_update(Thing *this);
 
-struct particle {
+struct Particle {
     float box;
     float height;
     float x;
@@ -138,19 +139,19 @@ struct particle {
     float dy;
     float dz;
     int texture;
-    sprite *sprite_data;
-    world *map;
-    sector *sec;
+    Sprite *sprite_data;
+    World *map;
+    Sector *sec;
     bool (*update)(void *);
 };
 
-particle *new_particle(world *map, float x, float y, float z, float box, float height);
-void particle_hit_floor(particle *this);
-void particle_hit_ceiling(particle *this);
-bool particle_line_collision(particle *this, line *ld);
-bool particle_map_collision(particle *this);
+Particle *new_particle(World *map, float x, float y, float z, float box, float height);
+void particle_hit_floor(Particle *this);
+void particle_hit_ceiling(Particle *this);
+bool particle_line_collision(Particle *this, Line *ld);
+bool particle_map_collision(Particle *this);
 
-struct decal {
+struct Decal {
     float x1;
     float y1;
     float z1;
@@ -177,6 +178,6 @@ struct decal {
     int texture;
 };
 
-decal *new_decal(world *map);
+Decal *new_decal(World *map);
 
 #endif

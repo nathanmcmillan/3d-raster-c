@@ -28,7 +28,7 @@ PACK(struct SliceHead {
 Slice slice_init(const usize member_size, const usize length, const usize capacity);
 Slice slice_simple_init(const usize member_size, const usize length);
 Slice array_to_slice(void *const array, const usize member_size, const usize length);
-void slice_free(const Slice a);
+void slice_delete(const Slice a);
 usize slice_len_size(const Slice a);
 int slice_len(const Slice a);
 usize slice_cap_size(const Slice a);

@@ -32,7 +32,7 @@ String *string_copy(String *this);
 
 usize string_len(String *s);
 usize string_cap(String *s);
-void string_free(String *s);
+void string_delete(String *s);
 
 String *string_concat(String *a, String *b);
 String *string_concat_list(String **list, int size);

@@ -6,8 +6,8 @@
 
 unsigned int sector_unique_id = 0;
 
-sector *sector_init(vec **vecs, int vec_count, line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture) {
-    sector *s = safe_calloc(1, sizeof(sector));
+Sector *sector_init(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture) {
+    Sector *s = safe_calloc(1, sizeof(Sector));
     s->id = sector_unique_id++;
     s->vecs = vecs;
     s->vec_count = vec_count;
@@ -22,14 +22,14 @@ sector *sector_init(vec **vecs, int vec_count, line **lines, int line_count, flo
     return s;
 }
 
-bool sector_contains(sector *this, float x, float y) {
+bool sector_contains(Sector *this, float x, float y) {
     bool odd = false;
-    vec **vecs = this->vecs;
+    Vec **vecs = this->vecs;
     int count = this->vec_count;
     int j = count - 1;
     for (int i = 0; i < count; i++) {
-        vec *vi = vecs[i];
-        vec *vj = vecs[j];
+        Vec *vi = vecs[i];
+        Vec *vj = vecs[j];
 
         if ((vi->y > y) != (vj->y > y)) {
             float value = (vj->x - vi->x) * (y - vi->y) / (vj->y - vi->y) + vi->x;
@@ -43,11 +43,11 @@ bool sector_contains(sector *this, float x, float y) {
     return odd;
 }
 
-sector *sector_find(sector *this, float x, float y) {
-    sector **inside = this->inside;
+Sector *sector_find(Sector *this, float x, float y) {
+    Sector **inside = this->inside;
     int count = this->inside_count;
     for (int i = 0; i < count; i++) {
-        sector *s = inside[i];
+        Sector *s = inside[i];
         if (sector_contains(s, x, y)) {
             return sector_find(s, x, y);
         }
@@ -55,10 +55,10 @@ sector *sector_find(sector *this, float x, float y) {
     return this;
 }
 
-bool sector_has_floor(sector *this) {
+bool sector_has_floor(Sector *this) {
     return this->floor_texture != SECTOR_NO_SURFACE;
 }
 
-bool sector_has_ceiling(sector *this) {
+bool sector_has_ceiling(Sector *this) {
     return this->ceiling_texture != SECTOR_NO_SURFACE;
 }

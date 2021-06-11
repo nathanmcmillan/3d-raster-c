@@ -4,8 +4,8 @@
 
 #include "triangle.h"
 
-triangle *new_triangle(float height, int texture, vec va, vec vb, vec vc, bool floor, float scale) {
-    triangle *td = safe_malloc(sizeof(triangle));
+Triangle *new_triangle(float height, int texture, Vec va, Vec vb, Vec vc, bool floor, float scale) {
+    Triangle *td = safe_malloc(sizeof(Triangle));
     td->height = height;
     td->texture = texture;
     td->va = va;

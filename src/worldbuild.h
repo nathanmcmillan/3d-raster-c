@@ -15,6 +15,6 @@
 
 #include "world.h"
 
-void world_build_map(world *this);
+void world_build_map(World *this);
 
 #endif

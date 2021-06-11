@@ -13,12 +13,12 @@
 #include "list.h"
 #include "math_util.h"
 #include "mem.h"
-
+#include "pie.h"
 #include "sector.h"
 #include "vec.h"
 
 // #define TRIANGULATE_DEBUG
 
-void triangulate_sector(sector *s, float scale);
+void triangulate_sector(Sector *s, float scale);
 
 #endif

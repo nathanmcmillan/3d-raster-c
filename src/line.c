@@ -4,8 +4,8 @@
 
 #include "sector.h"
 
-line *line_init(vec va, vec vb, int low, int mid, int top) {
-    line *ld = safe_calloc(1, sizeof(line));
+Line *line_init(Vec va, Vec vb, int low, int mid, int top) {
+    Line *ld = safe_calloc(1, sizeof(Line));
     ld->va = va;
     ld->vb = vb;
     if (low >= 0) {
@@ -20,16 +20,16 @@ line *line_init(vec va, vec vb, int low, int mid, int top) {
     return ld;
 }
 
-void line_set_sectors(line *this, sector *plus, sector *minus) {
+void line_set_sectors(Line *this, Sector *plus, Sector *minus) {
     this->plus = plus;
     this->minus = minus;
     float x = this->va.y - this->vb.y;
     float y = -(this->va.x - this->vb.x);
     float m = sqrt(x * x + y * y);
-    this->normal = (vec){x / m, y / m};
+    this->normal = (Vec){x / m, y / m};
 }
 
-vec_ok line_intersect(line *this, line *with) {
+VecOk line_intersect(Line *this, Line *with) {
     float a1 = this->vb.y - this->va.y;
     float b1 = this->va.x - this->vb.x;
     float c1 = (this->vb.x * this->va.y) - (this->va.x * this->vb.y);
@@ -37,8 +37,8 @@ vec_ok line_intersect(line *this, line *with) {
     float r3 = (a1 * with->va.x) + (b1 * with->va.y) + c1;
     float r4 = (a1 * with->vb.x) + (b1 * with->vb.y) + c1;
 
-    if (FLOAT_NOT_ZERO(r3) && FLOAT_NOT_ZERO(r4) && r3 * r4 >= 0) {
-        return (vec_ok){{0, 0}, false};
+    if (FLOAT_NOT_ZERO(r3) and FLOAT_NOT_ZERO(r4) and r3 * r4 >= 0) {
+        return (VecOk){{0, 0}, false};
     }
 
     float a2 = with->vb.y - with->va.y;
@@ -48,14 +48,14 @@ vec_ok line_intersect(line *this, line *with) {
     float r1 = (a2 * this->va.x) + (b2 * this->va.y) + c2;
     float r2 = (a2 * this->vb.x) + (b2 * this->vb.y) + c2;
 
-    if (FLOAT_NOT_ZERO(r1) && FLOAT_NOT_ZERO(r2) && r1 * r2 >= 0) {
-        return (vec_ok){{0, 0}, false};
+    if (FLOAT_NOT_ZERO(r1) and FLOAT_NOT_ZERO(r2) and r1 * r2 >= 0) {
+        return (VecOk){{0, 0}, false};
     }
 
     float denominator = (a1 * b2) - (a2 * b1);
 
     if (FLOAT_ZERO(denominator)) {
-        return (vec_ok){{0, 0}, false};
+        return (VecOk){{0, 0}, false};
     }
 
     float offset;
@@ -85,5 +85,5 @@ vec_ok line_intersect(line *this, line *with) {
         y = (number + offset) / denominator;
     }
 
-    return (vec_ok){{x, y}, true};
+    return (VecOk){{x, y}, true};
 }

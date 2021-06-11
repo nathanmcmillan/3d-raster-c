@@ -4,17 +4,17 @@
 
 #include "vector.h"
 
-float vector3_dot(vec3 *a, vec3 *b) {
+float vector3_dot(Vec3 *a, Vec3 *b) {
     return a->x * b->x + a->y * b->y + a->z * b->z;
 }
 
-void vector3_cross(vec3 *cross, vec3 *a, vec3 *b) {
+void vector3_cross(Vec3 *cross, Vec3 *a, Vec3 *b) {
     cross->x = a->y * b->z - a->z * b->y;
     cross->y = a->z * b->x - a->x * b->z;
     cross->z = a->x * b->y - a->y * b->x;
 }
 
-void vector3_normalize(vec3 *vec) {
+void vector3_normalize(Vec3 *vec) {
     float magnitude = sqrtf(vec->x * vec->x + vec->y * vec->y + vec->z * vec->z);
     float multiple = 1.0f / magnitude;
     vec->x *= multiple;

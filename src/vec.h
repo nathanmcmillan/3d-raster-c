@@ -9,24 +9,25 @@
 
 #include "math_util.h"
 #include "mem.h"
+#include "pie.h"
 
-typedef struct vec vec;
+typedef struct Vec Vec;
 
-struct vec {
+struct Vec {
     float x;
     float y;
 };
 
-typedef struct vec_ok vec_ok;
+typedef struct VecOk VecOk;
 
-struct vec_ok {
-    vec v;
+struct VecOk {
+    Vec v;
     bool ok;
 };
 
-vec *vec_init(float x, float y);
-vec *vec_copy(vec *with);
-vec vec_of(vec *with);
-bool vec_intersect(vec *va, vec *vb, vec *vc, vec *vd);
+Vec *vec_init(float x, float y);
+Vec *vec_copy(Vec *with);
+Vec vec_of(Vec *with);
+bool vec_intersect(Vec *va, Vec *vb, Vec *vc, Vec *vd);
 
 #endif
