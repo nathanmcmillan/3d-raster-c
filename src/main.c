@@ -16,7 +16,7 @@ static void window_init(SDL_Window **win, SDL_Renderer **ren) {
         exit(1);
     }
 
-    Uint32 window_flags = SDL_WINDOW_SHOWN;
+    u32 window_flags = SDL_WINDOW_SHOWN;
     SDL_Window *window = SDL_CreateWindow("Scroll and Sigil", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, window_flags);
 
     if (window == NULL) {
@@ -26,7 +26,7 @@ static void window_init(SDL_Window **win, SDL_Renderer **ren) {
 
     *win = window;
 
-    Uint32 renderer_flags = SDL_RENDERER_TARGETTEXTURE;
+    u32 renderer_flags = SDL_RENDERER_TARGETTEXTURE;
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, renderer_flags);
 
     if (renderer == NULL) {
@@ -44,14 +44,50 @@ static void sleeping(u32 time) {
     }
 }
 
-static void poll_events() {
+static void poll_events(Input *in) {
     SDL_Event event;
     while (SDL_PollEvent(&event) != 0) {
         switch (event.type) {
         case SDL_QUIT: run = false; break;
+        case SDL_MOUSEBUTTONUP: {
+            SDL_GetMouseState(&in->mouse_x, &in->mouse_y);
+            in->mouse_down = false;
+            break;
+        }
+        case SDL_MOUSEBUTTONDOWN: {
+            SDL_GetMouseState(&in->mouse_x, &in->mouse_y);
+            in->mouse_down = true;
+            break;
+        }
+        case SDL_KEYUP: {
+            switch (event.key.keysym.sym) {
+            case SDLK_w: in->move_forward = false; break;
+            case SDLK_a: in->move_left = false; break;
+            case SDLK_s: in->move_backward = false; break;
+            case SDLK_d: in->move_right = false; break;
+            case SDLK_q: in->move_up = false; break;
+            case SDLK_e: in->move_down = false; break;
+            case SDLK_UP: in->look_up = false; break;
+            case SDLK_DOWN: in->look_down = false; break;
+            case SDLK_LEFT: in->look_left = false; break;
+            case SDLK_RIGHT: in->look_right = false; break;
+            }
+            break;
+        }
         case SDL_KEYDOWN: {
             switch (event.key.keysym.sym) {
             case SDLK_ESCAPE: run = false; break;
+            case SDLK_w: in->move_forward = true; break;
+            case SDLK_a: in->move_left = true; break;
+            case SDLK_s: in->move_backward = true; break;
+            case SDLK_d: in->move_right = true; break;
+            case SDLK_q: in->move_up = true; break;
+            case SDLK_e: in->move_down = true; break;
+            case SDLK_UP: in->look_up = true; break;
+            case SDLK_DOWN: in->look_down = true; break;
+            case SDLK_LEFT: in->look_left = true; break;
+            case SDLK_RIGHT: in->look_right = true; break;
+            case SDLK_TAB: in->console = true; break;
             }
             break;
         }
@@ -70,11 +106,29 @@ static void game_call(Game *game, char *call) {
 }
 
 static void game_update(Game *game) {
+    game->update(game->state);
     game_call(game, "update");
 }
 
 static void game_draw(Game *game) {
+    game->draw(game->state);
     game_call(game, "draw");
+}
+
+static void game_load(Game *game) {
+
+    String *font_str = cat("pack/paint/tic_80_wide_font.wad");
+    Wad *font_wad = wad_parse(font_str);
+
+    String *map_str = cat("pack/maps/base.wad");
+    Wad *map_wad = wad_parse(map_str);
+    printf("map to string: %s\n", wad_to_string(map_wad));
+    printf("map: %s\n", wad_get_string_from_object(map_wad, "map"));
+    wad_delete(map_wad);
+
+    Texture *font = new_texture();
+
+    game_call(game, "load");
 }
 
 static void window_update(Window *win) {
@@ -90,7 +144,7 @@ static void main_loop(Game *game) {
     u32 time = SDL_GetTicks();
 
     while (run) {
-        poll_events();
+        poll_events(&game->in);
 
         game_update(game);
 
@@ -103,6 +157,16 @@ static void main_loop(Game *game) {
 
         time = SDL_GetTicks();
     }
+}
+
+static void game_delete(Game *game) {
+
+    lua_close(game->vm);
+
+    free(game->win->canvas->pixels);
+    free(game->win->canvas);
+    free(game->win);
+    free(game);
 }
 
 int main(int argc, char **argv) {
@@ -148,19 +212,12 @@ int main(int argc, char **argv) {
     Game *game = safe_calloc(sizeof(Game), 1);
     game->win = win;
     game->vm = vm;
+    game->game = new_game_state();
+    game->state = game->game;
+    game->update = game_state_update;
+    game->draw = game_state_draw;
 
-    String *font_str = cat("pack/paint/tic_80_wide_font.wad");
-    Wad *font_wad = wad_parse(font_str);
-
-    String *map_str = cat("pack/maps/base.wad");
-    Wad *map_wad = wad_parse(map_str);
-    printf("map to string: %s\n", wad_to_string(map_wad));
-    printf("map: %s\n", wad_get_string_from_object(map_wad, "map"));
-    wad_delete(map_wad);
-
-    Texture *font = new_texture();
-
-    game_call(game, "load");
+    game_load(game);
 
     SDL_StartTextInput();
 
@@ -172,12 +229,7 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    lua_close(vm);
-
-    free(canvas->pixels);
-    free(canvas);
-    free(win);
-    free(game);
+    game_delete(game);
 
     return 0;
 }

@@ -19,7 +19,9 @@
 
 #include "canvas.h"
 #include "fileio.h"
+#include "input.h"
 #include "pie.h"
+#include "state.h"
 #include "texture.h"
 #include "wad.h"
 
@@ -36,6 +38,12 @@ struct Window {
 struct Game {
     Window *win;
     lua_State *vm;
+    Input in;
+    GameState *game;
+    PaintState *paint;
+    void *state;
+    void (*update)(void *);
+    void (*draw)(void *);
 };
 
 #endif

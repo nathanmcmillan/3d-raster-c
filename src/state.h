@@ -12,20 +12,32 @@
 #include "world.h"
 #include "worldbuild.h"
 
-typedef struct State State;
+typedef struct GameState GameState;
+typedef struct PaintState PaintState;
 
-struct State {
-    Input in;
+struct GameState {
+    Input *in;
     World *w;
     Camera *c;
     Thing *h;
 };
 
-State *new_state(World *w);
+GameState *new_game_state();
 
-void state_update(State *this);
-void state_render(State *this);
+void game_state_update(void *this);
+void game_state_draw(void *this);
 
-void state_delete(State *this);
+void game_state_delete(GameState *this);
+
+struct PaintState {
+    Input *in;
+};
+
+PaintState *new_paint_state();
+
+void paint_state_update(void *this);
+void paint_state_draw(void *this);
+
+void paint_state_delete(PaintState *this);
 
 #endif
