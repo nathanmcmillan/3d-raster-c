@@ -17,8 +17,6 @@
 #include "sector.h"
 #include "vec.h"
 
-// #define TRIANGULATE_DEBUG
-
 void triangulate_sector(Sector *s, float scale);
 
 #endif

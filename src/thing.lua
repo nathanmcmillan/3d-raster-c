@@ -6,27 +6,27 @@ local Thing = {}
 Thing.__index = Thing
 
 function Thing:new(world, entity, x, z)
-  local this = {}
-  setmetatable(this, Thing)
-  this.world = world
-  this.entity = entity
-  this.sector = nil
-  this.floor = 0.0
-  this.ceiling = 0.0
-  this.x = x
-  this.z = z
-  this.previousX = x
-  this.previousZ = z
-  this.y = 0.0
-  this.delta_x = 0.0
-  this.delta_y = 0.0
-  this.delta_z = 0.0
-  return this
+  local t = {}
+  setmetatable(t, Thing)
+  t.world = world
+  t.entity = entity
+  t.sector = nil
+  t.floor = 0.0
+  t.ceiling = 0.0
+  t.x = x
+  t.z = z
+  t.previousX = x
+  t.previousZ = z
+  t.y = 0.0
+  t.delta_x = 0.0
+  t.delta_y = 0.0
+  t.delta_z = 0.0
+  return t
 end
 
 function Thing:update()
-  this.x = this.x + 10
-  this.y = this.y + 12
+  self.x = self.x + 10
+  self.y = self.y + 12
 end
 
 return Thing

@@ -10,7 +10,7 @@
 
 #include "math_util.h"
 
-#include "vector.h"
+#include "vec.h"
 
 void matrix_print(float *matrix);
 void matrix_identity(float *matrix);

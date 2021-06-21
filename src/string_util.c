@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "strings.h"
+#include "string_util.h"
 
 static StringHead *string_head_init(usize length, usize capacity) {
     usize memory = sizeof(StringHead) + length + 1;

@@ -17,12 +17,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "assets.h"
 #include "canvas.h"
 #include "fileio.h"
 #include "input.h"
+#include "log.h"
+#include "paint.h"
 #include "pie.h"
 #include "state.h"
-#include "texture.h"
 #include "wad.h"
 
 typedef struct Window Window;
@@ -38,7 +40,7 @@ struct Window {
 struct Game {
     Window *win;
     lua_State *vm;
-    Input in;
+    Input input;
     GameState *game;
     PaintState *paint;
     void *state;

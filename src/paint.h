@@ -2,19 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#ifndef WORLD_BUILD_H
-#define WORLD_BUILD_H
+#ifndef PAINT_H
+#define PAINT_H
 
-#include <float.h>
-#include <math.h>
-
-#include "array.h"
 #include "mem.h"
-#include "sector.h"
-#include "triangulate.h"
+#include "pie.h"
 
-#include "world.h"
+typedef struct Paint Paint;
 
-void world_build_map(World *this);
+struct Paint {
+    i32 width;
+    i32 height;
+    u8 *pixels;
+};
+
+Paint *new_paint();
 
 #endif

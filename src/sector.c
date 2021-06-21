@@ -6,7 +6,7 @@
 
 unsigned int sector_unique_id = 0;
 
-Sector *sector_init(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture) {
+Sector *new_sector(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_paint, int ceiling_paint) {
     Sector *s = safe_calloc(1, sizeof(Sector));
     s->id = sector_unique_id++;
     s->vecs = vecs;
@@ -17,8 +17,8 @@ Sector *sector_init(Vec **vecs, int vec_count, Line **lines, int line_count, flo
     s->floor = floor;
     s->ceiling = ceiling;
     s->top = top;
-    s->floor_texture = floor_texture;
-    s->ceiling_texture = ceiling_texture;
+    s->floor_paint = floor_paint;
+    s->ceiling_paint = ceiling_paint;
     return s;
 }
 
@@ -56,9 +56,57 @@ Sector *sector_find(Sector *this, float x, float y) {
 }
 
 bool sector_has_floor(Sector *this) {
-    return this->floor_texture != SECTOR_NO_SURFACE;
+    return this->floor_paint != SECTOR_NO_SURFACE;
 }
 
 bool sector_has_ceiling(Sector *this) {
-    return this->ceiling_texture != SECTOR_NO_SURFACE;
+    return this->ceiling_paint != SECTOR_NO_SURFACE;
+}
+
+void sector_inside_outside(Sector **sectors, int sector_count) {
+
+    Array *sector_inside_lists = safe_calloc(sector_count, sizeof(Array));
+
+    for (int i = 0; i < sector_count; i++) {
+        Sector *s = sectors[i];
+
+        Vec **s_vecs = s->vecs;
+        int s_vec_count = s->vec_count;
+
+        Array *s_temp_inside_list = &sector_inside_lists[i];
+        array_init(s_temp_inside_list, 0);
+
+        for (int k = 0; k < sector_count; k++) {
+            if (k == i) {
+                continue;
+            }
+
+            Sector *o = sectors[k];
+
+            Vec **o_vecs = o->vecs;
+            int o_vec_count = o->vec_count;
+
+            bool contained = true;
+
+            for (int w = 0; w < o_vec_count; w++) {
+
+                for (int c = 0; c < s_vec_count; c++) {
+                    if (s_vecs[c] == o_vecs[w]) {
+                        contained = false;
+                        goto label_contained;
+                    }
+                }
+
+                if (!sector_contains(s, o_vecs[w]->x, o_vecs[w]->y)) {
+                    contained = false;
+                    goto label_contained;
+                }
+            }
+
+        label_contained:
+            if (contained) {
+                array_push(s_temp_inside_list, o);
+            }
+        }
+    }
 }

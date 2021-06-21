@@ -4,58 +4,58 @@
 
 #include "sector.h"
 
-Line *line_init(Vec va, Vec vb, int low, int mid, int top) {
-    Line *ld = safe_calloc(1, sizeof(Line));
-    ld->va = va;
-    ld->vb = vb;
+Line *new_line(Vec *a, Vec *b, int low, int mid, int top) {
+    Line *line = safe_calloc(1, sizeof(Line));
+    line->a = a;
+    line->b = b;
     if (low >= 0) {
-        ld->bottom = wall_init(ld, va, vb, low);
+        line->bottom = new_wall(a, b, low);
     }
     if (mid >= 0) {
-        ld->middle = wall_init(ld, va, vb, mid);
+        line->middle = new_wall(a, b, mid);
     }
     if (top >= 0) {
-        ld->top = wall_init(ld, va, vb, top);
+        line->top = new_wall(a, b, top);
     }
-    return ld;
+    return line;
 }
 
 void line_set_sectors(Line *this, Sector *plus, Sector *minus) {
     this->plus = plus;
     this->minus = minus;
-    float x = this->va.y - this->vb.y;
-    float y = -(this->va.x - this->vb.x);
+    float x = this->a->y - this->b->y;
+    float y = -(this->a->x - this->b->x);
     float m = sqrt(x * x + y * y);
     this->normal = (Vec){x / m, y / m};
 }
 
-VecOk line_intersect(Line *this, Line *with) {
-    float a1 = this->vb.y - this->va.y;
-    float b1 = this->va.x - this->vb.x;
-    float c1 = (this->vb.x * this->va.y) - (this->va.x * this->vb.y);
+MaybeVec line_intersect(Line *this, Line *with) {
+    float a1 = this->b->y - this->a->y;
+    float b1 = this->a->x - this->b->x;
+    float c1 = (this->b->x * this->a->y) - (this->a->x * this->b->y);
 
-    float r3 = (a1 * with->va.x) + (b1 * with->va.y) + c1;
-    float r4 = (a1 * with->vb.x) + (b1 * with->vb.y) + c1;
+    float r3 = (a1 * with->a->x) + (b1 * with->a->y) + c1;
+    float r4 = (a1 * with->b->x) + (b1 * with->b->y) + c1;
 
     if (FLOAT_NOT_ZERO(r3) and FLOAT_NOT_ZERO(r4) and r3 * r4 >= 0) {
-        return (VecOk){{0, 0}, false};
+        return (MaybeVec){{0, 0}, false};
     }
 
-    float a2 = with->vb.y - with->va.y;
-    float b2 = with->va.x - with->vb.x;
-    float c2 = (with->vb.x * with->va.y) - (with->va.x * with->vb.y);
+    float a2 = with->b->y - with->a->y;
+    float b2 = with->a->x - with->b->x;
+    float c2 = (with->b->x * with->a->y) - (with->a->x * with->b->y);
 
-    float r1 = (a2 * this->va.x) + (b2 * this->va.y) + c2;
-    float r2 = (a2 * this->vb.x) + (b2 * this->vb.y) + c2;
+    float r1 = (a2 * this->a->x) + (b2 * this->a->y) + c2;
+    float r2 = (a2 * this->b->x) + (b2 * this->b->y) + c2;
 
     if (FLOAT_NOT_ZERO(r1) and FLOAT_NOT_ZERO(r2) and r1 * r2 >= 0) {
-        return (VecOk){{0, 0}, false};
+        return (MaybeVec){{0, 0}, false};
     }
 
     float denominator = (a1 * b2) - (a2 * b1);
 
     if (FLOAT_ZERO(denominator)) {
-        return (VecOk){{0, 0}, false};
+        return (MaybeVec){{0, 0}, false};
     }
 
     float offset;
@@ -85,5 +85,5 @@ VecOk line_intersect(Line *this, Line *with) {
         y = (number + offset) / denominator;
     }
 
-    return (VecOk){{x, y}, true};
+    return (MaybeVec){{x, y}, true};
 }

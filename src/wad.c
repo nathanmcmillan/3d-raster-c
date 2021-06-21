@@ -7,7 +7,7 @@
 Wad *new_wad_object() {
     Wad *e = safe_calloc(1, sizeof(Wad));
     e->type = WAD_OBJECT;
-    e->value.object = new_table(&table_string_equal, &table_string_hashcode);
+    e->value.object = new_string_table();
     return e;
 }
 
@@ -46,7 +46,7 @@ String *wad_get_string(Wad *element) {
     return element->value.str;
 }
 
-int wad_get_integer(Wad *element) {
+int wad_get_int(Wad *element) {
     if (element == NULL) {
         return 0;
     }
@@ -90,6 +90,11 @@ Wad *wad_get_required_from_object(Wad *object, char *key) {
 String *wad_get_string_from_object(Wad *object, char *key) {
     Wad *element = table_get(wad_get_object(object), key);
     return wad_get_string(element);
+}
+
+WadArray *wad_get_array_from_object(Wad *object, char *key) {
+    Wad *element = table_get(wad_get_object(object), key);
+    return wad_get_array(element);
 }
 
 Wad *wad_get_from_array(Wad *array, unsigned int index) {
@@ -144,7 +149,7 @@ static int skip_space(String *str, usize i) {
     return i - 1;
 }
 
-Wad *wad_parse(String *str) {
+MaybeWad wad_parse(String *str) {
 
     Wad *wad = new_wad_object();
 
@@ -279,7 +284,7 @@ Wad *wad_parse(String *str) {
     string_delete(key);
     string_delete(value);
 
-    return wad;
+    return (MaybeWad){wad, NULL};
 }
 
 String *wad_to_string(Wad *element) {

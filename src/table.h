@@ -39,6 +39,8 @@ bool table_address_equal(void *a, void *b);
 unsigned long table_address_hashcode(void *key);
 
 Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
+Table *new_string_table();
+Table *new_pointer_table();
 
 void table_put(Table *this, void *key, void *value);
 void *table_get(Table *this, void *key);

@@ -7,6 +7,7 @@
 
 #include <math.h>
 
+#include "array.h"
 #include "math_util.h"
 #include "mem.h"
 #include "triangle.h"
@@ -24,32 +25,32 @@ typedef struct Sector Sector;
 struct Line {
     Sector *plus;
     Sector *minus;
-    Vec va;
-    Vec vb;
+    Vec *a;
+    Vec *b;
     Wall *top;
     Wall *middle;
     Wall *bottom;
     Vec normal;
 };
 
-Line *line_init(Vec va, Vec vb, int low, int mid, int top);
+Line *new_line(Vec *a, Vec *b, int low, int mid, int top);
 void line_set_sectors(Line *this, Sector *plus, Sector *minus);
-VecOk line_intersect(Line *this, Line *with);
+MaybeVec line_intersect(Line *this, Line *with);
 
 struct Wall {
-    Line *ld;
-    Vec va;
-    Vec vb;
+    Vec *a;
+    Vec *b;
+    Vec normal;
+    int texture;
     float floor;
     float ceiling;
-    int texture;
     float u;
     float v;
     float s;
     float t;
 };
 
-Wall *wall_init(Line *ld, Vec va, Vec vb, int texture);
+Wall *new_wall(Vec *a, Vec *b, int texture);
 void wall_set(Wall *this, float floor, float ceiling, float u, float v, float s, float t);
 
 struct Sector {
@@ -62,8 +63,8 @@ struct Sector {
     float floor;
     float ceiling;
     float top;
-    int floor_texture;
-    int ceiling_texture;
+    int floor_paint;
+    int ceiling_paint;
     Triangle **triangles;
     int triangle_count;
     Sector **inside;
@@ -71,10 +72,11 @@ struct Sector {
     Sector *outside;
 };
 
-Sector *sector_init(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_texture, int ceiling_texture);
+Sector *new_sector(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_paint, int ceiling_paint);
 bool sector_contains(Sector *this, float x, float y);
 Sector *sector_find(Sector *this, float x, float y);
 bool sector_has_floor(Sector *this);
 bool sector_has_ceiling(Sector *this);
+void sector_inside_outside(Sector **sectors, int sector_count);
 
 #endif

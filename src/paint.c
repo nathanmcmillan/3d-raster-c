@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "texture.h"
+#include "paint.h"
 
-Texture *new_texture() {
-    return safe_calloc(sizeof(Texture), 1);
+Paint *new_paint() {
+    return safe_calloc(sizeof(Paint), 1);
 }

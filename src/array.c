@@ -8,7 +8,7 @@ bool find_address(void *item, void *has) {
     return item == has;
 }
 
-void array_init_with_capacity(Array *this, unsigned int length, unsigned int capacity) {
+void array_init_with_capacity(Array *this, usize length, usize capacity) {
     if (capacity == 0) {
         this->items = NULL;
     } else {
@@ -18,21 +18,21 @@ void array_init_with_capacity(Array *this, unsigned int length, unsigned int cap
     this->capacity = capacity;
 }
 
-void array_init(Array *this, unsigned int length) {
+void array_init(Array *this, usize length) {
     array_init_with_capacity(this, length, length);
 }
 
-Array *new_array_with_capacity(unsigned int length, unsigned int capacity) {
+Array *new_array_with_capacity(usize length, usize capacity) {
     Array *this = safe_malloc(sizeof(Array));
     array_init_with_capacity(this, length, capacity);
     return this;
 }
 
-Array *new_array(unsigned int length) {
+Array *new_array(usize length) {
     return new_array_with_capacity(length, length);
 }
 
-Array *new_array_with_items(unsigned int length, unsigned int capacity, void **items) {
+Array *new_array_with_items(usize length, usize capacity, void **items) {
     Array *this = safe_malloc(sizeof(Array));
     this->items = items;
     this->length = length;
@@ -55,7 +55,7 @@ Array *new_array_copy(Array *from) {
     return this;
 }
 
-static void update_capacity(Array *this, unsigned int length) {
+static void update_capacity(Array *this, usize length) {
     if (length > this->capacity) {
         if (this->capacity == 0) {
             this->capacity = length;
@@ -69,27 +69,27 @@ static void update_capacity(Array *this, unsigned int length) {
 }
 
 void array_push(Array *this, void *item) {
-    unsigned int length = this->length + 1;
+    usize length = this->length + 1;
     update_capacity(this, length);
     this->length = length;
     this->items[length - 1] = item;
 }
 
-void array_insert(Array *this, unsigned int index, void *item) {
-    unsigned int length = this->length + 1;
+void array_insert(Array *this, usize index, void *item) {
+    usize length = this->length + 1;
     update_capacity(this, length);
     this->length = length;
     void **items = this->items;
-    for (unsigned int i = length - 1; i > index; i--) {
+    for (usize i = length - 1; i > index; i--) {
         items[i] = items[i - 1];
     }
     items[index] = item;
 }
 
 void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item) {
-    unsigned int len = this->length;
+    usize len = this->length;
     void **items = this->items;
-    for (unsigned int i = 0; i < len; i++) {
+    for (usize i = 0; i < len; i++) {
         if (compare(item, items[i]) <= 0) {
             array_insert(this, i, item);
             return;
@@ -99,9 +99,9 @@ void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item) 
 }
 
 void *array_find(Array *this, bool(find)(void *, void *), void *has) {
-    unsigned int len = this->length;
+    usize len = this->length;
     void **items = this->items;
-    for (unsigned int i = 0; i < len; i++) {
+    for (usize i = 0; i < len; i++) {
         if (find(items[i], has)) {
             return items[i];
         }
@@ -109,7 +109,7 @@ void *array_find(Array *this, bool(find)(void *, void *), void *has) {
     return NULL;
 }
 
-void *array_get(Array *this, unsigned int index) {
+void *array_get(Array *this, usize index) {
     if (index >= this->length) {
         return NULL;
     }
@@ -141,7 +141,7 @@ void array_remove(Array *this, void *item) {
     }
 }
 
-void array_remove_index(Array *this, unsigned int index) {
+void array_remove_index(Array *this, usize index) {
     this->length--;
     int len = this->length;
     void **items = this->items;
@@ -163,7 +163,7 @@ bool array_not_empty(Array *this) {
     return this->length != 0;
 }
 
-unsigned int array_size(Array *this) {
+usize array_size(Array *this) {
     return this->length;
 }
 

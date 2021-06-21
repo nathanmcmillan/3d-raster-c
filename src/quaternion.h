@@ -8,7 +8,7 @@
 #include <math.h>
 
 #include "math_util.h"
-#include "vector.h"
+#include "vec.h"
 
 typedef float quaternion;
 

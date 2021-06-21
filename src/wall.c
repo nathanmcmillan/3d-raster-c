@@ -4,11 +4,10 @@
 
 #include "sector.h"
 
-Wall *wall_init(Line *ld, Vec va, Vec vb, int texture) {
+Wall *new_wall(Vec *a, Vec *b, int texture) {
     Wall *w = safe_calloc(1, sizeof(Wall));
-    w->ld = ld;
-    w->va = va;
-    w->vb = vb;
+    w->a = a;
+    w->b = b;
     w->texture = texture;
     return w;
 }

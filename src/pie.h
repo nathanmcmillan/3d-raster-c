@@ -7,11 +7,13 @@
 
 #include <inttypes.h>
 
-#define is ==
-#define isnt !=
-#define not(expr) !(expr)
 #define and &&
 #define or ||
+
+// #define is ==
+// #define isnt !=
+// #define not !
+// #define null ((void *)0)
 
 typedef int8_t i8;
 typedef int16_t i16;
@@ -27,8 +29,6 @@ typedef float f32;
 typedef double f64;
 
 typedef size_t usize;
-
-#define null ((void *)0)
 
 #ifdef __GNUC__
 #define UNUSED __attribute__((unused))

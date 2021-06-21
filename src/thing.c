@@ -13,7 +13,7 @@ void thing_remove_from_cells(Thing *this) {
     World *map = this->map;
     for (int r = this->r_min; r <= this->r_max; r++)
         for (int c = this->c_min; c <= this->c_max; c++)
-            cell_remove_thing(&map->cells[c + r * map->cell_columns], this);
+            cell_remove_thing(&map->cells[c + r * map->columns], this);
 }
 
 void thing_add_to_cells(Thing *this) {
@@ -26,7 +26,7 @@ void thing_add_to_cells(Thing *this) {
     World *map = this->map;
     for (int r = r_min; r <= r_max; r++)
         for (int c = c_min; c <= c_max; c++)
-            cell_add_thing(&map->cells[c + r * map->cell_columns], this);
+            cell_add_thing(&map->cells[c + r * map->columns], this);
 
     this->c_min = c_min;
     this->c_max = c_max;
@@ -66,11 +66,11 @@ void thing_line_collision(Thing *this, Line *ld) {
 
     float box = this->box;
 
-    float vx = ld->vb.x - ld->va.x;
-    float vz = ld->vb.y - ld->va.y;
+    float vx = ld->b->x - ld->a->x;
+    float vz = ld->b->y - ld->a->y;
 
-    float wx = this->x - ld->va.x;
-    float wz = this->z - ld->va.y;
+    float wx = this->x - ld->a->x;
+    float wz = this->z - ld->a->y;
 
     float t = (wx * vx + wz * vz) / (vx * vx + vz * vz);
 
@@ -84,8 +84,8 @@ void thing_line_collision(Thing *this, Line *ld) {
         endpoint = true;
     }
 
-    float px = ld->va.x + vx * t;
-    float pz = ld->va.y + vz * t;
+    float px = ld->a->x + vx * t;
+    float pz = ld->a->y + vz * t;
 
     px -= this->x;
     pz -= this->z;
@@ -176,7 +176,7 @@ void thing_standard_update(Thing *this) {
 
         for (int r = r_min; r <= r_max; r++) {
             for (int c = c_min; c <= c_max; c++) {
-                Cell *current_cell = &map->cells[c + r * map->cell_columns];
+                Cell *current_cell = &map->cells[c + r * map->columns];
                 for (int i = 0; i < current_cell->thing_count; i++) {
                     Thing *t = current_cell->things[i];
 
@@ -216,7 +216,7 @@ void thing_standard_update(Thing *this) {
 
         for (int r = r_min; r <= r_max; r++) {
             for (int c = c_min; c <= c_max; c++) {
-                Cell *current_cell = &this->map->cells[c + r * this->map->cell_columns];
+                Cell *current_cell = &this->map->cells[c + r * this->map->columns];
                 for (int i = 0; i < current_cell->line_count; i++)
                     thing_line_collision(this, current_cell->lines[i]);
             }
@@ -245,8 +245,6 @@ void thing_initialize(Thing *this, World *map, float x, float z, float r, float 
     this->id = thing_unique_id++;
     this->map = map;
     this->sec = world_find_sector(map, x, z);
-
-    assert(this->sec);
 
     this->x = x;
     this->y = this->sec->floor;

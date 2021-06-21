@@ -24,8 +24,24 @@ i32 max32(i32 a, i32 b) {
     return (a > b) ? a : b;
 }
 
+Canvas *new_canvas(i32 width, i32 height) {
+    Canvas *this = safe_calloc(1, sizeof(Canvas));
+    this->width = width;
+    this->height = height;
+    this->pixels = safe_calloc(width * height, sizeof(u32));
+    this->depth = safe_calloc(width * height, sizeof(float));
+    return this;
+}
+
 void canvas_clear(Canvas *this) {
     memset(this->pixels, 0, this->width * this->height * sizeof(u32));
+}
+
+void canvas_pixel(Canvas *this, u32 color, i32 x, i32 y) {
+    i32 width = this->width;
+    if (x >= 0 && y >= 0 && x < width && y < this->height) {
+        this->pixels[x + y * width] = color;
+    }
 }
 
 void canvas_line(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
@@ -104,6 +120,28 @@ void canvas_rect(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
             pixels[x + y * width] = color;
         }
     }
+}
+
+void canvas_project(Canvas *this, float *out, float *matrix, float *vec) {
+
+    float x = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
+    float y = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
+    float z = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];
+    float w = vec[0] * matrix[3] + vec[1] * matrix[7] + vec[2] * matrix[11] + matrix[15];
+
+    if (w != 1.0f) {
+        x /= w;
+        y /= w;
+        z /= w;
+    }
+
+    x = x * (float)this->width + 0.5f * (float)this->width;
+    y = -y * (float)this->height + 0.5f * (float)this->height;
+
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = w;
 }
 
 int vm_canvas_rect(lua_State *vm) {

@@ -5,16 +5,18 @@
 #ifndef WORLD_H
 #define WORLD_H
 
-#include <assert.h>
 #include <float.h>
 #include <math.h>
 
+#include "array.h"
 #include "math_util.h"
 #include "mem.h"
 #include "pie.h"
 #include "sector.h"
 #include "set.h"
 #include "sprite.h"
+#include "triangulate.h"
+#include "world.h"
 
 #define WORLD_SCALE 0.25f
 #define WORLD_CELL_SHIFT 5
@@ -26,8 +28,6 @@ extern unsigned int thing_unique_id;
 
 enum ThingType { THING_TYPE_HERO, THING_TYPE_BARON, THING_TYPE_SCENERY };
 
-typedef enum ThingType ThingType;
-
 typedef struct World World;
 typedef struct Cell Cell;
 typedef struct Thing Thing;
@@ -36,6 +36,8 @@ typedef struct Decal Decal;
 
 struct World {
     char *name;
+    Line **lines;
+    int line_count;
     Thing **things;
     int thing_cap;
     int thing_count;
@@ -55,13 +57,14 @@ struct World {
     int sector_cap;
     int sector_count;
     Cell *cells;
-    int cell_columns;
-    int cell_rows;
+    int columns;
+    int rows;
     int cell_count;
 };
 
 World *new_world();
 
+void world_clear(World *this);
 void world_add_thing(World *this, Thing *t);
 void world_remove_thing(World *this, Thing *t);
 void world_add_particle(World *this, Particle *t);
@@ -70,7 +73,7 @@ void world_add_decal(World *this, Decal *t);
 void world_remove_decal(World *this, Decal *t);
 void world_add_sector(World *this, Sector *s);
 Sector *world_find_sector(World *this, float x, float y);
-void world_load_map(World *this);
+void world_build(World *this, Array *lines);
 void world_update(World *this);
 
 struct Cell {
@@ -97,7 +100,7 @@ void cell_remove_decal(Cell *this, Decal *t);
 
 struct Thing {
     unsigned int id;
-    ThingType type;
+    enum ThingType type;
     World *map;
     Sector *sec;
     int health;

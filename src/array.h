@@ -10,43 +10,44 @@
 #include <string.h>
 
 #include "mem.h"
+#include "pie.h"
 
 typedef struct Array Array;
 
 struct Array {
     void **items;
-    unsigned int length;
-    unsigned int capacity;
+    usize length;
+    usize capacity;
 };
 
 bool find_address(void *item, void *has);
 
-void array_init_with_capacity(Array *this, unsigned int length, unsigned int capacity);
-void array_init(Array *this, unsigned int length);
+void array_init_with_capacity(Array *this, usize length, usize capacity);
+void array_init(Array *this, usize length);
 
-Array *new_array_with_capacity(unsigned int length, unsigned int capacity);
-Array *new_array(unsigned int length);
-Array *new_array_with_items(unsigned int length, unsigned int capacity, void **items);
+Array *new_array_with_capacity(usize length, usize capacity);
+Array *new_array(usize length);
+Array *new_array_with_items(usize length, usize capacity, void **items);
 
 void **array_copy_items(Array *this);
 Array *new_array_copy(Array *this);
 
 void array_push(Array *this, void *item);
-void array_insert(Array *this, unsigned int index, void *item);
+void array_insert(Array *this, usize index, void *item);
 void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item);
 
 void *array_find(Array *this, bool(find)(void *, void *), void *has);
-void *array_get(Array *this, unsigned int index);
+void *array_get(Array *this, usize index);
 
 void *array_pop(Array *this);
 void array_remove(Array *this, void *item);
-void array_remove_index(Array *this, unsigned int index);
+void array_remove_index(Array *this, usize index);
 
 void array_clear(Array *this);
 
 bool array_is_empty(Array *this);
 bool array_not_empty(Array *this);
-unsigned int array_size(Array *this);
+usize array_size(Array *this);
 
 void array_release(Array *this);
 void array_delete(Array *this);

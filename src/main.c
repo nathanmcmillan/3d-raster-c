@@ -5,7 +5,7 @@
 #include "main.h"
 
 static const int SCREEN_WIDTH = 640;
-static const int SCREEN_HEIGHT = 480;
+static const int SCREEN_HEIGHT = 400;
 
 static bool run = true;
 
@@ -118,15 +118,13 @@ static void game_draw(Game *game) {
 static void game_load(Game *game) {
 
     String *font_str = cat("pack/paint/tic_80_wide_font.wad");
-    Wad *font_wad = wad_parse(font_str);
+    Wad *font_wad = wad_parse(font_str).wad;
 
-    String *map_str = cat("pack/maps/base.wad");
-    Wad *map_wad = wad_parse(map_str);
-    printf("map to string: %s\n", wad_to_string(map_wad));
-    printf("map: %s\n", wad_get_string_from_object(map_wad, "map"));
-    wad_delete(map_wad);
+    String *map = cat("pack/maps/base.wad");
+    game_state_open(game->game, map);
+    string_delete(map);
 
-    Texture *font = new_texture();
+    Paint *font = new_paint();
 
     game_call(game, "load");
 }
@@ -144,7 +142,7 @@ static void main_loop(Game *game) {
     u32 time = SDL_GetTicks();
 
     while (run) {
-        poll_events(&game->in);
+        poll_events(&game->input);
 
         game_update(game);
 
@@ -169,6 +167,12 @@ static void game_delete(Game *game) {
     free(game);
 }
 
+static void game_switch_state_game(Game *game) {
+    game->state = game->game;
+    game->update = game_state_update;
+    game->draw = game_state_draw;
+}
+
 int main(int argc, char **argv) {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
@@ -182,12 +186,9 @@ int main(int argc, char **argv) {
     u32 pixel_format = SDL_PIXELFORMAT_ARGB8888;
     SDL_Texture *texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    Canvas *canvas = safe_calloc(sizeof(Canvas), 1);
-    canvas->width = SCREEN_WIDTH;
-    canvas->height = SCREEN_HEIGHT;
-    canvas->pixels = safe_calloc(sizeof(u32), SCREEN_WIDTH * SCREEN_HEIGHT);
+    Canvas *canvas = new_canvas(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    Window *win = safe_calloc(sizeof(Window), 1);
+    Window *win = safe_calloc(1, sizeof(Window));
     win->window = window;
     win->renderer = renderer;
     win->texture = texture;
@@ -209,13 +210,14 @@ int main(int argc, char **argv) {
     lua_pushlightuserdata(vm, canvas);
     lua_setglobal(vm, "canvas");
 
+    Assets *assets = new_assets();
+
     Game *game = safe_calloc(sizeof(Game), 1);
     game->win = win;
     game->vm = vm;
-    game->game = new_game_state();
-    game->state = game->game;
-    game->update = game_state_update;
-    game->draw = game_state_draw;
+    game->game = new_game_state(canvas, &game->input, assets);
+    game->paint = new_paint_state(canvas, &game->input, assets);
+    game_switch_state_game(game);
 
     game_load(game);
 
@@ -230,6 +232,7 @@ int main(int argc, char **argv) {
     SDL_Quit();
 
     game_delete(game);
+    assets_delete(assets);
 
     return 0;
 }

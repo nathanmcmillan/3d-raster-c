@@ -4,7 +4,7 @@
 
 #include "slice.h"
 
-SliceHead *slice_head_init(const usize member_size, const usize length, const usize capacity) {
+static SliceHead *slice_head(const usize member_size, const usize length, const usize capacity) {
     usize memory = sizeof(SliceHead) + capacity * member_size;
     SliceHead *head = safe_malloc(memory);
     memset(head, 0, memory);
@@ -13,17 +13,17 @@ SliceHead *slice_head_init(const usize member_size, const usize length, const us
     return head;
 }
 
-SliceHead *slice_get_head(const Slice a) {
+static SliceHead *slice_get_head(const Slice a) {
     return (SliceHead *)a - 1;
 }
 
-Slice slice_init(const usize member_size, const usize length, const usize capacity) {
-    SliceHead *head = slice_head_init(member_size, length, capacity);
+Slice new_slice_with_capacity(const usize member_size, const usize length, const usize capacity) {
+    SliceHead *head = slice_head(member_size, length, capacity);
     return (SliceHead *)head + 1;
 }
 
-Slice slice_simple_init(const usize member_size, const usize length) {
-    return slice_init(member_size, length, length);
+Slice new_slice(const usize member_size, const usize length) {
+    return new_slice_with_capacity(member_size, length, length);
 }
 
 Slice array_to_slice(void *const array, const usize member_size, const usize length) {

@@ -42,6 +42,14 @@ Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)
     return this;
 }
 
+Table *new_string_table() {
+    return new_table(&table_string_equal, &table_string_hashcode);
+}
+
+Table *new_pointer_table() {
+    return new_table(&table_address_equal, &table_address_hashcode);
+}
+
 static unsigned int get_bin(Table *this, unsigned long hash) {
     return (this->bins - 1) & hash;
 }
