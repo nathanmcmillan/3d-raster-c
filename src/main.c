@@ -197,14 +197,12 @@ int main(int argc, char **argv) {
     win->canvas = canvas;
 #endif
 
-    LOG("MAIN");
-
     Hymn *vm = new_hymn();
 
     {
         char *error = hymn_repl(vm);
         if (error != NULL) {
-            fprintf(stderr, "HYMN REPL: %s\n", error);
+            fprintf(stderr, "%s\n", error);
             exit(1);
         }
     }
@@ -224,8 +222,6 @@ int main(int argc, char **argv) {
     //         exit(1);
     //     }
     // }
-
-    LOG("END");
 
 #ifdef HYMN
     return 0;

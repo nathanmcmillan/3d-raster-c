@@ -38,18 +38,21 @@ String *string_copy(String *this) {
     return new_string_with_length(this, head->length);
 }
 
-usize string_len(String *s) {
-    StringHead *head = (StringHead *)((char *)s - sizeof(StringHead));
+usize string_len(String *this) {
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return head->length;
 }
 
-usize string_cap(String *s) {
-    StringHead *head = (StringHead *)((char *)s - sizeof(StringHead));
+usize string_cap(String *this) {
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return head->capacity;
 }
 
-void string_delete(String *s) {
-    free((char *)s - sizeof(StringHead));
+void string_delete(String *this) {
+    if (this == NULL) {
+        return;
+    }
+    free((char *)this - sizeof(StringHead));
 }
 
 String *string_concat(String *a, String *b) {
@@ -108,11 +111,11 @@ String *string_concat_varg(int size, ...) {
     return (String *)s;
 }
 
-String *substring(String *a, usize start, usize end) {
+String *substring(String *this, usize start, usize end) {
     usize len = end - start;
     StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
-    memcpy(s, a + start, len);
+    memcpy(s, this + start, len);
     s[len] = '\0';
     return (String *)s;
 }
@@ -241,7 +244,7 @@ String *int64_to_string(i64 number) {
     return s;
 }
 
-String *size_t_to_string(usize number) {
+String *usize_to_string(usize number) {
     int len = snprintf(NULL, 0, "%zu", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%zu", number);
@@ -317,76 +320,98 @@ String *float64_to_string(double number) {
     return s;
 }
 
-bool string_to_bool(String *str) {
-    return strcmp(str, "true") == 0;
+bool string_to_bool(String *this) {
+    return strcmp(this, "true") == 0;
 }
 
-int string_to_int(String *str) {
-    return (int)strtol(str, NULL, 10);
+int string_to_int(String *this) {
+    return (int)strtol(this, NULL, 10);
 }
 
-i8 string_to_int8(String *str) {
-    return (i8)strtol(str, NULL, 10);
+i8 string_to_int8(String *this) {
+    return (i8)strtol(this, NULL, 10);
 }
 
-i16 string_to_int16(String *str) {
-    return (i16)strtol(str, NULL, 10);
+i16 string_to_int16(String *this) {
+    return (i16)strtol(this, NULL, 10);
 }
 
-i32 string_to_int32(String *str) {
-    return (i32)strtol(str, NULL, 10);
+i32 string_to_int32(String *this) {
+    return (i32)strtol(this, NULL, 10);
 }
 
-i64 string_to_int64(String *str) {
-    return (i64)strtoll(str, NULL, 10);
+i64 string_to_int64(String *this) {
+    return (i64)strtoll(this, NULL, 10);
 }
 
-usize string_to_size_t(String *str) {
-    return (usize)strtoll(str, NULL, 10);
+usize string_to_usize(String *this) {
+    return (usize)strtoll(this, NULL, 10);
 }
 
-unsigned int string_to_uint(String *str) {
-    return (unsigned int)strtoul(str, NULL, 10);
+unsigned int string_to_uint(String *this) {
+    return (unsigned int)strtoul(this, NULL, 10);
 }
 
-u8 string_to_uint8(String *str) {
-    return (u8)strtoul(str, NULL, 10);
+u8 string_to_uint8(String *this) {
+    return (u8)strtoul(this, NULL, 10);
 }
 
-u16 string_to_uint16(String *str) {
-    return (u16)strtoul(str, NULL, 10);
+u16 string_to_uint16(String *this) {
+    return (u16)strtoul(this, NULL, 10);
 }
 
-u32 string_to_uint32(String *str) {
-    return (u32)strtoul(str, NULL, 10);
+u32 string_to_uint32(String *this) {
+    return (u32)strtoul(this, NULL, 10);
 }
 
-u64 string_to_uint64(String *str) {
-    return (u64)strtoull(str, NULL, 10);
+u64 string_to_uint64(String *this) {
+    return (u64)strtoull(this, NULL, 10);
 }
 
-float string_to_float(String *str) {
-    return strtof(str, NULL);
+float string_to_float(String *this) {
+    return strtof(this, NULL);
 }
 
-float string_to_float32(String *str) {
-    return string_to_float(str);
+float string_to_float32(String *this) {
+    return string_to_float(this);
 }
 
-double string_to_float64(String *str) {
-    return strtod(str, NULL);
+double string_to_float64(String *this) {
+    return strtod(this, NULL);
 }
 
-String *format(String *f, ...) {
-    va_list ap;
-    va_start(ap, f);
-    int len = vsnprintf(NULL, 0, f, ap);
-    va_end(ap);
-    char *str = safe_malloc((len + 1) * sizeof(char));
-    va_start(ap, f);
-    len = vsnprintf(str, len + 1, f, ap);
-    va_end(ap);
-    String *s = new_string_with_length(str, len);
-    free(str);
+char *string_to_chars(String *this) {
+    usize len = string_len(this);
+    char *s = safe_malloc((len + 1) * sizeof(char));
+    memcpy(s, this, len);
+    s[len] = '\0';
     return s;
+}
+
+String *string_format(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    int len = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    char *chars = safe_malloc((len + 1) * sizeof(char));
+    va_start(ap, format);
+    len = vsnprintf(chars, len + 1, format, ap);
+    va_end(ap);
+    String *str = new_string_with_length(chars, len);
+    free(chars);
+    return str;
+}
+
+String *string_append_format(String *this, const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    int len = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    char *chars = safe_malloc((len + 1) * sizeof(char));
+    va_start(ap, format);
+    len = vsnprintf(chars, len + 1, format, ap);
+    va_end(ap);
+    this = string_append(this, chars);
+    free(chars);
+    return this;
 }
