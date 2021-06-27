@@ -46,7 +46,7 @@
       }
     },
     {
-      "match": "^(import) +(?:\\w:?)*",
+      "match": "^(import|use) +(?:\\w:?)*",
       "captures": {
         "1": {
           "name": "keyword.import.hymn"

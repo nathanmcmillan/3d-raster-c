@@ -51,7 +51,6 @@ enum TokenType {
     TOKEN_NIL,
     TOKEN_NOT,
     TOKEN_NOTEQ,
-    TOKEN_NUMBER,
     TOKEN_OR,
     TOKEN_PASS,
     TOKEN_ADD,
@@ -84,6 +83,7 @@ enum OpCode {
     OP_ADD,
     OP_DIVIDE,
     OP_CONSTANT,
+    OP_CONSTANT_TWO,
     OP_MULTIPLY,
     OP_NEGATE,
     OP_SUBTRACT,
@@ -118,15 +118,16 @@ struct Value {
 };
 
 struct Token {
+    enum TokenType type;
     int row;
     int column;
-    enum TokenType type;
     usize start;
     usize end;
-    Value value;
 };
 
 static void parse_with_precedence(Compiler *compiler, ByteCode *code, enum Precedence precedence);
+static void group(Compiler *compiler, ByteCode *code);
+static void number(Compiler *compiler, ByteCode *code);
 static void expression(Compiler *compiler, ByteCode *code);
 static void unary(Compiler *compiler, ByteCode *code);
 static void binary(Compiler *compiler, ByteCode *code);
@@ -153,7 +154,7 @@ Rule rules[] = {
     [TOKEN_EQ] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_ERROR] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_FALSE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_FLOAT] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_FLOAT] = {number, NULL, PRECEDENCE_NONE},
     [TOKEN_FOR] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_FUNC] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_GT] = {NULL, NULL, PRECEDENCE_NONE},
@@ -161,19 +162,18 @@ Rule rules[] = {
     [TOKEN_IDENT] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_IF] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_IMPORT] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_INT] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_INT] = {number, NULL, PRECEDENCE_NONE},
     [TOKEN_LBRACE] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LBRACKET] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LINE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LPAREN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_LPAREN] = {group, NULL, PRECEDENCE_NONE},
     [TOKEN_LT] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LTEQ] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_MULTIPLY] = {NULL, binary, PRECEDENCE_FACTOR},
     [TOKEN_NIL] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_NOT] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_NOTEQ] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_NUMBER] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_OR] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_PASS] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RBRACE] = {NULL, NULL, PRECEDENCE_NONE},
@@ -201,7 +201,6 @@ struct Compiler {
     int column;
     char *source;
     usize size;
-    String *temp;
     Token alpha;
     Token beta;
     Token gamma;
@@ -238,8 +237,8 @@ static const char *value_name(enum VarType value) {
     }
 }
 
-static const char *token_name(enum TokenType token) {
-    switch (token) {
+static const char *token_name(enum TokenType type) {
+    switch (type) {
     case TOKEN_IMPORT: return "IMPORT";
     case TOKEN_FOR: return "FOR";
     case TOKEN_WHILE: return "WHILE";
@@ -250,6 +249,9 @@ static const char *token_name(enum TokenType token) {
     case TOKEN_LPAREN: return "LPAREN";
     case TOKEN_RPAREN: return "RPAREN";
     case TOKEN_ADD: return "ADD";
+    case TOKEN_SUBTRACT: return "SUBTRACT";
+    case TOKEN_MULTIPLY: return "MULTIPLY";
+    case TOKEN_DIVIDE: return "DIVIDE";
     case TOKEN_IDENT: return "IDENT";
     case TOKEN_FUNC: return "FUNC";
     case TOKEN_EOF: return "EOF";
@@ -274,7 +276,6 @@ static inline Compiler new_compiler(char *source) {
     compiler.column = 1;
     compiler.source = source;
     compiler.size = strlen(source);
-    compiler.temp = new_string("");
     compiler.alpha.type = TOKEN_UNDEFINED;
     compiler.beta.type = TOKEN_UNDEFINED;
     compiler.gamma.type = TOKEN_UNDEFINED;
@@ -282,7 +283,7 @@ static inline Compiler new_compiler(char *source) {
 }
 
 static void compiler_delete(Compiler *this) {
-    string_delete(this->temp);
+    (void *)this;
 }
 
 static char next_char(Compiler *this) {
@@ -308,33 +309,30 @@ static char peek_char(Compiler *this) {
     return this->source[this->pos];
 }
 
-static void push_token(Compiler *this, enum TokenType type) {
+static void token(Compiler *this, enum TokenType type) {
     printf("TOKEN: %s\n", token_name(type));
     Token *gamma = &this->gamma;
+    gamma->type = type;
     gamma->row = this->row;
     gamma->column = this->column;
-    gamma->type = type;
 }
 
-static void push_value_token(Compiler *this, enum TokenType type, usize start, usize end, Value value) {
-    printf("TOKEN: %s [", token_name(type));
-    debug_value(value);
-    printf("], %.*s\n", (int)(end - start), &this->source[start]);
+static void value_token(Compiler *this, enum TokenType type, usize start, usize end) {
+    printf("TOKEN: %s: %.*s\n", token_name(type), (int)(end - start), &this->source[start]);
     Token *gamma = &this->gamma;
+    gamma->type = type;
     gamma->row = this->row;
     gamma->column = this->column;
-    gamma->type = type;
     gamma->start = start;
     gamma->end = end;
-    gamma->value = value;
 }
 
-static void push_string_token(Compiler *this, usize start, usize end) {
+static void string_token(Compiler *this, usize start, usize end) {
     printf("TOKEN: %s, %.*s\n", token_name(TOKEN_STRING), (int)(end - start), &this->source[start]);
     Token *gamma = &this->gamma;
+    gamma->type = TOKEN_STRING;
     gamma->row = this->row;
     gamma->column = this->column;
-    gamma->type = TOKEN_STRING;
     gamma->start = start;
     gamma->end = end;
 }
@@ -391,7 +389,7 @@ static void push_ident_token(Compiler *this, usize start, usize end) {
     usize size = end - start;
     enum TokenType keyword = ident_keyword(ident, size);
     if (keyword != TOKEN_UNDEFINED) {
-        push_token(this, keyword);
+        token(this, keyword);
         return;
     }
     printf("TOKEN: %s, %.*s\n", token_name(TOKEN_IDENT), (int)(end - start), &this->source[start]);
@@ -411,124 +409,120 @@ static bool is_ident(char c) {
     return ('a' <= c and c <= 'z') or ('A' <= c and c <= 'Z') or c == '_';
 }
 
-static void advance_token(Compiler *this) {
-    LOG("ADVANCE_TOKEN");
+static void advance(Compiler *this) {
     this->alpha = this->beta;
     this->beta = this->gamma;
-
-    char c = next_char(this);
-    switch (c) {
-    case '#':
-        c = peek_char(this);
-        while (c != '\n' and c != '\0') {
-            c = next_char(this);
-        }
-        next_char(this);
-        break;
-    case ' ':
-    case '\t':
-    case '\r':
-        c = peek_char(this);
-        while (c != '\0' and (c == ' ' or c == '\t' or c == '\r')) {
-            c = next_char(this);
-        }
-        break;
-    case '!':
-        if (peek_char(this) == '=') {
-            next_char(this);
-            push_token(this, TOKEN_NOTEQ);
-        } else {
-            push_token(this, TOKEN_NOT);
-        }
-        break;
-    case '=':
-        if (peek_char(this) == '=') {
-            next_char(this);
-            push_token(this, TOKEN_EQ);
-        } else {
-            push_token(this, TOKEN_ASSIGN);
-        }
-        break;
-    case '>':
-        if (peek_char(this) == '=') {
-            next_char(this);
-            push_token(this, TOKEN_GTEQ);
-        } else {
-            push_token(this, TOKEN_GT);
-        }
-        break;
-    case '<':
-        if (peek_char(this) == '=') {
-            next_char(this);
-            push_token(this, TOKEN_LTEQ);
-        } else {
-            push_token(this, TOKEN_LT);
-        }
-        break;
-    case '+': push_token(this, TOKEN_ADD); break;
-    case '-': push_token(this, TOKEN_SUBTRACT); break;
-    case '*': push_token(this, TOKEN_MULTIPLY); break;
-    case '/': push_token(this, TOKEN_DIVIDE); break;
-    case ',': push_token(this, TOKEN_COMMA); break;
-    case '.': push_token(this, TOKEN_DOT); break;
-    case '(': push_token(this, TOKEN_LPAREN); break;
-    case ')': push_token(this, TOKEN_RPAREN); break;
-    case '[': push_token(this, TOKEN_LBRACKET); break;
-    case ']': push_token(this, TOKEN_RBRACKET); break;
-    case '{': push_token(this, TOKEN_LBRACE); break;
-    case '}': push_token(this, TOKEN_RBRACE); break;
-    case '\0': push_token(this, TOKEN_EOF); return;
-    case '"': {
-        usize start = this->pos - 1;
-        while (true) {
-            c = peek_char(this);
-            if (c == '"' or c == '\0') {
-                break;
-            }
-            next_char(this);
-        }
-        usize end = this->pos;
-        push_string_token(this, start, end);
-        break;
+    if (this->beta.type == TOKEN_EOF) {
+        return;
     }
-    default: {
-        if (is_digit(c)) {
+    while (true) {
+        char c = next_char(this);
+        switch (c) {
+        case '#':
+            c = peek_char(this);
+            while (c != '\n' and c != '\0') {
+                c = next_char(this);
+            }
+            next_char(this);
+            continue;
+        case ' ':
+        case '\t':
+        case '\r':
+            c = peek_char(this);
+            while (c != '\0' and (c == ' ' or c == '\t' or c == '\r')) {
+                c = next_char(this);
+            }
+            continue;
+        case '!':
+            if (peek_char(this) == '=') {
+                next_char(this);
+                token(this, TOKEN_NOTEQ);
+            } else {
+                token(this, TOKEN_NOT);
+            }
+            return;
+        case '=':
+            if (peek_char(this) == '=') {
+                next_char(this);
+                token(this, TOKEN_EQ);
+            } else {
+                token(this, TOKEN_ASSIGN);
+            }
+            return;
+        case '>':
+            if (peek_char(this) == '=') {
+                next_char(this);
+                token(this, TOKEN_GTEQ);
+            } else {
+                token(this, TOKEN_GT);
+            }
+            return;
+        case '<':
+            if (peek_char(this) == '=') {
+                next_char(this);
+                token(this, TOKEN_LTEQ);
+            } else {
+                token(this, TOKEN_LT);
+            }
+            return;
+        case '+': token(this, TOKEN_ADD); return;
+        case '-': token(this, TOKEN_SUBTRACT); return;
+        case '*': token(this, TOKEN_MULTIPLY); return;
+        case '/': token(this, TOKEN_DIVIDE); return;
+        case ',': token(this, TOKEN_COMMA); return;
+        case '.': token(this, TOKEN_DOT); return;
+        case '(': token(this, TOKEN_LPAREN); return;
+        case ')': token(this, TOKEN_RPAREN); return;
+        case '[': token(this, TOKEN_LBRACKET); return;
+        case ']': token(this, TOKEN_RBRACKET); return;
+        case '{': token(this, TOKEN_LBRACE); return;
+        case '}': token(this, TOKEN_RBRACE); return;
+        case '\0': token(this, TOKEN_EOF); return;
+        case '"': {
             usize start = this->pos - 1;
-            while (is_digit(peek_char(this))) {
+            while (true) {
+                c = peek_char(this);
+                if (c == '"' or c == '\0') {
+                    break;
+                }
                 next_char(this);
             }
-            bool discrete = true;
-            if (peek_char(this) == '.') {
-                discrete = false;
-                next_char(this);
+            usize end = this->pos;
+            string_token(this, start, end);
+            return;
+        }
+        default: {
+            if (is_digit(c)) {
+                usize start = this->pos - 1;
                 while (is_digit(peek_char(this))) {
                     next_char(this);
                 }
+                bool discrete = true;
+                if (peek_char(this) == '.') {
+                    discrete = false;
+                    next_char(this);
+                    while (is_digit(peek_char(this))) {
+                        next_char(this);
+                    }
+                }
+                usize end = this->pos;
+                if (discrete) {
+                    value_token(this, TOKEN_INT, start, end);
+                } else {
+                    value_token(this, TOKEN_FLOAT, start, end);
+                }
+                return;
+            } else if (is_ident(c)) {
+                usize start = this->pos - 1;
+                while (is_ident(peek_char(this))) {
+                    next_char(this);
+                }
+                usize end = this->pos;
+                push_ident_token(this, start, end);
+                return;
             }
-            usize end = this->pos;
-            string_zero(this->temp);
-            this->temp = string_append_substring(this->temp, this->source, start, end);
-            if (discrete) {
-                Value value = {0};
-                value.type = TYPE_INT;
-                value.value.i = string_to_int64(this->temp);
-                push_value_token(this, TOKEN_INT, start, end, value);
-            } else {
-                Value value = {0};
-                value.type = TYPE_FLOAT;
-                value.value.f = string_to_float64(this->temp);
-                push_value_token(this, TOKEN_FLOAT, start, end, value);
-            }
-        } else if (is_ident(c)) {
-            usize start = this->pos - 1;
-            while (is_ident(peek_char(this))) {
-                next_char(this);
-            }
-            usize end = this->pos;
-            push_ident_token(this, start, end);
         }
-        break;
-    }
+        }
     }
 }
 
@@ -582,6 +576,12 @@ static void write_op(ByteCode *this, u8 b, int row) {
     this->count = count + 1;
 }
 
+static void write_constant(ByteCode *this, Value value, int row) {
+    u8 constant = (u8)byte_code_add_constant(this, value);
+    write_op(this, (u8)OP_CONSTANT, row);
+    write_op(this, constant, row);
+}
+
 static Rule *token_rule(enum TokenType type) {
     return &rules[type];
 }
@@ -593,9 +593,7 @@ static void parse_error(char *error) {
 }
 
 static void parse_with_precedence(Compiler *compiler, ByteCode *code, enum Precedence precedence) {
-    LOG("PARSE_WITH_PRECEDENCE");
-    advance_token(compiler);
-    printf("ALPHA: %s, BETA: %s, GAMMA: %s\n", token_name(compiler->alpha.type), token_name(compiler->beta.type), token_name(compiler->gamma.type));
+    advance(compiler);
     Rule *rule = token_rule(compiler->alpha.type);
     void (*prefix)(Compiler *, ByteCode *) = rule->prefix;
     if (prefix == NULL) {
@@ -604,23 +602,52 @@ static void parse_with_precedence(Compiler *compiler, ByteCode *code, enum Prece
     }
     prefix(compiler, code);
     while (precedence <= token_rule(compiler->beta.type)->precedence) {
-        advance_token(compiler);
-        token_rule(compiler->alpha.type)->infix(compiler, code);
+        advance(compiler);
+        void (*infix)(Compiler *, ByteCode *) = token_rule(compiler->alpha.type)->infix;
+        if (infix == NULL) {
+            parse_error("FATAL: MISSING INFIX RULE");
+            return;
+        }
+        infix(compiler, code);
     }
 }
 
+static void consume(Compiler *compiler, enum TokenType type, const char *error) {
+    if (compiler->beta.type == type) {
+        advance(compiler);
+        return;
+    }
+    fprintf(stderr, error);
+    exit(1);
+}
+
+static void group(Compiler *compiler, ByteCode *code) {
+    expression(compiler, code);
+    consume(compiler, TOKEN_RPAREN, "MISSING RIGHT PARENTHESIS");
+}
+
+static void number(Compiler *compiler, ByteCode *code) {
+    Token *alpha = &compiler->alpha;
+    Value value = {0};
+    if (alpha->type == TOKEN_INT) {
+        value.type = TYPE_INT;
+        value.value.i = (i64)strtoll(&compiler->source[alpha->start], NULL, 10);
+    } else {
+        value.type = TYPE_FLOAT;
+        value.value.f = strtod(&compiler->source[alpha->start], NULL);
+    }
+    write_constant(code, value, alpha->row);
+}
+
 static void expression(Compiler *compiler, ByteCode *code) {
-    LOG("EXPRESSION");
-    printf("ALPHA: %s, BETA: %s, GAMMA: %s\n", token_name(compiler->alpha.type), token_name(compiler->beta.type), token_name(compiler->gamma.type));
     parse_with_precedence(compiler, code, PRECEDENCE_ASSIGN);
 }
 
 static void unary(Compiler *compiler, ByteCode *code) {
     LOG("UNARY");
-    parse_with_precedence(compiler, code, PRECEDENCE_UNARY);
     int row = compiler->alpha.row;
     enum TokenType type = compiler->alpha.type;
-    expression(compiler, code);
+    parse_with_precedence(compiler, code, PRECEDENCE_UNARY);
     switch (type) {
     case TOKEN_SUBTRACT: write_op(code, OP_NEGATE, row); break;
     }
@@ -641,18 +668,19 @@ static void binary(Compiler *compiler, ByteCode *code) {
 }
 
 static char *compile(ByteCode *code, char *source) {
-    (void *)code;
     char *error = NULL;
     Compiler c = new_compiler(source);
     Compiler *compiler = &c;
 
-    advance_token(compiler);
-    advance_token(compiler);
+    advance(compiler);
+    advance(compiler);
     expression(compiler, code);
+    consume(compiler, TOKEN_EOF, "MISSING END OF FILE");
+    write_op(code, OP_RETURN, compiler->alpha.row);
 
     // while (true) {
     //     LOG("EVAL");
-    //     advance_token(compiler);
+    //     advance(compiler);
     //     if (c.gamma.type == TOKEN_EOF) {
     //         break;
     //     }
@@ -909,51 +937,6 @@ char *hymn_eval(Hymn *this, char *source) {
         return error;
     }
     return machine_interpret(machine, b);
-
-    // printf("==============================\n");
-
-    // Machine m = new_machine();
-    // Machine *machine = &m;
-
-    // ByteCode bytes = {0};
-    // ByteCode *b = &bytes;
-    // byte_code_init(b);
-
-    // {
-    //     Value value = {0};
-    //     value.type = TYPE_INT;
-    //     value.value.i = 3;
-    //     u8 constant = (u8)byte_code_add_constant(b, value);
-    //     write_op(b, (u8)OP_CONSTANT, 1);
-    //     write_op(b, constant, 1);
-    // }
-
-    // write_op(b, (u8)OP_NEGATE, 1);
-
-    // {
-    //     Value value = {0};
-    //     value.type = TYPE_FLOAT;
-    //     value.value.f = 13.2;
-    //     u8 constant = (u8)byte_code_add_constant(b, value);
-    //     write_op(b, (u8)OP_CONSTANT, 1);
-    //     write_op(b, constant, 1);
-    // }
-
-    // write_op(b, (u8)OP_ADD, 1);
-    // write_op(b, (u8)OP_RETURN, 1);
-
-    // error = machine_interpret(machine, b);
-
-    // if (error != NULL) {
-    //     printf("%s\n", error);
-    //     error = NULL;
-    // } else {
-    //     printf("RETURN: [");
-    //     debug_value(machine_pop(machine));
-    //     printf("]\n");
-    // }
-
-    // return error;
 }
 
 char *hymn_read(Hymn *this, char *file) {
