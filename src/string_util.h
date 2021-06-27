@@ -25,8 +25,8 @@ PACK(struct StringHead {
     char **chars;
 });
 
-String *string_init_with_length(char *init, usize length);
-String *string_init(char *init);
+String *new_string_with_length(char *init, usize length);
+String *new_string(char *init);
 String *string_allocate(usize length);
 String *string_copy(String *this);
 
@@ -42,6 +42,7 @@ String *substring(String *s, usize start, usize end);
 
 String *string_append(String *this, char *b);
 String *string_append_char(String *this, char b);
+String *string_append_substring(String *this, char *b, usize start, usize end);
 
 int string_compare(String *a, String *b);
 bool string_equal(String *a, String *b);

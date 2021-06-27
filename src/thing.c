@@ -4,8 +4,8 @@
 
 #include "world.h"
 
-const float gravity = 0.028;
-const float wind_resistance = 0.88;
+const float gravity = 0.028f;
+const float wind_resistance = 0.88f;
 
 unsigned int thing_unique_id = 0;
 
@@ -137,15 +137,8 @@ void thing_line_collision(Thing *this, Line *ld) {
     }
 }
 
-#ifdef __GNUC__
-#define UNUSED __attribute__((unused))
-#endif
-
-#ifdef _MSC_VER
-#define UNUSED
-#endif
-
-void thing_nop_update(UNUSED void *this) {
+void thing_nop_update(void *this) {
+    (void *)this;
 }
 
 void thing_standard_update(Thing *this) {
@@ -200,7 +193,7 @@ void thing_standard_update(Thing *this) {
             SetIterator iter = new_set_iterator(collided);
             while (set_iterator_has_next(&iter)) {
                 Thing *b = set_iterator_next(&iter);
-                float distance = fabs(this->previous_x - b->x) + fabs(this->previous_z - b->z);
+                float distance = fabsf(this->previous_x - b->x) + fabsf(this->previous_z - b->z);
                 if (distance < manhattan) {
                     manhattan = distance;
                     closest = b;

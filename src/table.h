@@ -18,7 +18,7 @@ typedef struct TablePair TablePair;
 typedef struct TableIter TableIter;
 
 struct TableItem {
-    unsigned long hash;
+    usize hash;
     void *key;
     void *value;
     TableItem *next;
@@ -26,19 +26,19 @@ struct TableItem {
 
 struct Table {
     bool (*equals_fn)(void *, void *);
-    unsigned long (*hashcode_fn)(void *);
+    usize (*hashcode_fn)(void *);
     unsigned int size;
     unsigned int bins;
     TableItem **items;
 };
 
 bool table_string_equal(void *a, void *b);
-unsigned long table_string_hashcode(void *key);
+usize table_string_hashcode(void *key);
 
 bool table_address_equal(void *a, void *b);
-unsigned long table_address_hashcode(void *key);
+usize table_address_hashcode(void *key);
 
-Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
+Table *new_table(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *));
 Table *new_string_table();
 Table *new_pointer_table();
 

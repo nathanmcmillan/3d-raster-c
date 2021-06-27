@@ -7,3 +7,8 @@
 Paint *new_paint() {
     return safe_calloc(sizeof(Paint), 1);
 }
+
+void paint_delete(Paint *this) {
+    free(this->pixels);
+    free(this);
+}

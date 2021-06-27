@@ -6,22 +6,25 @@
 
 GameState *new_game_state(Canvas *canvas, Input *input, Assets *assets) {
     GameState *this = safe_calloc(1, sizeof(GameState));
-    this->canvas = canvas;
-    this->input = input;
-    this->assets = assets;
+    this->state.canvas = canvas;
+    this->state.input = input;
+    this->state.assets = assets;
+    this->state.update = game_state_update;
+    this->state.draw = game_state_draw;
     this->camera = new_camera(8.0);
     return this;
 }
 
-static Paint *texture(Assets *assets, String *name) {
+static int texture(Assets *assets, String *name) {
     if (strcmp(name, "none")) {
         return -1;
     }
+    return assets_paint_name_to_index(assets, name);
 }
 
 void game_state_open(GameState *this, String *content) {
     World *world = this->world;
-    Assets *assets = this->assets;
+    Assets *assets = this->state.assets;
 
     world_clear(world);
 
@@ -31,8 +34,8 @@ void game_state_open(GameState *this, String *content) {
         exit(1);
     }
     Wad *wad = parse.wad;
-    printf("read: %s\n", wad_to_string(wad));
-    printf("map: %s\n", wad_get_string_from_object(wad, "map"));
+    // printf("read: %s\n", wad_to_string(wad));
+    // printf("map: %s\n", wad_get_string_from_object(wad, "map"));
 
     WadArray *map_vecs = wad_get_array_from_object(wad, "vectors");
     WadArray *map_lines = wad_get_array_from_object(wad, "lines");
@@ -59,16 +62,16 @@ void game_state_open(GameState *this, String *content) {
 
     for (usize i = 0; i < map_sectors->length; i++) {
         Wad *sector = ((Wad *)map_sectors->items[i]);
-        float bottom = wad_get_int(wad_get_from_object(sector, "b"));
-        float floor = wad_get_int(wad_get_from_object(sector, "f"));
-        float ceiling = wad_get_int(wad_get_from_object(sector, "c"));
-        float top = wad_get_int(wad_get_from_object(sector, "t"));
+        float bottom = wad_get_float(wad_get_from_object(sector, "b"));
+        float floor = wad_get_float(wad_get_from_object(sector, "f"));
+        float ceiling = wad_get_float(wad_get_from_object(sector, "c"));
+        float top = wad_get_float(wad_get_from_object(sector, "t"));
         int floor_paint = texture(assets, wad_get_string(wad_get_from_object(sector, "u")));
         int ceiling_paint = texture(assets, wad_get_string(wad_get_from_object(sector, "v")));
         WadArray *vec_ptrs = wad_get_array(wad_get_from_object(sector, "vecs"));
         WadArray *line_ptrs = wad_get_array(wad_get_from_object(sector, "lines"));
-        int vec_count = array_size(vec_ptrs);
-        int line_count = array_size(line_ptrs);
+        int vec_count = (int)array_size(vec_ptrs);
+        int line_count = (int)array_size(line_ptrs);
         Vec **sector_vecs = safe_calloc(vec_count, sizeof(Vec *));
         Line **sector_lines = safe_calloc(line_count, sizeof(Line *));
         for (int v = 0; v < vec_count; v++) {
@@ -89,7 +92,7 @@ void game_state_open(GameState *this, String *content) {
 void game_state_update(void *state) {
     GameState *this = (GameState *)state;
 
-    Input *input = this->input;
+    Input *input = this->state.input;
     Camera *camera = this->camera;
 
     if (input->move_up) {
@@ -120,22 +123,24 @@ void game_state_update(void *state) {
 void game_state_draw(void *state) {
     GameState *this = (GameState *)state;
 
-    Canvas *canvas = this->canvas;
+    Canvas *canvas = this->state.canvas;
     Camera *camera = this->camera;
 
     canvas_rect(canvas, rgb(255, 255, 0), 10, 60, 42, 92);
+
+    canvas_clear_depth(canvas);
 
     float perspective[16];
     float view[16];
     float projection[16];
 
-    i32 width = this->canvas->width;
-    i32 height = this->canvas->height;
+    i32 width = this->state.canvas->width;
+    i32 height = this->state.canvas->height;
 
-    float fov = 60.0;
+    float fov = 60.0f;
     float ratio = (float)width / (float)height;
-    float near = 0.01;
-    float far = 100.0;
+    float near = 0.01f;
+    float far = 100.0f;
 
     matrix_perspective(perspective, fov, near, far, ratio);
 
@@ -146,20 +151,117 @@ void game_state_draw(void *state) {
     matrix_multiply(projection, perspective, view);
 
     i32 vertex_stride = 8;
-    i32 vertex_count = 8;
+    // i32 vertex_count = 8;
     float mesh[] = {
-        -1, +1, +1, 0,   255, 0,   0, 0, +1, +1, +1, 255, 255, 0,   1, 0, -1, -1, +1, 0,   255, 255, 0, 1, +1, -1, +1, 255, 0,   0, 1, 1,
-        -1, +1, -1, 255, 0,   255, 0, 0, +1, +1, -1, 0,   0,   255, 1, 0, +1, -1, -1, 255, 0,   0,   1, 1, -1, -1, -1, 0,   255, 0, 0, 1,
+        -1,
+        +1,
+        +1,
+        0,
+        255,
+        0,
+        0,
+        0,
+        +1,
+        +1,
+        +1,
+        255,
+        255,
+        0,
+        1,
+        0,
+        -1,
+        -1,
+        +1,
+        0,
+        255,
+        255,
+        0,
+        1,
+        +1,
+        -1,
+        +1,
+        255,
+        0,
+        0,
+        1,
+        1,
+        -1,
+        +1,
+        -1,
+        255,
+        0,
+        255,
+        0,
+        0,
+        +1,
+        +1,
+        -1,
+        0,
+        0,
+        255,
+        1,
+        0,
+        +1,
+        -1,
+        -1,
+        255,
+        0,
+        0,
+        1,
+        1,
+        -1,
+        -1,
+        -1,
+        0,
+        255,
+        0,
+        0,
+        1,
     };
 
     i32 index_count = 12;
     i32 indices[] = {
-        0, 1, 2, 1, 2, 3, 1, 3, 6, 1, 5, 6, 0, 1, 4, 1, 4, 5, 2, 3, 7, 3, 6, 7, 0, 2, 7, 0, 4, 7, 4, 5, 6, 4, 6, 7,
+        0,
+        1,
+        2,
+        1,
+        2,
+        3,
+        1,
+        3,
+        6,
+        1,
+        5,
+        6,
+        0,
+        1,
+        4,
+        1,
+        4,
+        5,
+        2,
+        3,
+        7,
+        3,
+        6,
+        7,
+        0,
+        2,
+        7,
+        0,
+        4,
+        7,
+        4,
+        5,
+        6,
+        4,
+        6,
+        7,
     };
 
-    float out_a[4];
-    float out_b[4];
-    float out_c[4];
+    float oa[4];
+    float ob[4];
+    float oc[4];
 
     for (int i = 0; i < index_count; i += 3) {
 
@@ -167,11 +269,11 @@ void game_state_draw(void *state) {
         float *b = &mesh[indices[i + 1] * vertex_stride];
         float *c = &mesh[indices[i + 2] * vertex_stride];
 
-        canvas_project(canvas, out_a, projection, a);
-        canvas_project(canvas, out_b, projection, b);
-        canvas_project(canvas, out_c, projection, c);
+        canvas_project(canvas, oa, projection, a);
+        canvas_project(canvas, ob, projection, b);
+        canvas_project(canvas, oc, projection, c);
 
-        canvas_triangle(canvas, rgb(255, 0, 0), out_a[0], out_a[1], out_b[0], out_b[1], out_c[0], out_c[1]);
+        canvas_rasterize(canvas, oa, ob, oc);
     }
 }
 

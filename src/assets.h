@@ -21,7 +21,7 @@ struct Assets {
 
 Assets *new_assets();
 
-void assets_paint_save(Assets *this);
+void assets_paint_save(Assets *this, char *name, Paint *paint);
 int assets_paint_name_to_index(Assets *this, char *name);
 Paint *assets_paint_get(Assets *this, int index);
 Paint *assets_paint_find(Assets *this, char *name);

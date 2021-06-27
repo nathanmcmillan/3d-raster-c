@@ -96,22 +96,20 @@ static void poll_events(Input *in) {
 }
 
 static void game_call(Game *game, char *call) {
-    lua_State *vm = game->vm;
-    lua_getglobal(vm, call);
-    int error = lua_pcall(vm, 0, 0, 0);
-    if (error != LUA_OK) {
-        fprintf(stderr, "Lua error: %s\n", lua_tostring(vm, -1));
+    Hymn *vm = game->vm;
+    String *error = hymn_call(vm, call);
+    if (error != NULL) {
+        fprintf(stderr, "Hymn call error: %s\n", error);
     }
-    lua_pop(vm, lua_gettop(vm));
 }
 
 static void game_update(Game *game) {
-    game->update(game->state);
+    state_update(game->state);
     game_call(game, "update");
 }
 
 static void game_draw(Game *game) {
-    game->draw(game->state);
+    state_draw(game->state);
     game_call(game, "draw");
 }
 
@@ -119,12 +117,14 @@ static void game_load(Game *game) {
 
     String *font_str = cat("pack/paint/tic_80_wide_font.wad");
     Wad *font_wad = wad_parse(font_str).wad;
+    wad_delete(font_wad);
 
     String *map = cat("pack/maps/base.wad");
     game_state_open(game->game, map);
     string_delete(map);
 
     Paint *font = new_paint();
+    paint_delete(font);
 
     game_call(game, "load");
 }
@@ -146,7 +146,7 @@ static void main_loop(Game *game) {
 
         game_update(game);
 
-        canvas_clear(canvas);
+        canvas_clear_color(canvas);
         game_draw(game);
         window_update(win);
 
@@ -158,22 +158,24 @@ static void main_loop(Game *game) {
 }
 
 static void game_delete(Game *game) {
-
-    lua_close(game->vm);
-
+    hymn_delete(game->vm);
     free(game->win->canvas->pixels);
     free(game->win->canvas);
     free(game->win);
     free(game);
 }
 
-static void game_switch_state_game(Game *game) {
-    game->state = game->game;
-    game->update = game_state_update;
-    game->draw = game_state_draw;
+static void game_switch_state(Game *game, void *state) {
+    game->state = (State *)state;
 }
 
 int main(int argc, char **argv) {
+    (int)argc;
+    (void *)argv;
+
+#define HYMN
+
+#ifndef HYMN
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
@@ -193,22 +195,50 @@ int main(int argc, char **argv) {
     win->renderer = renderer;
     win->texture = texture;
     win->canvas = canvas;
+#endif
 
-    lua_State *vm = luaL_newstate();
-    luaL_openlibs(vm);
+    LOG("MAIN");
 
-    int error = luaL_dofile(vm, "src/main.lua");
-    if (error != LUA_OK) {
-        fprintf(stderr, "Lua error: %s\n", lua_tostring(vm, -1));
-        exit(1);
+    Hymn *vm = new_hymn();
+
+    {
+        char *error = hymn_repl(vm);
+        if (error != NULL) {
+            fprintf(stderr, "HYMN REPL: %s\n", error);
+            exit(1);
+        }
     }
 
-    static luaL_Reg graphics[] = {{"rect", vm_canvas_rect}, {NULL, NULL}};
-    luaL_newlib(vm, graphics);
-    lua_setglobal(vm, "graphics");
+    // {
+    //     char *error = hymn_eval(vm, "1 + 2");
+    //     if (error != NULL) {
+    //         fprintf(stderr, "Hymn error: %s\n", error);
+    //         exit(1);
+    //     }
+    // }
 
-    lua_pushlightuserdata(vm, canvas);
-    lua_setglobal(vm, "canvas");
+    // {
+    //     char *error = hymn_eval(vm, "print(1 + 24 - 86.4)");
+    //     if (error != NULL) {
+    //         fprintf(stderr, "Hymn eval error: %s\n", error);
+    //         exit(1);
+    //     }
+    // }
+
+    LOG("END");
+
+#ifdef HYMN
+    return 0;
+#else
+
+    // char *error = hymn_read(vm, "src/main.hm");
+    // if (error != NULL) {
+    //     fprintf(stderr, "Hymn read error: %s\n", error);
+    //     exit(1);
+    // }
+
+    hymn_add_func(vm, "graphics", canvas_rect_vm);
+    hymn_add_pointer(vm, "canvas", canvas);
 
     Assets *assets = new_assets();
 
@@ -217,7 +247,7 @@ int main(int argc, char **argv) {
     game->vm = vm;
     game->game = new_game_state(canvas, &game->input, assets);
     game->paint = new_paint_state(canvas, &game->input, assets);
-    game_switch_state_game(game);
+    game_switch_state(game, game->game);
 
     game_load(game);
 
@@ -235,4 +265,5 @@ int main(int argc, char **argv) {
     assets_delete(assets);
 
     return 0;
+#endif
 }

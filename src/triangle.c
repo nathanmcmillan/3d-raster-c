@@ -17,6 +17,6 @@ Triangle *new_triangle(float height, int texture, Vec va, Vec vb, Vec vc, bool f
     td->v2 = vb.y * scale;
     td->u3 = vc.x * scale;
     td->v3 = vc.y * scale;
-    td->normal = floor ? 1.0 : -1.0;
+    td->normal = floor ? 1.0f : -1.0f;
     return td;
 }

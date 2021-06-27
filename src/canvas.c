@@ -33,8 +33,12 @@ Canvas *new_canvas(i32 width, i32 height) {
     return this;
 }
 
-void canvas_clear(Canvas *this) {
+void canvas_clear_color(Canvas *this) {
     memset(this->pixels, 0, this->width * this->height * sizeof(u32));
+}
+
+void canvas_clear_depth(Canvas *this) {
+    memset(this->depth, INT_MAX, this->width * this->height * sizeof(float));
 }
 
 void canvas_pixel(Canvas *this, u32 color, i32 x, i32 y) {
@@ -144,13 +148,68 @@ void canvas_project(Canvas *this, float *out, float *matrix, float *vec) {
     out[3] = w;
 }
 
-int vm_canvas_rect(lua_State *vm) {
-    Canvas *canvas = lua_touserdata(vm, 1);
-    u32 color = (u32)lua_tonumber(vm, 2);
-    i32 x0 = (i32)luaL_checknumber(vm, 3);
-    i32 y0 = (i32)luaL_checknumber(vm, 4);
-    i32 x1 = (i32)luaL_checknumber(vm, 5);
-    i32 y1 = (i32)luaL_checknumber(vm, 6);
+static void rasterize(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2) {
+    i32 width = this->width;
+    i32 height = this->height;
+    u32 *pixels = this->pixels;
+
+    i32 min_x = max32(min32(min32(x0, x1), x2), 0);
+    i32 min_y = max32(min32(min32(y0, y1), y2), 0);
+    i32 max_x = min32(max32(max32(x0, x1), x2), width - 1);
+    i32 max_y = min32(max32(max32(y0, y1), y2), height - 1);
+
+    for (i32 y = min_y; y < max_y; y++) {
+        for (i32 x = min_x; x < max_x; x++) {
+            i32 w0 = orient(x1, y1, x2, y2, x, y);
+            i32 w1 = orient(x2, y2, x0, y0, x, y);
+            i32 w2 = orient(x0, y0, x1, y1, x, y);
+            if (w0 >= 0 and w1 >= 0 and w2 >= 0) {
+                pixels[x + y * width] = color;
+            }
+        }
+    }
+}
+
+void canvas_rasterize(Canvas *this, float *a, float *b, float *c) {
+    i32 width = this->width;
+    i32 height = this->height;
+    u32 *pixels = this->pixels;
+    float *z = this->depth;
+
+    i32 min_x = max32(min32(min32((i32)a[0], (i32)b[0]), (i32)c[0]), 0);
+    i32 min_y = max32(min32(min32((i32)a[1], (i32)b[1]), (i32)c[1]), 0);
+    i32 max_x = min32(max32(max32((i32)a[0], (i32)b[0]), (i32)c[0]), width - 1);
+    i32 max_y = min32(max32(max32((i32)a[1], (i32)b[1]), (i32)c[1]), height - 1);
+
+    for (i32 y = min_y; y < max_y; y++) {
+        for (i32 x = min_x; x < max_x; x++) {
+            i32 w0 = orient((i32)a[0], (i32)a[1], (i32)b[0], (i32)b[1], x, y);
+            i32 w1 = orient((i32)c[0], (i32)c[1], (i32)a[0], (i32)a[1], x, y);
+            i32 w2 = orient((i32)a[0], (i32)a[1], (i32)b[0], (i32)b[1], x, y);
+
+            float depth = 0.0f;
+            if (depth > z[0]) {
+                continue;
+            }
+
+            i32 color = rgb(255, 0, 0);
+
+            if (w0 >= 0 and w1 >= 0 and w2 >= 0) {
+                i32 i = x + y * width;
+                pixels[i] = color;
+                z[i] = depth;
+            }
+        }
+    }
+}
+
+char *canvas_rect_vm(Hymn *vm) {
+    Canvas *canvas = hymn_pointer(vm, 0);
+    u32 color = hymn_u32(vm, 1);
+    i32 x0 = hymn_i32(vm, 2);
+    i32 y0 = hymn_i32(vm, 3);
+    i32 x1 = hymn_i32(vm, 4);
+    i32 y1 = hymn_i32(vm, 5);
     canvas_rect(canvas, color, x0, y0, x1, y1);
-    return 0;
+    return NULL;
 }

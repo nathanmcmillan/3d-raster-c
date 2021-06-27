@@ -14,12 +14,12 @@ bool set_string_equal(void *a, void *b) {
     return strcmp(a, b) == 0;
 }
 
-unsigned long set_string_hashcode(void *key) {
+usize set_string_hashcode(void *key) {
     char *str_key = key;
-    int length = strlen(str_key);
-    unsigned long hash = 0;
-    for (int i = 0; i < length; i++) {
-        hash = 31 * hash + (unsigned long)str_key[i];
+    usize length = strlen(str_key);
+    usize hash = 0;
+    for (usize i = 0; i < length; i++) {
+        hash = 31 * hash + (usize)str_key[i];
     }
     return hash;
 }
@@ -28,11 +28,11 @@ bool set_address_equal(void *a, void *b) {
     return a == b;
 }
 
-unsigned long set_address_hashcode(void *key) {
-    return (unsigned long)key;
+usize set_address_hashcode(void *key) {
+    return (usize)key;
 }
 
-Set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
+Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
     Set *this = safe_malloc(sizeof(Set));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
@@ -42,11 +42,11 @@ Set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(voi
     return this;
 }
 
-static unsigned int get_bin(Set *this, unsigned long hash) {
+static unsigned int get_bin(Set *this, usize hash) {
     return (this->bins - 1) & hash;
 }
 
-static unsigned long hash_mix(unsigned long hash) {
+static usize hash_mix(usize hash) {
     return hash ^ (hash >> 16);
 }
 
@@ -112,7 +112,7 @@ static void resize(Set *this) {
 }
 
 void set_add(Set *this, void *key) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
     SetItem *previous = NULL;
@@ -139,7 +139,7 @@ void set_add(Set *this, void *key) {
 }
 
 bool set_has(Set *this, void *key) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
     while (item != NULL) {
@@ -152,7 +152,7 @@ bool set_has(Set *this, void *key) {
 }
 
 void set_remove(Set *this, void *key) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
     SetItem *previous = NULL;

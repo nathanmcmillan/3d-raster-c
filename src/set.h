@@ -18,26 +18,26 @@ typedef struct Set Set;
 typedef struct SetIterator SetIterator;
 
 struct SetItem {
-    unsigned long hash;
+    usize hash;
     void *key;
     SetItem *next;
 };
 
 struct Set {
     bool (*equals_fn)(void *, void *);
-    unsigned long (*hashcode_fn)(void *);
+    usize (*hashcode_fn)(void *);
     unsigned int size;
     unsigned int bins;
     SetItem **items;
 };
 
 bool set_string_equal(void *a, void *b);
-unsigned long set_string_hashcode(void *key);
+usize set_string_hashcode(void *key);
 
 bool set_address_equal(void *a, void *b);
-unsigned long set_address_hashcode(void *key);
+usize set_address_hashcode(void *key);
 
-Set *new_set(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *));
+Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *));
 
 void set_add(Set *this, void *key);
 bool set_has(Set *this, void *key);

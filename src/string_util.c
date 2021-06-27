@@ -13,7 +13,7 @@ static StringHead *string_head_init(usize length, usize capacity) {
     return head;
 }
 
-String *string_init_with_length(char *init, usize length) {
+String *new_string_with_length(char *init, usize length) {
     StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memcpy(s, init, length);
@@ -28,14 +28,14 @@ String *string_allocate(usize length) {
     return (String *)s;
 }
 
-String *string_init(char *init) {
+String *new_string(char *init) {
     usize len = strlen(init);
-    return string_init_with_length(init, len);
+    return new_string_with_length(init, len);
 }
 
 String *string_copy(String *this) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
-    return string_init_with_length(this, head->length);
+    return new_string_with_length(this, head->length);
 }
 
 usize string_len(String *s) {
@@ -152,6 +152,21 @@ String *string_append_char(String *this, char b) {
     return (String *)s;
 }
 
+String *string_append_substring(String *this, char *b, usize start, usize end) {
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
+    usize len_a = head->length;
+    usize len_b = end - start;
+    usize len = len_a + len_b;
+    if (len > head->capacity) {
+        head = string_resize(head, len * 2);
+    }
+    head->length = len;
+    char *s = (char *)(head + 1);
+    memcpy(s + len_a, &b[start], len_b);
+    s[len] = '\0';
+    return (String *)s;
+}
+
 int string_compare(String *a, String *b) {
     usize len_a = string_len(a);
     usize len_b = string_len(b);
@@ -176,7 +191,7 @@ String *char_to_string(char ch) {
     char *str = safe_malloc(2);
     str[0] = ch;
     str[1] = '\0';
-    String *s = string_init_with_length(str, 1);
+    String *s = new_string_with_length(str, 1);
     free(str);
     return s;
 }
@@ -185,7 +200,7 @@ String *int_to_string(int number) {
     int len = snprintf(NULL, 0, "%d", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%d", number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -194,7 +209,7 @@ String *int8_to_string(i8 number) {
     int len = snprintf(NULL, 0, "%" PRId8, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId8, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -203,7 +218,7 @@ String *int16_to_string(i16 number) {
     int len = snprintf(NULL, 0, "%" PRId16, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId16, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -212,7 +227,7 @@ String *int32_to_string(i32 number) {
     int len = snprintf(NULL, 0, "%" PRId32, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId32, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -221,7 +236,7 @@ String *int64_to_string(i64 number) {
     int len = snprintf(NULL, 0, "%" PRId64, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId64, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -230,7 +245,7 @@ String *size_t_to_string(usize number) {
     int len = snprintf(NULL, 0, "%zu", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%zu", number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -239,7 +254,7 @@ String *uint_to_string(unsigned int number) {
     int len = snprintf(NULL, 0, "%u", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%u", number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -248,7 +263,7 @@ String *uint8_to_string(u8 number) {
     int len = snprintf(NULL, 0, "%" PRId8, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId8, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -257,7 +272,7 @@ String *uint16_to_string(u16 number) {
     int len = snprintf(NULL, 0, "%" PRId16, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId16, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -266,7 +281,7 @@ String *uint32_to_string(u32 number) {
     int len = snprintf(NULL, 0, "%" PRId32, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId32, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -275,7 +290,7 @@ String *uint64_to_string(u64 number) {
     int len = snprintf(NULL, 0, "%" PRId64, number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%" PRId64, number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -284,7 +299,7 @@ String *float_to_string(float number) {
     int len = snprintf(NULL, 0, "%f", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%f", number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -297,7 +312,7 @@ String *float64_to_string(double number) {
     int len = snprintf(NULL, 0, "%f", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%f", number);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }
@@ -371,7 +386,7 @@ String *format(String *f, ...) {
     va_start(ap, f);
     len = vsnprintf(str, len + 1, f, ap);
     va_end(ap);
-    String *s = string_init_with_length(str, len);
+    String *s = new_string_with_length(str, len);
     free(str);
     return s;
 }

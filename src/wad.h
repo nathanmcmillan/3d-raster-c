@@ -17,7 +17,11 @@ typedef Array WadArray;
 typedef struct Wad Wad;
 typedef struct MaybeWad MaybeWad;
 
-enum WadType { WAD_OBJECT, WAD_ARRAY, WAD_STRING };
+enum WadType {
+    WAD_OBJECT,
+    WAD_ARRAY,
+    WAD_STRING,
+};
 
 union WadUnion {
     WadObject *object;
@@ -54,7 +58,7 @@ WadArray *wad_get_array_from_object(Wad *object, char *key);
 Wad *wad_get_from_array(Wad *array, unsigned int index);
 Wad *wad_get_required_from_array(Wad *array, unsigned int index);
 TableIter wad_object_iterator(Wad *object);
-unsigned int wad_get_size(Wad *element);
+usize wad_get_size(Wad *element);
 
 void wad_delete(Wad *element);
 

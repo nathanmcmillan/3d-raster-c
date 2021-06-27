@@ -13,12 +13,12 @@ void quaternion_identity(quaternion *out) {
 
 void euler_to_quaternion(quaternion *out, float x, float y, float z) {
 
-    float cy = cosf(z * 0.5);
-    float sy = sinf(z * 0.5);
-    float cp = cosf(y * 0.5);
-    float sp = sinf(y * 0.5);
-    float cr = cosf(x * 0.5);
-    float sr = sinf(x * 0.5);
+    float cy = cosf(z * 0.5f);
+    float sy = sinf(z * 0.5f);
+    float cp = cosf(y * 0.5f);
+    float sp = sinf(y * 0.5f);
+    float cr = cosf(x * 0.5f);
+    float sr = sinf(x * 0.5f);
 
     out[0] = sr * cp * cy - cr * sp * sy;
     out[1] = cr * sp * cy + sr * cp * sy;

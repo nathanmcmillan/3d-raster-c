@@ -21,37 +21,46 @@
 #include "wad.h"
 #include "world.h"
 
+typedef struct State State;
 typedef struct GameState GameState;
 typedef struct PaintState PaintState;
 
-struct GameState {
+struct State {
     Canvas *canvas;
     Input *input;
     Assets *assets;
+    void (*update)(void *);
+    void (*draw)(void *);
+};
+
+struct GameState {
+    State state;
     World *world;
     Camera *camera;
     Thing *hero;
 };
 
-GameState *new_game_state(Canvas *canvas, Input *input, Assets *assets);
+struct PaintState {
+    State state;
+};
 
+inline void state_update(State *state) {
+    state->update(state);
+}
+
+inline void state_draw(State *state) {
+    state->draw(state);
+}
+
+GameState *new_game_state(Canvas *canvas, Input *input, Assets *assets);
 void game_state_open(GameState *this, String *content);
 void game_state_update(void *state);
 void game_state_draw(void *state);
-
 void game_state_delete(GameState *this);
 
-struct PaintState {
-    Canvas *canvas;
-    Input *input;
-    Assets *assets;
-};
-
 PaintState *new_paint_state(Canvas *canvas, Input *input, Assets *assets);
-
 void paint_state_update(void *state);
 void paint_state_draw(void *state);
-
 void paint_state_delete(PaintState *this);
 
 #endif

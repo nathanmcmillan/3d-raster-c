@@ -4,7 +4,7 @@
 
 #include "uint_table.h"
 
-static const float LOAD_FACTOR = 0.80;
+static const float LOAD_FACTOR = 0.80f;
 
 static const unsigned int INITIAL_BINS = 1 << 3;
 
@@ -14,8 +14,8 @@ bool uint_table_address_equal(void *a, void *b) {
     return a == b;
 }
 
-unsigned long uint_table_address_hashcode(unsigned int key) {
-    return (unsigned long)key;
+usize uint_table_address_hashcode(unsigned int key) {
+    return (usize)key;
 }
 
 UIntTable *new_uint_table() {
@@ -26,11 +26,11 @@ UIntTable *new_uint_table() {
     return this;
 }
 
-static unsigned int get_bin(UIntTable *this, unsigned long hash) {
+static unsigned int get_bin(UIntTable *this, usize hash) {
     return (this->bins - 1) & hash;
 }
 
-static unsigned long hash_mix(unsigned int hash) {
+static usize hash_mix(unsigned int hash) {
     return hash ^ (hash >> 16);
 }
 
@@ -96,7 +96,7 @@ static void resize(UIntTable *this) {
 }
 
 void uint_table_put(UIntTable *this, unsigned int key, void *value) {
-    unsigned long hash = hash_mix(key);
+    usize hash = hash_mix(key);
     unsigned int bin = get_bin(this, hash);
     UIntTableItem *item = this->items[bin];
     UIntTableItem *previous = NULL;
@@ -125,7 +125,7 @@ void uint_table_put(UIntTable *this, unsigned int key, void *value) {
 }
 
 void *uint_table_get(UIntTable *this, unsigned int key) {
-    unsigned long hash = hash_mix(key);
+    usize hash = hash_mix(key);
     unsigned int bin = get_bin(this, hash);
     UIntTableItem *item = this->items[bin];
     while (item != NULL) {
@@ -142,7 +142,7 @@ bool uint_table_has(UIntTable *this, unsigned int key) {
 }
 
 void *uint_table_remove(UIntTable *this, unsigned int key) {
-    unsigned long hash = hash_mix(key);
+    usize hash = hash_mix(key);
     unsigned int bin = get_bin(this, hash);
     UIntTableItem *item = this->items[bin];
     UIntTableItem *previous = NULL;

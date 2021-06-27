@@ -11,7 +11,7 @@ usize file_size(char *path) {
         exit(1);
     }
     usize num = 0;
-    char ch;
+    int ch;
     while ((ch = fgetc(fp)) != EOF) {
         num++;
     }
@@ -26,7 +26,7 @@ usize file_binary_size(char *path) {
         exit(1);
     }
     usize num = 0;
-    char ch;
+    int ch;
     while ((ch = fgetc(fp)) != EOF) {
         num++;
     }
@@ -43,10 +43,10 @@ String *cat(char *path) {
     }
     char *content = safe_malloc((size + 1) * sizeof(char));
     for (usize i = 0; i < size; i++) {
-        content[i] = fgetc(fp);
+        content[i] = (char)fgetc(fp);
     }
     fclose(fp);
-    String *s = string_init_with_length(content, size);
+    String *s = new_string_with_length(content, size);
     free(content);
     return s;
 }
@@ -70,7 +70,7 @@ char *read_binary(char *path, usize *size_pointer) {
     }
     char *content = safe_malloc(size * sizeof(char));
     for (usize i = 0; i < size; i++) {
-        content[i] = fgetc(fp);
+        content[i] = (char)fgetc(fp);
     }
     fclose(fp);
     *size_pointer = size;

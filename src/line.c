@@ -25,7 +25,7 @@ void line_set_sectors(Line *this, Sector *plus, Sector *minus) {
     this->minus = minus;
     float x = this->a->y - this->b->y;
     float y = -(this->a->x - this->b->x);
-    float m = sqrt(x * x + y * y);
+    float m = sqrtf(x * x + y * y);
     this->normal = (Vec){x / m, y / m};
 }
 
@@ -61,9 +61,9 @@ MaybeVec line_intersect(Line *this, Line *with) {
     float offset;
 
     if (denominator < 0) {
-        offset = -denominator * 0.5;
+        offset = -denominator * 0.5f;
     } else {
-        offset = denominator * 0.5;
+        offset = denominator * 0.5f;
     }
 
     float number = (b1 * c2) - (b2 * c1);

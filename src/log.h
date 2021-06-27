@@ -5,16 +5,28 @@
 #ifndef LOG_H
 #define LOG_H
 
-#define LOG(message)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   \
-    fprintf(stdout, "%s\n", message);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  \
+#define LOG(m)                  \
+    fprintf(stdout, "%s\n", m); \
     fflush(stdout)
 
-#define DEBUG(message)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-    fprintf(stdout, "Line: %d, Debug: %s\n", __LINE__, message);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
-    fflush(stdout)
-
-#define ERROR(message)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 \
-    fprintf(stderr, "Line: %d, Error: %s\n", __LINE__, message);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       \
+#define ERROR(m)                                           \
+    fprintf(stderr, "Line: %d, Error: %s\n", __LINE__, m); \
     fflush(stderr)
+
+#define DEBUG(m)                                           \
+    fprintf(stdout, "Line: %d, Debug: %s\n", __LINE__, m); \
+    fflush(stdout)
+
+#define DEBUG_CHAR(c)                                      \
+    fprintf(stdout, "Line: %d, Debug: %c\n", __LINE__, c); \
+    fflush(stdout)
+
+#define DEBUG_INT(n)                                       \
+    fprintf(stdout, "Line: %d, Debug: %d\n", __LINE__, n); \
+    fflush(stdout)
+
+#define DEBUG_USIZE(n)                                      \
+    fprintf(stdout, "Line: %d, Debug: %zu\n", __LINE__, n); \
+    fflush(stdout)
 
 #endif

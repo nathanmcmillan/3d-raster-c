@@ -7,10 +7,6 @@
 
 #include <SDL.h>
 
-#include <lauxlib.h>
-#include <lua.h>
-#include <lualib.h>
-
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -20,6 +16,7 @@
 #include "assets.h"
 #include "canvas.h"
 #include "fileio.h"
+#include "hymn.h"
 #include "input.h"
 #include "log.h"
 #include "paint.h"
@@ -39,13 +36,11 @@ struct Window {
 
 struct Game {
     Window *win;
-    lua_State *vm;
+    Hymn *vm;
     Input input;
     GameState *game;
     PaintState *paint;
-    void *state;
-    void (*update)(void *);
-    void (*draw)(void *);
+    State *state;
 };
 
 #endif

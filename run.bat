@@ -1,1 +1,1 @@
-build\Release\scroll-and-sigil.exe
+build\Debug\scroll-and-sigil.exe

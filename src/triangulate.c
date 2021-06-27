@@ -314,8 +314,8 @@ static bool valid(Array *vecs, Vec *a, Vec *b, Vec *c) {
 }
 
 static void clip(Array *vecs, Sector *sec, bool floor, Array *triangles, float scale) {
-    unsigned int i = 0;
-    unsigned int size = vecs->length;
+    int i = 0;
+    int size = (int)vecs->length;
     while (size > 3) {
 
         int minus = i - 1;
@@ -387,22 +387,13 @@ static Array *classify(Array *points) {
         bool collinear = nex->point->y == pos->point->y;
 
         if (both_above and reflex) {
-#ifdef TRIANGULATE_DEBUG
-            printf("classify start: %f, %f\n", pos->point->x, pos->point->y);
-#endif
             array_push(start, pos);
         } else if (both_above and !reflex) {
             if (!collinear) {
-#ifdef TRIANGULATE_DEBUG
-                printf("classify split: %f, %f\n", pos->point->x, pos->point->y);
-#endif
                 array_push(split, pos);
             }
         } else if (both_below and !reflex) {
             if (!collinear) {
-#ifdef TRIANGULATE_DEBUG
-                printf("classify merge: %f, %f\n", pos->point->x, pos->point->y);
-#endif
                 array_push(merge, pos);
             }
         }
@@ -420,10 +411,6 @@ static Array *classify(Array *points) {
         }
 
         PolygonVertex *diagonal = points->items[k];
-
-#ifdef TRIANGULATE_DEBUG
-        printf("adding merge diangonal from (%f, %f) to (%f, %f)\n", p->point->x, p->point->y, diagonal->point->x, diagonal->point->y);
-#endif
 
         p->merge = true;
 
@@ -448,15 +435,8 @@ static Array *classify(Array *points) {
         PolygonVertex *diagonal = points->items[k];
 
         if (diagonal->merge) {
-#ifdef TRIANGULATE_DEBUG
-            printf("split using same diagonal as merge (%f, %f) to (%f, %f)\n", p->point->x, p->point->y, diagonal->point->x, diagonal->point->y);
-#endif
             continue;
         }
-
-#ifdef TRIANGULATE_DEBUG
-        printf("adding split diagonal from (%f, %f) to (%f, %f)\n", p->point->x, p->point->y, diagonal->point->x, diagonal->point->y);
-#endif
 
         array_push(start, diagonal);
 
@@ -535,26 +515,9 @@ static void build(Sector *sec, bool floor, Array *triangles, float scale) {
     }
 
     Array *points = populate(sec, floor);
-
-#ifdef TRIANGULATE_DEBUG
-    printf("points:\n");
-    for (unsigned int i = 0; i < points->length; i++) {
-        PolygonVertex *vert = points->items[i];
-        printf("  (%d) %f, %f\n", vert->index, vert->point->x, vert->point->y);
-    }
-#endif
-
     Array *monotone = classify(points);
 
-#ifdef TRIANGULATE_DEBUG
-    printf("monotone count %d\n", array_size(monotone));
-#endif
-
     iterate_clip(monotone, sec, floor, triangles, scale);
-
-#ifdef TRIANGULATE_DEBUG
-    printf("Triangle count %d\n", array_size(triangles));
-#endif
 
     array_delete(points);
     array_delete(monotone);
@@ -565,6 +528,6 @@ void triangulate_sector(Sector *sec, float scale) {
     build(sec, true, ls, scale);
     build(sec, false, ls, scale);
     sec->triangles = (Triangle **)array_copy_items(ls);
-    sec->triangle_count = ls->length;
+    sec->triangle_count = (int)ls->length;
     array_delete(ls);
 }

@@ -26,7 +26,11 @@ extern const float wind_resistance;
 
 extern unsigned int thing_unique_id;
 
-enum ThingType { THING_TYPE_HERO, THING_TYPE_BARON, THING_TYPE_SCENERY };
+enum ThingType {
+    THING_TYPE_HERO,
+    THING_TYPE_BARON,
+    THING_TYPE_SCENERY,
+};
 
 typedef struct World World;
 typedef struct Cell Cell;

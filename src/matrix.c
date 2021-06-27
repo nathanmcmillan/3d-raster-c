@@ -1,6 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * License, v. 2.0f. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0f/. */
 
 #include "matrix.h"
 
@@ -14,76 +14,76 @@ void matrix_print(float *matrix) {
 
 void matrix_identity(float *matrix) {
 
-    matrix[0] = 1.0;
-    matrix[1] = 0.0;
-    matrix[2] = 0.0;
-    matrix[3] = 0.0;
+    matrix[0] = 1.0f;
+    matrix[1] = 0.0f;
+    matrix[2] = 0.0f;
+    matrix[3] = 0.0f;
 
-    matrix[4] = 0.0;
-    matrix[5] = 1.0;
-    matrix[6] = 0.0;
-    matrix[7] = 0.0;
+    matrix[4] = 0.0f;
+    matrix[5] = 1.0f;
+    matrix[6] = 0.0f;
+    matrix[7] = 0.0f;
 
-    matrix[8] = 0.0;
-    matrix[9] = 0.0;
-    matrix[10] = 1.0;
-    matrix[11] = 0.0;
+    matrix[8] = 0.0f;
+    matrix[9] = 0.0f;
+    matrix[10] = 1.0f;
+    matrix[11] = 0.0f;
 
-    matrix[12] = 0.0;
-    matrix[13] = 0.0;
-    matrix[14] = 0.0;
-    matrix[15] = 1.0;
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = 0.0f;
+    matrix[15] = 1.0f;
 }
 
 void matrix_orthographic(float *matrix, float left, float right, float bottom, float top, float near, float far) {
 
-    matrix[0] = 2.0 / (right - left);
-    matrix[1] = 0.0;
-    matrix[2] = 0.0;
-    matrix[3] = 0.0;
+    matrix[0] = 2.0f / (right - left);
+    matrix[1] = 0.0f;
+    matrix[2] = 0.0f;
+    matrix[3] = 0.0f;
 
-    matrix[4] = 0.0;
-    matrix[5] = 2.0 / (top - bottom);
-    matrix[6] = 0.0;
-    matrix[7] = 0.0;
+    matrix[4] = 0.0f;
+    matrix[5] = 2.0f / (top - bottom);
+    matrix[6] = 0.0f;
+    matrix[7] = 0.0f;
 
-    matrix[8] = 0.0;
-    matrix[9] = 0.0;
-    matrix[10] = -2.0 / (far - near);
-    matrix[11] = 0.0;
+    matrix[8] = 0.0f;
+    matrix[9] = 0.0f;
+    matrix[10] = -2.0f / (far - near);
+    matrix[11] = 0.0f;
 
     matrix[12] = -(right + left) / (right - left);
     matrix[13] = -(top + bottom) / (top - bottom);
     matrix[14] = -(far + near) / (far - near);
-    matrix[15] = 1.0;
+    matrix[15] = 1.0f;
 }
 
 void matrix_frustum(float *matrix, float left, float right, float bottom, float top, float near, float far) {
 
-    matrix[0] = (2.0 * near) / (right - left);
-    matrix[1] = 0.0;
-    matrix[2] = 0.0;
-    matrix[3] = 0.0;
+    matrix[0] = (2.0f * near) / (right - left);
+    matrix[1] = 0.0f;
+    matrix[2] = 0.0f;
+    matrix[3] = 0.0f;
 
-    matrix[4] = 0.0;
-    matrix[5] = (2.0 * near) / (top - bottom);
-    matrix[6] = 0.0;
-    matrix[7] = 0.0;
+    matrix[4] = 0.0f;
+    matrix[5] = (2.0f * near) / (top - bottom);
+    matrix[6] = 0.0f;
+    matrix[7] = 0.0f;
 
     matrix[8] = (right + left) / (right - left);
     matrix[9] = (top + bottom) / (top - bottom);
     matrix[10] = -(far + near) / (far - near);
-    matrix[11] = -1.0;
+    matrix[11] = -1.0f;
 
-    matrix[12] = 0.0;
-    matrix[13] = 0.0;
-    matrix[14] = -(2.0 * far * near) / (far - near);
-    matrix[15] = 0.0;
+    matrix[12] = 0.0f;
+    matrix[13] = 0.0f;
+    matrix[14] = -(2.0f * far * near) / (far - near);
+    matrix[15] = 0.0f;
 }
 
 void matrix_perspective(float *matrix, float fov, float near, float far, float aspect) {
 
-    float top = near * tanf(fov * MATH_PI / 360.0);
+    float top = near * tanf(fov * MATH_PI / 360.0f);
     float bottom = -top;
     float left = bottom * aspect;
     float right = top * aspect;
@@ -126,25 +126,25 @@ void matrix_rotate_x(float *matrix, float sine, float cosine) {
 
     float temp[16];
 
-    temp[0] = 1.0;
-    temp[1] = 0.0;
-    temp[2] = 0.0;
-    temp[3] = 0.0;
+    temp[0] = 1.0f;
+    temp[1] = 0.0f;
+    temp[2] = 0.0f;
+    temp[3] = 0.0f;
 
-    temp[4] = 0.0;
+    temp[4] = 0.0f;
     temp[5] = cosine;
     temp[6] = sine;
-    temp[7] = 0.0;
+    temp[7] = 0.0f;
 
-    temp[8] = 0.0;
+    temp[8] = 0.0f;
     temp[9] = -sine;
     temp[10] = cosine;
-    temp[11] = 0.0;
+    temp[11] = 0.0f;
 
-    temp[12] = 0.0;
-    temp[13] = 0.0;
-    temp[14] = 0.0;
-    temp[15] = 1.0;
+    temp[12] = 0.0f;
+    temp[13] = 0.0f;
+    temp[14] = 0.0f;
+    temp[15] = 1.0f;
 
     float copy[16];
     memcpy(copy, matrix, 16 * sizeof(float));
@@ -157,24 +157,24 @@ void matrix_rotate_y(float *matrix, float sine, float cosine) {
     float temp[16];
 
     temp[0] = cosine;
-    temp[1] = 0.0;
+    temp[1] = 0.0f;
     temp[2] = -sine;
-    temp[3] = 0.0;
+    temp[3] = 0.0f;
 
-    temp[4] = 0.0;
-    temp[5] = 1.0;
-    temp[6] = 0.0;
-    temp[7] = 0.0;
+    temp[4] = 0.0f;
+    temp[5] = 1.0f;
+    temp[6] = 0.0f;
+    temp[7] = 0.0f;
 
     temp[8] = sine;
-    temp[9] = 0.0;
+    temp[9] = 0.0f;
     temp[10] = cosine;
-    temp[11] = 0.0;
+    temp[11] = 0.0f;
 
-    temp[12] = 0.0;
-    temp[13] = 0.0;
-    temp[14] = 0.0;
-    temp[15] = 1.0;
+    temp[12] = 0.0f;
+    temp[13] = 0.0f;
+    temp[14] = 0.0f;
+    temp[15] = 1.0f;
 
     float copy[16];
     memcpy(copy, matrix, 16 * sizeof(float));
@@ -188,23 +188,23 @@ void matrix_rotate_z(float *matrix, float sine, float cosine) {
 
     temp[0] = cosine;
     temp[1] = sine;
-    temp[2] = 0.0;
-    temp[3] = 0.0;
+    temp[2] = 0.0f;
+    temp[3] = 0.0f;
 
     temp[4] = -sine;
     temp[5] = cosine;
-    temp[6] = 0.0;
-    temp[7] = 0.0;
+    temp[6] = 0.0f;
+    temp[7] = 0.0f;
 
-    temp[8] = 0.0;
-    temp[9] = 0.0;
-    temp[10] = 1.0;
-    temp[11] = 0.0;
+    temp[8] = 0.0f;
+    temp[9] = 0.0f;
+    temp[10] = 1.0f;
+    temp[11] = 0.0f;
 
-    temp[12] = 0.0;
-    temp[13] = 0.0;
-    temp[14] = 0.0;
-    temp[15] = 1.0;
+    temp[12] = 0.0f;
+    temp[13] = 0.0f;
+    temp[14] = 0.0f;
+    temp[15] = 1.0f;
 
     float copy[16];
     memcpy(copy, matrix, 16 * sizeof(float));
@@ -307,7 +307,7 @@ void matrix_inverse(float *matrix, float *from) {
     dst[15] = tmp[10] * src[10] + tmp[4] * src[8] + tmp[9] * src[9];
     dst[15] -= tmp[8] * src[9] + tmp[11] * src[10] + tmp[5] * src[8];
 
-    float det = 1.0 / (src[0] * dst[0] + src[1] * dst[1] + src[2] * dst[2] + src[3] * dst[3]);
+    float det = 1.0f / (src[0] * dst[0] + src[1] * dst[1] + src[2] * dst[2] + src[3] * dst[3]);
 
     for (int i = 0; i < 16; i++) {
         matrix[i] = dst[i] * det;

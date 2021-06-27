@@ -14,31 +14,31 @@
 #include "mem.h"
 #include "pie.h"
 
-#define VECTOR_3_ADD(a, b)                                                                                                                                                                                                                     \
-    a.x += b.x;                                                                                                                                                                                                                                \
-    a.y += b.y;                                                                                                                                                                                                                                \
+#define VECTOR_3_ADD(a, b) \
+    a.x += b.x;            \
+    a.y += b.y;            \
     a.x += b.z
 
 #define VECTOR_3_DOT(a, b) (a.x * b.x + a.y * b.y + a.z * b.z)
 
-#define VECTOR_3_DIVIDE(v, d)                                                                                                                                                                                                                  \
-    v.x /= d;                                                                                                                                                                                                                                  \
-    v.y /= d;                                                                                                                                                                                                                                  \
+#define VECTOR_3_DIVIDE(v, d) \
+    v.x /= d;                 \
+    v.y /= d;                 \
     v.z /= d
 
-#define VECTOR_3_CROSS(c, a, b)                                                                                                                                                                                                                \
-    c.x = a.y * b.z - a.z * b.y;                                                                                                                                                                                                               \
-    c.y = a.z * b.x - a.x * b.z;                                                                                                                                                                                                               \
+#define VECTOR_3_CROSS(c, a, b)  \
+    c.x = a.y * b.z - a.z * b.y; \
+    c.y = a.z * b.x - a.x * b.z; \
     c.z = a.x * b.y - a.y * b.x
 
-#define VECTOR_3F_ADD(a, b)                                                                                                                                                                                                                    \
-    a[0] += b[0];                                                                                                                                                                                                                              \
-    a[1] += b[1];                                                                                                                                                                                                                              \
+#define VECTOR_3F_ADD(a, b) \
+    a[0] += b[0];           \
+    a[1] += b[1];           \
     a[2] += b[2]
 
-#define VECTOR_3F_SUB(a, b)                                                                                                                                                                                                                    \
-    a[0] -= b[0];                                                                                                                                                                                                                              \
-    a[1] -= b[1];                                                                                                                                                                                                                              \
+#define VECTOR_3F_SUB(a, b) \
+    a[0] -= b[0];           \
+    a[1] -= b[1];           \
     a[2] -= b[2]
 
 typedef struct Vec Vec;

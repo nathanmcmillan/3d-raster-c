@@ -31,12 +31,8 @@ typedef double f64;
 typedef size_t usize;
 
 #ifdef __GNUC__
-#define UNUSED __attribute__((unused))
 #define PACK(expr) expr __attribute__((__packed__))
-#endif
-
-#ifdef _MSC_VER
-#define UNUSED
+#elif _MSC_VER
 #define PACK(expr) __pragma(pack(push, 1)) expr __pragma(pack(pop))
 #endif
 

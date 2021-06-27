@@ -1,0 +1,34 @@
+{
+  "name": "wad",
+  "displayName": "Wad",
+  "description": "Simple data format.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.35.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "Wad",
+        "aliases": [
+          "Wad",
+          "wad"
+        ],
+        "extensions": [
+          "wad"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "Wad",
+        "scopeName": "source.wad",
+        "path": "./syntaxes/wad.tmLanguage.json"
+      }
+    ]
+  }
+}

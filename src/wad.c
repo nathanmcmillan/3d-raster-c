@@ -71,7 +71,7 @@ bool wad_get_bool(Wad *element) {
 }
 
 void wad_add_to_object(Wad *object, char *key, Wad *value) {
-    table_put(wad_get_object(object), string_init(key), value);
+    table_put(wad_get_object(object), new_string(key), value);
 }
 
 Wad *wad_get_from_object(Wad *object, char *key) {
@@ -114,7 +114,7 @@ TableIter wad_object_iterator(Wad *object) {
     return new_table_iterator(wad_get_object(object));
 }
 
-unsigned int wad_get_size(Wad *element) {
+usize wad_get_size(Wad *element) {
     switch (element->type) {
     case WAD_OBJECT: return table_size(wad_get_object(element));
     case WAD_ARRAY: return array_size(wad_get_array(element));
@@ -132,7 +132,7 @@ void wad_delete(Wad *element) {
     free(element);
 }
 
-static int skip_space(String *str, usize i) {
+static usize skip_space(String *str, usize i) {
     i++;
     char c = str[i];
     if (c != '\n' and c != ' ') {
@@ -156,8 +156,8 @@ MaybeWad wad_parse(String *str) {
     Array *stack = new_array(0);
     array_push(stack, wad);
 
-    String *key = string_init("");
-    String *value = string_init("");
+    String *key = new_string("");
+    String *value = new_string("");
 
     char pc = '\0';
     bool parsing_key = true;
@@ -291,7 +291,7 @@ String *wad_to_string(Wad *element) {
     switch (element->type) {
     case WAD_OBJECT: {
         WadObject *map = wad_get_object(element);
-        String *str = string_init("{");
+        String *str = new_string("{");
         TableIter iter = new_table_iterator(map);
         while (table_iterator_has_next(&iter)) {
             TablePair pair = table_iterator_next(&iter);
@@ -311,9 +311,9 @@ String *wad_to_string(Wad *element) {
     }
     case WAD_ARRAY: {
         WadArray *ls = wad_get_array(element);
-        String *str = string_init("[");
-        unsigned int len = ls->length;
-        for (unsigned int i = 0; i < len; i++) {
+        String *str = new_string("[");
+        usize len = ls->length;
+        for (usize i = 0; i < len; i++) {
             String *in = wad_to_string(ls->items[i]);
             str = string_append(str, in);
             if (i < len - 1) {

@@ -17,7 +17,7 @@ typedef struct UIntTablePair UIntTablePair;
 typedef struct UIntTableIter UIntTableIter;
 
 struct UIntTableItem {
-    unsigned long hash;
+    usize hash;
     unsigned int key;
     void *value;
     UIntTableItem *next;

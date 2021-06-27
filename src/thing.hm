@@ -1,0 +1,15 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+function thing_update()
+  pass
+end
+
+function new_thing(x, y)
+  const t = {}
+  t.x = x
+  t.y = y
+  t.update = thing_update
+  return t
+end

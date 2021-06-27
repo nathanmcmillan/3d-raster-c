@@ -36,11 +36,11 @@ for file in "src/"*".c"; do fun "$file"; done
 
 for file in "src/"*".h"; do fun "$file"; done
 
-mozilla='-- This Source Code Form is subject to the terms of the Mozilla Public
--- License, v. 2.0. If a copy of the MPL was not distributed with this
--- file, You can obtain one at https://mozilla.org/MPL/2.0/.
+mozilla='# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
 '
 
-check='-- This Source Code Form is subject to the terms of the Mozilla Public'
+check='# This Source Code Form is subject to the terms of the Mozilla Public'
 
-for file in "src/"*".lua"; do fun "$file"; done
+for file in "src/"*".hm"; do fun "$file"; done

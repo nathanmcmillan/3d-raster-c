@@ -18,4 +18,6 @@ struct Paint {
 
 Paint *new_paint();
 
+void paint_delete(Paint *this);
+
 #endif

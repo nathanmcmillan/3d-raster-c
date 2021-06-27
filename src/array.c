@@ -125,9 +125,9 @@ void *array_pop(Array *this) {
 }
 
 void array_remove(Array *this, void *item) {
-    int len = this->length;
+    usize len = this->length;
     void **items = this->items;
-    for (int i = 0; i < len; i++) {
+    for (usize i = 0; i < len; i++) {
         if (items[i] == item) {
             len--;
             while (i < len) {
@@ -143,9 +143,9 @@ void array_remove(Array *this, void *item) {
 
 void array_remove_index(Array *this, usize index) {
     this->length--;
-    int len = this->length;
+    usize len = this->length;
     void **items = this->items;
-    for (int i = index; i < len; i++) {
+    for (usize i = index; i < len; i++) {
         items[i] = items[i + 1];
     }
     items[len] = NULL;

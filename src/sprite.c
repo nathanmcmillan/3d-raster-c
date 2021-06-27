@@ -21,7 +21,7 @@ Sprite *new_sprite(int left, int top, int width, int height, int offset_x, int o
 
     s->width = (float)width * scale;
     s->height = (float)height * scale;
-    s->half_width = s->width * 0.5;
+    s->half_width = s->width * 0.5f;
 
     s->offset_x = (float)offset_x * scale;
     s->offset_y = (float)offset_y * scale;

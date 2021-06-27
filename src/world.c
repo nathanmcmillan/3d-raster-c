@@ -9,6 +9,7 @@ World *new_world() {
 }
 
 void world_clear(World *this) {
+    (void *)this;
 }
 
 void world_add_thing(World *this, Thing *t) {
@@ -241,7 +242,7 @@ static void build_lines(World *this, Sector *sec) {
 
     Line **lines = sec->lines;
 
-    float u = 0.0;
+    float u = 0.0f;
 
     for (int i = 0; i < line_count; i++) {
 
@@ -273,8 +274,8 @@ static void build_lines(World *this, Sector *sec) {
 
 void world_build(World *this, Array *lines) {
 
-    this->lines = array_copy_items(lines);
-    this->line_count = array_size(lines);
+    this->lines = (Line **)array_copy_items(lines);
+    this->line_count = (int)array_size(lines);
 
     float top = 0.0f;
     float right = 0.0f;
@@ -352,11 +353,11 @@ void world_build(World *this, Array *lines) {
     for (int i = 0; i < sector_count; i++) {
         Sector *s = sectors[i];
         Array *s_temp_inside_list = &sector_inside_lists[i];
-        unsigned int s_inside_count = s_temp_inside_list->length;
+        int s_inside_count = (int)s_temp_inside_list->length;
 
         Array *dead = new_array(0);
 
-        for (unsigned int k = 0; k < s_inside_count; k++) {
+        for (int k = 0; k < s_inside_count; k++) {
             Sector *o = s_temp_inside_list->items[k];
             int index_of_o;
             for (index_of_o = 0; index_of_o < sector_count; index_of_o++) {
@@ -365,24 +366,24 @@ void world_build(World *this, Array *lines) {
                 }
             }
             Array *o_inside_list = &sector_inside_lists[index_of_o];
-            unsigned int o_inside_count = o_inside_list->length;
-            for (unsigned int w = 0; w < o_inside_count; w++) {
+            int o_inside_count = (int)o_inside_list->length;
+            for (int w = 0; w < o_inside_count; w++) {
                 array_push(dead, o_inside_list->items[w]);
             }
         }
 
-        for (unsigned int k = 0; k < array_size(dead); k++) {
+        for (int k = 0; k < (int)array_size(dead); k++) {
             array_remove(s_temp_inside_list, dead->items[k]);
         }
 
-        for (unsigned int k = 0; k < s_inside_count; k++) {
+        for (int k = 0; k < s_inside_count; k++) {
             ((Sector *)s_temp_inside_list->items[k])->outside = s;
         }
 
         array_delete(dead);
 
         s->inside = (Sector **)array_copy_items(s_temp_inside_list);
-        s->inside_count = s_temp_inside_list->length;
+        s->inside_count = (int)s_temp_inside_list->length;
     }
 
     for (int i = 0; i < sector_count; i++) {

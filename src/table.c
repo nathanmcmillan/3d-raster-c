@@ -14,12 +14,12 @@ bool table_string_equal(void *a, void *b) {
     return strcmp(a, b) == 0;
 }
 
-unsigned long table_string_hashcode(void *key) {
+usize table_string_hashcode(void *key) {
     char *str_key = key;
-    int length = strlen(str_key);
-    unsigned long hash = 0;
-    for (int i = 0; i < length; i++) {
-        hash = 31 * hash + (unsigned long)str_key[i];
+    usize length = strlen(str_key);
+    usize hash = 0;
+    for (usize i = 0; i < length; i++) {
+        hash = 31 * hash + (usize)str_key[i];
     }
     return hash;
 }
@@ -28,11 +28,11 @@ bool table_address_equal(void *a, void *b) {
     return a == b;
 }
 
-unsigned long table_address_hashcode(void *key) {
-    return (unsigned long)key;
+usize table_address_hashcode(void *key) {
+    return (usize)key;
 }
 
-Table *new_table(bool (*equals_fn)(void *, void *), unsigned long (*hashcode_fn)(void *)) {
+Table *new_table(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
     Table *this = safe_malloc(sizeof(Table));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
@@ -50,11 +50,11 @@ Table *new_pointer_table() {
     return new_table(&table_address_equal, &table_address_hashcode);
 }
 
-static unsigned int get_bin(Table *this, unsigned long hash) {
+static unsigned int get_bin(Table *this, usize hash) {
     return (this->bins - 1) & hash;
 }
 
-static unsigned long hash_mix(unsigned long hash) {
+static usize hash_mix(usize hash) {
     return hash ^ (hash >> 16);
 }
 
@@ -120,7 +120,7 @@ static void resize(Table *this) {
 }
 
 void table_put(Table *this, void *key, void *value) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     TableItem *item = this->items[bin];
     TableItem *previous = NULL;
@@ -149,7 +149,7 @@ void table_put(Table *this, void *key, void *value) {
 }
 
 void *table_get(Table *this, void *key) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     TableItem *item = this->items[bin];
     while (item != NULL) {
@@ -166,7 +166,7 @@ bool table_has(Table *this, void *key) {
 }
 
 void *table_remove(Table *this, void *key) {
-    unsigned long hash = hash_mix((*this->hashcode_fn)(key));
+    usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     TableItem *item = this->items[bin];
     TableItem *previous = NULL;
