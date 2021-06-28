@@ -21,6 +21,15 @@ String *new_string_with_length(char *init, usize length) {
     return (String *)s;
 }
 
+String *new_string_from_substring(char *init, usize start, usize end) {
+    usize length = end - start;
+    StringHead *head = string_head_init(length, length);
+    char *s = (char *)(head + 1);
+    memcpy(s, &init[start], length);
+    s[length] = '\0';
+    return (String *)s;
+}
+
 String *string_allocate(usize length) {
     StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);

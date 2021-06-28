@@ -26,6 +26,7 @@ PACK(struct StringHead {
 });
 
 String *new_string_with_length(char *init, usize length);
+String *new_string_from_substring(char *init, usize start, usize end);
 String *new_string(char *init);
 String *string_allocate(usize length);
 String *string_copy(String *this);

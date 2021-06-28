@@ -14,15 +14,48 @@
 #define new_bool(v) ((Value){VALUE_BOOL, {.b = v}})
 #define new_int(v) ((Value){VALUE_INTEGER, {.i = v}})
 #define new_float(v) ((Value){VALUE_FLOAT, {.f = v}})
+#define new_str(v) ((Value){VALUE_STRING, {.s = v}})
 
 #define as_bool(v) ((v).as.b)
 #define as_int(v) ((v).as.i)
 #define as_float(v) ((v).as.f)
+#define as_string(v) ((v).as.s)
 
 #define is_nil(v) ((v).is == VALUE_NIL)
 #define is_bool(v) ((v).is == VALUE_BOOL)
 #define is_int(v) ((v).is == VALUE_INTEGER)
 #define is_float(v) ((v).is == VALUE_FLOAT)
+#define is_string(v) ((v).is == VALUE_STRING)
+
+#define macro_arithmetic_op(_binary_)                           \
+    Value b = machine_pop(this);                                \
+    Value a = machine_pop(this);                                \
+    if (is_int(a)) {                                            \
+        if (is_int(b)) {                                        \
+            a.as.i _binary_ b.as.i;                             \
+            machine_push(this, a);                              \
+        } else if (is_float(b)) {                               \
+            b.as.f _binary_ a.as.i;                             \
+            machine_push(this, a);                              \
+        } else {                                                \
+            machine_runtime_error(this, "Operand non-number."); \
+            return;                                             \
+        }                                                       \
+    } else if (is_float(a)) {                                   \
+        if (is_int(b)) {                                        \
+            a.as.f _binary_ b.as.i;                             \
+            machine_push(this, a);                              \
+        } else if (is_float(b)) {                               \
+            a.as.f _binary_ b.as.f;                             \
+            machine_push(this, a);                              \
+        } else {                                                \
+            machine_runtime_error(this, "Operand non-number."); \
+            return;                                             \
+        }                                                       \
+    } else {                                                    \
+        machine_runtime_error(this, "Operand non-number.");     \
+        return;                                                 \
+    }
 
 #define macro_compare_op(_compare_)                                                \
     Value b = machine_pop(this);                                                   \
@@ -187,6 +220,7 @@ static void literal_true(Compiler *this);
 static void literal_false(Compiler *this);
 static void literal_nil(Compiler *this);
 static void number(Compiler *this);
+static void string(Compiler *this);
 static void expression(Compiler *this);
 static void unary(Compiler *this);
 static void binary(Compiler *this);
@@ -239,7 +273,7 @@ Rule rules[] = {
     [TOKEN_RIGHT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_STRING] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_STRING] = {string, NULL, PRECEDENCE_NONE},
     [TOKEN_SUBTRACT] = {unary, binary, PRECEDENCE_TERM},
     [TOKEN_TRUE] = {literal_true, NULL, PRECEDENCE_NONE},
     [TOKEN_UNDEFINED] = {NULL, NULL, PRECEDENCE_NONE},
@@ -291,11 +325,11 @@ struct Machine {
 
 static const char *value_name(enum ValueType value) {
     switch (value) {
+    case VALUE_NIL: return "NIL";
     case VALUE_BOOL: return "BOOLEAN";
     case VALUE_INTEGER: return "INTEGER";
     case VALUE_FLOAT: return "FLOAT";
     case VALUE_STRING: return "STRING";
-    case VALUE_NIL: return "NIL";
     default: return "UNKNOWN";
     }
 }
@@ -329,6 +363,7 @@ static const char *token_name(enum TokenType type) {
     case TOKEN_LESS_EQUAL: return "LESS_EQUAL";
     case TOKEN_GREATER: return "GREATER";
     case TOKEN_GREATER_EQUAL: return "GREATER_EQUAL";
+    case TOKEN_STRING: return "STRING";
     default: return "?";
     }
 }
@@ -336,10 +371,11 @@ static const char *token_name(enum TokenType type) {
 static void debug_value(Value value) {
     printf("%s: ", value_name(value.is));
     switch (value.is) {
+    case VALUE_NIL: printf("NIL"); break;
+    case VALUE_BOOL: printf("%s", as_bool(value) ? "TRUE" : "FALSE"); break;
     case VALUE_INTEGER: printf("%" PRId64, as_int(value)); break;
     case VALUE_FLOAT: printf("%g", as_float(value)); break;
-    case VALUE_BOOL: printf("%s", as_bool(value) ? "TRUE" : "FALSE"); break;
-    case VALUE_NIL: printf("NIL"); break;
+    case VALUE_STRING: printf("\"%s\"", as_string(value)); break;
     default: printf("?");
     }
 }
@@ -420,7 +456,7 @@ static void value_token(Compiler *this, enum TokenType type, usize start, usize 
 }
 
 static void string_token(Compiler *this, usize start, usize end) {
-    printf("TOKEN: %s, %.*s\n", token_name(TOKEN_STRING), (int)(end - start), &this->source[start]);
+    printf("TOKEN: %s, \"%.*s\"\n", token_name(TOKEN_STRING), (int)(end - start), &this->source[start]);
     Token *gamma = &this->gamma;
     gamma->type = TOKEN_STRING;
     gamma->row = this->row;
@@ -562,15 +598,14 @@ static void advance(Compiler *this) {
         case '\0': token(this, TOKEN_EOF); return;
         case '\n': continue;
         case '"': {
-            usize start = this->pos - 1;
+            usize start = this->pos;
             while (true) {
-                c = peek_char(this);
+                c = next_char(this);
                 if (c == '"' or c == '\0') {
                     break;
                 }
-                next_char(this);
             }
-            usize end = this->pos;
+            usize end = this->pos - 1;
             string_token(this, start, end);
             return;
         }
@@ -732,6 +767,12 @@ static void number(Compiler *this) {
     default:
         compile_error(this, alpha, "Expected a number");
     }
+}
+
+static void string(Compiler *this) {
+    Token *alpha = &this->alpha;
+    String *s = new_string_from_substring(this->source, alpha->start, alpha->end);
+    write_constant(this->bcode, new_str(s), alpha->row);
 }
 
 static void expression(Compiler *this) {
@@ -899,6 +940,11 @@ static bool machine_equality(Value a, Value b) {
         case VALUE_FLOAT: return as_float(a) == as_float(b);
         default: return false;
         }
+    case VALUE_STRING:
+        switch (b.is) {
+        case VALUE_STRING: return string_equal(as_string(a), as_string(b));
+        default: return false;
+        }
     default: return false;
     }
 }
@@ -963,15 +1009,40 @@ static void machine_run(Machine *this) {
         case OP_ADD: {
             Value b = machine_pop(this);
             Value a = machine_pop(this);
-            if (is_int(a)) {
+            if (is_nil(a)) {
+                if (is_string(b)) {
+                    String *temp = new_string("Nil");
+                    String *add = string_concat(temp, string_copy(as_string(b)));
+                    string_delete(temp);
+                    machine_push(this, new_str(add));
+                } else {
+                    machine_runtime_error(this, "Operands can not be added.");
+                    return;
+                }
+            } else if (is_bool(a)) {
+                if (is_string(b)) {
+                    String *temp = new_string(as_bool(a) ? "True" : "False");
+                    String *add = string_concat(temp, string_copy(as_string(b)));
+                    string_delete(temp);
+                    machine_push(this, new_str(add));
+                } else {
+                    machine_runtime_error(this, "Operands can not be added.");
+                    return;
+                }
+            } else if (is_int(a)) {
                 if (is_int(b)) {
                     a.as.i += b.as.i;
                     machine_push(this, a);
                 } else if (is_float(b)) {
                     b.as.f += a.as.i;
-                    machine_push(this, b);
+                    machine_push(this, a);
+                } else if (is_string(b)) {
+                    String *temp = int64_to_string(as_int(a));
+                    String *add = string_concat(temp, as_string(b));
+                    string_delete(temp);
+                    machine_push(this, new_str(add));
                 } else {
-                    machine_runtime_error(this, "Adding non-number.");
+                    machine_runtime_error(this, "Operands can not be added.");
                     return;
                 }
             } else if (is_float(a)) {
@@ -981,107 +1052,61 @@ static void machine_run(Machine *this) {
                 } else if (is_float(b)) {
                     a.as.f += b.as.f;
                     machine_push(this, a);
+                } else if (is_string(b)) {
+                    String *temp = float64_to_string(as_float(a));
+                    String *add = string_concat(temp, as_string(b));
+                    string_delete(temp);
+                    machine_push(this, new_str(add));
                 } else {
-                    machine_runtime_error(this, "Adding non-number.");
+                    machine_runtime_error(this, "Operands can not be added.");
                     return;
                 }
+            } else if (is_string(a)) {
+                String *s = as_string(a);
+                String *add = NULL;
+                switch (b.is) {
+                case VALUE_NIL:
+                    add = string_append(string_copy(s), "Nil");
+                    break;
+                case VALUE_BOOL:
+                    add = string_append(string_copy(s), as_bool(b) ? "True" : "False");
+                    break;
+                case VALUE_INTEGER: {
+                    String *temp = int64_to_string(as_int(b));
+                    add = string_concat(s, temp);
+                    string_delete(temp);
+                    break;
+                }
+                case VALUE_FLOAT: {
+                    String *temp = float64_to_string(as_float(b));
+                    add = string_concat(s, temp);
+                    string_delete(temp);
+                    break;
+                }
+                case VALUE_STRING:
+                    add = string_concat(s, as_string(b));
+                    break;
+                default:
+                    machine_runtime_error(this, "Operands can not be added.");
+                    return;
+                }
+                machine_push(this, new_str(add));
             } else {
-                machine_runtime_error(this, "Adding non-number.");
+                machine_runtime_error(this, "Operands can not be added.");
                 return;
             }
             break;
         }
         case OP_SUBTRACT: {
-            Value b = machine_pop(this);
-            Value a = machine_pop(this);
-            if (is_int(a)) {
-                if (is_int(b)) {
-                    a.as.i -= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    b.as.f -= a.as.i;
-                    machine_push(this, a);
-                } else {
-                    machine_runtime_error(this, "Subtracting non-number.");
-                    return;
-                }
-            } else if (is_float(a)) {
-                if (is_int(b)) {
-                    a.as.f -= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    a.as.f -= b.as.f;
-                    machine_push(this, a);
-                } else {
-                    machine_runtime_error(this, "Subtracting non-number.");
-                    return;
-                }
-            } else {
-                machine_runtime_error(this, "Subtracting non-number.");
-                return;
-            }
+            macro_arithmetic_op(-=);
             break;
         }
         case OP_MULTIPLY: {
-            Value b = machine_pop(this);
-            Value a = machine_pop(this);
-            if (is_int(a)) {
-                if (is_int(b)) {
-                    a.as.i *= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    b.as.f *= a.as.i;
-                    machine_push(this, a);
-                } else {
-                    machine_runtime_error(this, "Multiplying non-number.");
-                    return;
-                }
-            } else if (is_float(a)) {
-                if (is_int(b)) {
-                    a.as.f *= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    a.as.f *= b.as.f;
-                    machine_push(this, a);
-                } else {
-                    machine_runtime_error(this, "Multiplying non-number.");
-                    return;
-                }
-            } else {
-                machine_runtime_error(this, "Multiplying non-number.");
-                return;
-            }
+            macro_arithmetic_op(*=);
             break;
         }
         case OP_DIVIDE: {
-            Value b = machine_pop(this);
-            Value a = machine_pop(this);
-            if (is_int(a)) {
-                if (is_int(b)) {
-                    a.as.i /= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    b.as.f /= a.as.i;
-                    machine_push(this, b);
-                } else {
-                    machine_runtime_error(this, "Dividing non-number.");
-                    return;
-                }
-            } else if (is_float(a)) {
-                if (is_int(b)) {
-                    a.as.f /= b.as.i;
-                    machine_push(this, a);
-                } else if (is_float(b)) {
-                    a.as.f /= b.as.f;
-                    machine_push(this, a);
-                } else {
-                    machine_runtime_error(this, "Dividing non-number.");
-                    return;
-                }
-            } else {
-                machine_runtime_error(this, "Dividing non-number.");
-                return;
-            }
+            macro_arithmetic_op(/=);
             break;
         }
         case OP_NEGATE: {
