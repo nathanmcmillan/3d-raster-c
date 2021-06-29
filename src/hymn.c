@@ -10,6 +10,7 @@
     else                        \
         return
 
+#define new_undefined() ((Value){VALUE_UNDEFINED, {.i = 0}})
 #define new_nil() ((Value){VALUE_NIL, {.i = 0}})
 #define new_bool(v) ((Value){VALUE_BOOL, {.b = v}})
 #define new_int(v) ((Value){VALUE_INTEGER, {.i = v}})
@@ -21,11 +22,16 @@
 #define as_float(v) ((v).as.f)
 #define as_string(v) ((v).as.s)
 
+#define is_undefined(v) ((v).is == VALUE_UNDEFINED)
 #define is_nil(v) ((v).is == VALUE_NIL)
 #define is_bool(v) ((v).is == VALUE_BOOL)
 #define is_int(v) ((v).is == VALUE_INTEGER)
 #define is_float(v) ((v).is == VALUE_FLOAT)
 #define is_string(v) ((v).is == VALUE_STRING)
+
+#define STR_NIL "Nil"
+#define STR_TRUE "True"
+#define STR_FALSE "False"
 
 #define macro_arithmetic_op(_binary_)                           \
     Value b = machine_pop(this);                                \
@@ -83,6 +89,12 @@
         return;                                                                    \
     }
 
+static const float LOAD_FACTOR = 0.80f;
+
+static const unsigned int INITIAL_BINS = 1 << 3;
+
+static const unsigned int MAXIMUM_BINS = 1 << 30;
+
 enum ValueType {
     VALUE_BOOL,
     VALUE_FLOAT,
@@ -92,6 +104,7 @@ enum ValueType {
     VALUE_NIL,
     VALUE_STRING,
     VALUE_TABLE,
+    VALUE_UNDEFINED,
 };
 
 enum TokenType {
@@ -142,6 +155,7 @@ enum TokenType {
     TOKEN_LET,
     TOKEN_WHILE,
     TOKEN_RETURN,
+    TOKEN_PRINT,
 };
 
 enum Precedence {
@@ -177,18 +191,40 @@ enum OpCode {
     OP_LESS,
     OP_LESS_EQUAL,
     OP_RETURN,
+    OP_PRINT,
+    OP_POP,
+    OP_DEFINE_GLOBAL,
+    OP_SET_GLOBAL,
+    OP_GET_GLOBAL,
 };
 
-typedef struct Keyword Keyword;
-typedef struct Token Token;
-typedef struct Rule Rule;
 typedef struct Function Function;
 typedef struct Value Value;
+typedef struct Token Token;
+typedef struct Rule Rule;
 typedef struct Script Script;
+typedef struct ValueMapItem ValueMapItem;
+typedef struct ValueMap ValueMap;
 typedef struct ValuePool ValuePool;
 typedef struct ByteCode ByteCode;
-typedef struct Compiler Compiler;
 typedef struct Machine Machine;
+typedef struct Compiler Compiler;
+
+static void compile_with_precedence(Compiler *this, enum Precedence precedence);
+static void compile_group(Compiler *this, bool assign);
+static void compile_true(Compiler *this, bool assign);
+static void compile_false(Compiler *this, bool assign);
+static void compile_nil(Compiler *this, bool assign);
+static void compile_number(Compiler *this, bool assign);
+static void compile_string(Compiler *this, bool assign);
+static void compile_variable(Compiler *this, bool assign);
+static void compile_unary(Compiler *this, bool assign);
+static void compile_binary(Compiler *this, bool assign);
+static void declaration(Compiler *this);
+static void statement(Compiler *this);
+static void print_statement(Compiler *this);
+static void expression_statement(Compiler *this);
+static void expression(Compiler *this);
 
 struct Function {
     const char *name;
@@ -214,77 +250,29 @@ struct Token {
     usize end;
 };
 
-static void compile_with_precedence(Compiler *this, enum Precedence precedence);
-static void group(Compiler *this);
-static void literal_true(Compiler *this);
-static void literal_false(Compiler *this);
-static void literal_nil(Compiler *this);
-static void number(Compiler *this);
-static void string(Compiler *this);
-static void expression(Compiler *this);
-static void unary(Compiler *this);
-static void binary(Compiler *this);
-
 struct Rule {
-    void (*prefix)(Compiler *);
-    void (*infix)(Compiler *);
+    void (*prefix)(Compiler *, bool);
+    void (*infix)(Compiler *, bool);
     enum Precedence precedence;
-};
-
-Rule rules[] = {
-    [TOKEN_ADD] = {NULL, binary, PRECEDENCE_TERM},
-    [TOKEN_AND] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_ASSIGN] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_COMMA] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_COMMENT] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_CONST] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_DIVIDE] = {NULL, binary, PRECEDENCE_FACTOR},
-    [TOKEN_DOT] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_ELIF] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_ELSE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_END] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_EOF] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_EQUAL] = {NULL, binary, PRECEDENCE_EQUALITY},
-    [TOKEN_ERROR] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_FALSE] = {literal_false, NULL, PRECEDENCE_NONE},
-    [TOKEN_FLOAT] = {number, NULL, PRECEDENCE_NONE},
-    [TOKEN_FOR] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_FUNCTION] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_GREATER] = {NULL, binary, PRECEDENCE_COMPARE},
-    [TOKEN_GREATER_EQUAL] = {NULL, binary, PRECEDENCE_COMPARE},
-    [TOKEN_IDENT] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_IF] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_USE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_INTEGER] = {number, NULL, PRECEDENCE_NONE},
-    [TOKEN_LEFT_BRACE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LEFT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LINE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LEFT_PAREN] = {group, NULL, PRECEDENCE_NONE},
-    [TOKEN_LESS] = {NULL, binary, PRECEDENCE_COMPARE},
-    [TOKEN_LESS_EQUAL] = {NULL, binary, PRECEDENCE_COMPARE},
-    [TOKEN_MULTIPLY] = {NULL, binary, PRECEDENCE_FACTOR},
-    [TOKEN_NIL] = {literal_nil, NULL, PRECEDENCE_NONE},
-    [TOKEN_NOT] = {unary, NULL, PRECEDENCE_NONE},
-    [TOKEN_NOT_EQUAL] = {NULL, binary, PRECEDENCE_EQUALITY},
-    [TOKEN_OR] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_PASS] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_RIGHT_BRACE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_RIGHT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_RETURN] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_RIGHT_PAREN] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_STRING] = {string, NULL, PRECEDENCE_NONE},
-    [TOKEN_SUBTRACT] = {unary, binary, PRECEDENCE_TERM},
-    [TOKEN_TRUE] = {literal_true, NULL, PRECEDENCE_NONE},
-    [TOKEN_UNDEFINED] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_VALUE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_WHILE] = {NULL, NULL, PRECEDENCE_NONE},
 };
 
 struct Script {
     const char *name;
     Value **variables;
     usize variable_count;
+};
+
+struct ValueMapItem {
+    usize hash;
+    String *key;
+    Value value;
+    ValueMapItem *next;
+};
+
+struct ValueMap {
+    unsigned int size;
+    unsigned int bins;
+    ValueMapItem **items;
 };
 
 struct ValuePool {
@@ -301,6 +289,16 @@ struct ByteCode {
     ValuePool constants;
 };
 
+struct Machine {
+    ByteCode *bcode;
+    usize ip;
+    Value stack[HYMN_STACK_MAX];
+    usize stack_top;
+    ValueMap strings;
+    ValueMap globals;
+    String *error;
+};
+
 struct Compiler {
     usize pos;
     int row;
@@ -310,27 +308,250 @@ struct Compiler {
     Token alpha;
     Token beta;
     Token gamma;
+    Machine *machine;
     ByteCode *bcode;
     bool panic;
     String *error;
 };
 
-struct Machine {
-    ByteCode *bcode;
-    usize ip;
-    Value stack[HYMN_STACK_MAX];
-    usize stack_top;
-    String *error;
+Rule rules[] = {
+    [TOKEN_ADD] = {NULL, compile_binary, PRECEDENCE_TERM},
+    [TOKEN_AND] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_ASSIGN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_COMMA] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_COMMENT] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_CONST] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_DIVIDE] = {NULL, compile_binary, PRECEDENCE_FACTOR},
+    [TOKEN_DOT] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_ELIF] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_ELSE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_END] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_EOF] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_EQUAL] = {NULL, compile_binary, PRECEDENCE_EQUALITY},
+    [TOKEN_ERROR] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_FALSE] = {compile_false, NULL, PRECEDENCE_NONE},
+    [TOKEN_FLOAT] = {compile_number, NULL, PRECEDENCE_NONE},
+    [TOKEN_FOR] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_FUNCTION] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_GREATER] = {NULL, compile_binary, PRECEDENCE_COMPARE},
+    [TOKEN_GREATER_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
+    [TOKEN_IDENT] = {compile_variable, NULL, PRECEDENCE_NONE},
+    [TOKEN_IF] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_USE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_INTEGER] = {compile_number, NULL, PRECEDENCE_NONE},
+    [TOKEN_LEFT_BRACE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_LEFT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_LINE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_LEFT_PAREN] = {compile_group, NULL, PRECEDENCE_NONE},
+    [TOKEN_LESS] = {NULL, compile_binary, PRECEDENCE_COMPARE},
+    [TOKEN_LESS_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
+    [TOKEN_MULTIPLY] = {NULL, compile_binary, PRECEDENCE_FACTOR},
+    [TOKEN_NIL] = {compile_nil, NULL, PRECEDENCE_NONE},
+    [TOKEN_NOT] = {compile_unary, NULL, PRECEDENCE_NONE},
+    [TOKEN_NOT_EQUAL] = {NULL, compile_binary, PRECEDENCE_EQUALITY},
+    [TOKEN_OR] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_PASS] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_RIGHT_BRACE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_RIGHT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_RETURN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_RIGHT_PAREN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_STRING] = {compile_string, NULL, PRECEDENCE_NONE},
+    [TOKEN_SUBTRACT] = {compile_unary, compile_binary, PRECEDENCE_TERM},
+    [TOKEN_TRUE] = {compile_true, NULL, PRECEDENCE_NONE},
+    [TOKEN_UNDEFINED] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_VALUE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_WHILE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_PRINT] = {NULL, NULL, PRECEDENCE_NONE},
 };
+
+static usize string_hashcode(String *key) {
+    usize length = string_len(key);
+    usize hash = 0;
+    for (usize i = 0; i < length; i++) {
+        hash = 31 * hash + (usize)key[i];
+    }
+    return hash;
+}
+
+static void map_init(ValueMap *this) {
+    this->size = 0;
+    this->bins = INITIAL_BINS;
+    this->items = safe_calloc(this->bins, sizeof(ValueMapItem *));
+}
+
+static unsigned int map_get_bin(ValueMap *this, usize hash) {
+    return (this->bins - 1) & hash;
+}
+
+static usize map_hash_mix(usize hash) {
+    return hash ^ (hash >> 16);
+}
+
+static void map_resize(ValueMap *this) {
+
+    unsigned int old_bins = this->bins;
+    unsigned int bins = old_bins << 1;
+
+    if (bins > MAXIMUM_BINS) {
+        return;
+    }
+
+    ValueMapItem **old_items = this->items;
+    ValueMapItem **items = safe_calloc(bins, sizeof(ValueMapItem *));
+
+    for (unsigned int i = 0; i < old_bins; i++) {
+        ValueMapItem *item = old_items[i];
+        if (item == NULL) {
+            continue;
+        }
+        if (item->next == NULL) {
+            items[(bins - 1) & item->hash] = item;
+        } else {
+            ValueMapItem *low_head = NULL;
+            ValueMapItem *low_tail = NULL;
+            ValueMapItem *high_head = NULL;
+            ValueMapItem *high_tail = NULL;
+            do {
+                if ((old_bins & item->hash) == 0) {
+                    if (low_tail == NULL) {
+                        low_head = item;
+                    } else {
+                        low_tail->next = item;
+                    }
+                    low_tail = item;
+                } else {
+                    if (high_tail == NULL) {
+                        high_head = item;
+                    } else {
+                        high_tail->next = item;
+                    }
+                    high_tail = item;
+                }
+                item = item->next;
+            } while (item != NULL);
+
+            if (low_tail != NULL) {
+                low_tail->next = NULL;
+                items[i] = low_head;
+            }
+
+            if (high_tail != NULL) {
+                high_tail->next = NULL;
+                items[i + old_bins] = high_head;
+            }
+        }
+    }
+
+    free(old_items);
+
+    this->bins = bins;
+    this->items = items;
+}
+
+static void map_put(ValueMap *this, String *key, Value value) {
+    usize hash = map_hash_mix(string_hashcode(key));
+    unsigned int bin = map_get_bin(this, hash);
+    ValueMapItem *item = this->items[bin];
+    ValueMapItem *previous = NULL;
+    while (item != NULL) {
+        if (string_equal(key, item->key)) {
+            item->value = value;
+            return;
+        }
+        previous = item;
+        item = item->next;
+    }
+    item = safe_malloc(sizeof(ValueMapItem));
+    item->hash = hash;
+    item->key = key;
+    item->value = value;
+    item->next = NULL;
+    if (previous == NULL) {
+        this->items[bin] = item;
+    } else {
+        previous->next = item;
+    }
+    this->size++;
+    if (this->size >= this->bins * LOAD_FACTOR) {
+        map_resize(this);
+    }
+}
+
+static Value map_get(ValueMap *this, String *key) {
+    usize hash = map_hash_mix(string_hashcode(key));
+    unsigned int bin = map_get_bin(this, hash);
+    ValueMapItem *item = this->items[bin];
+    while (item != NULL) {
+        if (string_equal(key, item->key)) {
+            return item->value;
+        }
+        item = item->next;
+    }
+    return new_undefined();
+}
+
+static Value map_remove(ValueMap *this, String *key) {
+    usize hash = map_hash_mix(string_hashcode(key));
+    unsigned int bin = map_get_bin(this, hash);
+    ValueMapItem *item = this->items[bin];
+    ValueMapItem *previous = NULL;
+    while (item != NULL) {
+        if (string_equal(key, item->key)) {
+            if (previous == NULL) {
+                this->items[bin] = item->next;
+            } else {
+                previous->next = item->next;
+            }
+            this->size -= 1;
+            return item->value;
+        }
+        previous = item;
+        item = item->next;
+    }
+    return new_undefined();
+}
+
+static void map_clear(ValueMap *this) {
+    unsigned int bins = this->bins;
+    for (unsigned int i = 0; i < bins; i++) {
+        ValueMapItem *item = this->items[i];
+        while (item != NULL) {
+            ValueMapItem *next = item->next;
+            free(item);
+            item = next;
+        }
+        this->items[i] = NULL;
+    }
+    this->size = 0;
+}
+
+static bool map_is_empty(ValueMap *this) {
+    return this->size == 0;
+}
+
+static bool map_not_empty(ValueMap *this) {
+    return this->size != 0;
+}
+
+static unsigned int map_size(ValueMap *this) {
+    return this->size;
+}
+
+static void map_delete(ValueMap *this) {
+    map_clear(this);
+    free(this->items);
+}
 
 static const char *value_name(enum ValueType value) {
     switch (value) {
+    case VALUE_UNDEFINED: return "UNDEFINED";
     case VALUE_NIL: return "NIL";
     case VALUE_BOOL: return "BOOLEAN";
     case VALUE_INTEGER: return "INTEGER";
     case VALUE_FLOAT: return "FLOAT";
     case VALUE_STRING: return "STRING";
-    default: return "UNKNOWN";
+    default: return "VALUE ?";
     }
 }
 
@@ -364,6 +585,9 @@ static const char *token_name(enum TokenType type) {
     case TOKEN_GREATER: return "GREATER";
     case TOKEN_GREATER_EQUAL: return "GREATER_EQUAL";
     case TOKEN_STRING: return "STRING";
+    case TOKEN_PRINT: return "PRINT";
+    case TOKEN_ASSIGN: return "ASSIGN";
+    case TOKEN_LET: return "LET";
     default: return "?";
     }
 }
@@ -371,6 +595,7 @@ static const char *token_name(enum TokenType type) {
 static void debug_value(Value value) {
     printf("%s: ", value_name(value.is));
     switch (value.is) {
+    case VALUE_UNDEFINED: printf("UNDEFINED"); break;
     case VALUE_NIL: printf("NIL"); break;
     case VALUE_BOOL: printf("%s", as_bool(value) ? "TRUE" : "FALSE"); break;
     case VALUE_INTEGER: printf("%" PRId64, as_int(value)); break;
@@ -380,7 +605,7 @@ static void debug_value(Value value) {
     }
 }
 
-static inline Compiler new_compiler(char *source, ByteCode *bcode) {
+static inline Compiler new_compiler(char *source, Machine *machine, ByteCode *bcode) {
     Compiler this = {0};
     this.row = 1;
     this.column = 1;
@@ -389,6 +614,7 @@ static inline Compiler new_compiler(char *source, ByteCode *bcode) {
     this.alpha.type = TOKEN_UNDEFINED;
     this.beta.type = TOKEN_UNDEFINED;
     this.gamma.type = TOKEN_UNDEFINED;
+    this.machine = machine;
     this.bcode = bcode;
     return this;
 }
@@ -397,21 +623,33 @@ static void compiler_delete(Compiler *this) {
     string_delete(this->error);
 }
 
-static void compile_error(Compiler *this, Token *token, const char *error) {
+static void compile_error(Compiler *this, Token *token, const char *format, ...) {
     if (this->panic) {
         return;
     }
     this->panic = true;
+
     if (this->error == NULL) {
         this->error = new_string("");
     }
+
     this->error = string_append_format(this->error, "[Line %d] Error", token->row);
     if (token->type == TOKEN_EOF) {
-        this->error = string_append(this->error, " at end");
+        this->error = string_append(this->error, " at end: ");
     } else {
-        this->error = string_append_format(this->error, " at '%.*s'", token->end - token->start, &this->source[token->start]);
+        this->error = string_append_format(this->error, " at '%.*s': ", token->end - token->start, &this->source[token->start]);
     }
-    this->error = string_append_format(this->error, ": %s", error);
+
+    va_list ap;
+    va_start(ap, format);
+    int len = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    char *chars = safe_malloc((len + 1) * sizeof(char));
+    va_start(ap, format);
+    len = vsnprintf(chars, len + 1, format, ap);
+    va_end(ap);
+    this->error = string_append(this->error, chars);
+    free(chars);
 }
 
 static char next_char(Compiler *this) {
@@ -488,6 +726,7 @@ static enum TokenType ident_keyword(char *ident, usize size) {
     case 't': keyword_size(size, 4) ident_trie(ident, 1, "rue", TOKEN_TRUE);
     case 'c': keyword_size(size, 5) ident_trie(ident, 1, "onst", TOKEN_CONST);
     case 'w': keyword_size(size, 5) ident_trie(ident, 1, "hile", TOKEN_WHILE);
+    case 'p': keyword_size(size, 5) ident_trie(ident, 1, "rint", TOKEN_PRINT);
     case 'r': keyword_size(size, 6) ident_trie(ident, 1, "eturn", TOKEN_RETURN);
     case 'f':
         if (size > 1) {
@@ -706,23 +945,58 @@ static Rule *token_rule(enum TokenType type) {
     return &rules[type];
 }
 
+static String *intern_string(ValueMap *this, String *value) {
+    Value exists = map_get(this, value);
+    if (is_undefined(exists)) {
+        map_put(this, value, new_str(value));
+        return NULL;
+    } else {
+        return as_string(exists);
+    }
+}
+
+static Value machine_intern_string(Machine *this, String *value) {
+    String *intern = intern_string(&this->strings, value);
+    if (intern != NULL) {
+        string_delete(value);
+        return new_str(intern);
+    }
+    return new_str(value);
+}
+
+static bool check(Compiler *this, enum TokenType type) {
+    return this->beta.type == type;
+}
+
+static bool match(Compiler *this, enum TokenType type) {
+    if (!check(this, type)) {
+        return false;
+    }
+    advance(this);
+    return true;
+}
+
 static void compile_with_precedence(Compiler *this, enum Precedence precedence) {
     advance(this);
     Rule *rule = token_rule(this->alpha.type);
-    void (*prefix)(Compiler *) = rule->prefix;
+    void (*prefix)(Compiler *, bool) = rule->prefix;
     if (prefix == NULL) {
-        compile_error(this, &this->alpha, "Expected expression");
+        compile_error(this, &this->alpha, "Expected expression after token '%s'.", token_name(this->alpha.type));
         return;
     }
-    prefix(this);
+    bool assign = precedence <= PRECEDENCE_ASSIGN;
+    prefix(this, assign);
     while (precedence <= token_rule(this->beta.type)->precedence) {
         advance(this);
-        void (*infix)(Compiler *) = token_rule(this->alpha.type)->infix;
+        void (*infix)(Compiler *, bool) = token_rule(this->alpha.type)->infix;
         if (infix == NULL) {
             compile_error(this, &this->alpha, "No infix rule");
             return;
         }
-        infix(this);
+        infix(this, assign);
+    }
+    if (assign && match(this, TOKEN_ASSIGN)) {
+        compile_error(this, &this->beta, "Invalid assignment target.");
     }
 }
 
@@ -734,24 +1008,29 @@ static void consume(Compiler *this, enum TokenType type, const char *error) {
     compile_error(this, &this->beta, error);
 }
 
-static void group(Compiler *this) {
+static void compile_group(Compiler *this, bool assign) {
+    (void)assign;
     expression(this);
-    consume(this, TOKEN_RIGHT_PAREN, "Expected right parenthesis");
+    consume(this, TOKEN_RIGHT_PAREN, "Expected right parenthesis.");
 }
 
-static void literal_true(Compiler *this) {
+static void compile_true(Compiler *this, bool assign) {
+    (void)assign;
     write_op(this->bcode, OP_TRUE, this->alpha.row);
 }
 
-static void literal_false(Compiler *this) {
+static void compile_false(Compiler *this, bool assign) {
+    (void)assign;
     write_op(this->bcode, OP_FALSE, this->alpha.row);
 }
 
-static void literal_nil(Compiler *this) {
+static void compile_nil(Compiler *this, bool assign) {
+    (void)assign;
     write_op(this->bcode, OP_NIL, this->alpha.row);
 }
 
-static void number(Compiler *this) {
+static void compile_number(Compiler *this, bool assign) {
+    (void)assign;
     Token *alpha = &this->alpha;
     switch (alpha->type) {
     case TOKEN_INTEGER: {
@@ -769,17 +1048,68 @@ static void number(Compiler *this) {
     }
 }
 
-static void string(Compiler *this) {
+static void compile_string(Compiler *this, bool assign) {
+    (void)assign;
     Token *alpha = &this->alpha;
     String *s = new_string_from_substring(this->source, alpha->start, alpha->end);
-    write_constant(this->bcode, new_str(s), alpha->row);
+    write_constant(this->bcode, machine_intern_string(this->machine, s), alpha->row);
 }
 
-static void expression(Compiler *this) {
-    compile_with_precedence(this, PRECEDENCE_ASSIGN);
+static void panic_halt(Compiler *this) {
+    this->panic = false;
+    while (true) {
+        switch (this->beta.type) {
+        case TOKEN_FOR:
+        case TOKEN_IF:
+        case TOKEN_WHILE:
+        case TOKEN_PRINT:
+        case TOKEN_RETURN:
+        case TOKEN_EOF:
+            return;
+        }
+        advance(this);
+    }
 }
 
-static void unary(Compiler *this) {
+static u8 ident_constant(Compiler *this, Token *token) {
+    String *s = new_string_from_substring(this->source, token->start, token->end);
+    return (u8)byte_code_add_constant(this->bcode, machine_intern_string(this->machine, s));
+}
+
+static u8 variable_name(Compiler *this, const char *error) {
+    consume(this, TOKEN_IDENT, error);
+    return ident_constant(this, &this->alpha);
+}
+
+static void define_variable(Compiler *this, u8 global, int row) {
+    write_op(this->bcode, OP_DEFINE_GLOBAL, row);
+    write_op(this->bcode, global, row);
+}
+
+static void declare_variable(Compiler *this) {
+    u8 global = variable_name(this, "Expected variable name.");
+    consume(this, TOKEN_ASSIGN, "Expected '=' after variable");
+    expression(this);
+    define_variable(this, global, this->beta.row);
+}
+
+static void named_variable(Compiler *this, Token token, bool assign) {
+    u8 var = ident_constant(this, &token);
+    if (assign && match(this, TOKEN_ASSIGN)) {
+        expression(this);
+        write_op(this->bcode, OP_SET_GLOBAL, token.row);
+    } else {
+        write_op(this->bcode, OP_GET_GLOBAL, token.row);
+    }
+    write_op(this->bcode, var, token.row);
+}
+
+static void compile_variable(Compiler *this, bool assign) {
+    named_variable(this, this->alpha, assign);
+}
+
+static void compile_unary(Compiler *this, bool assign) {
+    (void)assign;
     int row = this->alpha.row;
     enum TokenType type = this->alpha.type;
     compile_with_precedence(this, PRECEDENCE_UNARY);
@@ -789,7 +1119,8 @@ static void unary(Compiler *this) {
     }
 }
 
-static void binary(Compiler *this) {
+static void compile_binary(Compiler *this, bool assign) {
+    (void)assign;
     int row = this->alpha.row;
     enum TokenType type = this->alpha.type;
     Rule *rule = token_rule(type);
@@ -808,19 +1139,55 @@ static void binary(Compiler *this) {
     }
 }
 
-static char *compile(ByteCode *bcode, char *source) {
-    Compiler c = new_compiler(source, bcode);
+static void declaration(Compiler *this) {
+    if (match(this, TOKEN_LET)) {
+        declare_variable(this);
+    } else {
+        statement(this);
+    }
+}
+
+static void statement(Compiler *this) {
+    if (match(this, TOKEN_PRINT)) {
+        print_statement(this);
+    } else {
+        expression_statement(this);
+    }
+    if (this->panic) {
+        panic_halt(this);
+    }
+}
+
+static void print_statement(Compiler *this) {
+    expression(this);
+    write_op(this->bcode, OP_PRINT, this->alpha.row);
+}
+
+static void expression_statement(Compiler *this) {
+    expression(this);
+    write_op(this->bcode, OP_POP, this->alpha.row);
+}
+
+static void expression(Compiler *this) {
+    compile_with_precedence(this, PRECEDENCE_ASSIGN);
+}
+
+static char *compile(Machine *machine, ByteCode *bcode, char *source) {
+    Compiler c = new_compiler(source, machine, bcode);
     Compiler *compiler = &c;
 
     advance(compiler);
     advance(compiler);
-    expression(compiler);
-    consume(compiler, TOKEN_EOF, "Expected end of file");
-    write_op(bcode, OP_RETURN, compiler->alpha.row);
+    while (!match(compiler, TOKEN_EOF)) {
+        printf(">>> %s, %s, %s\n", token_name(compiler->alpha.type), token_name(compiler->beta.type), token_name(compiler->gamma.type));
+        declaration(compiler);
+    }
 
     char *error = NULL;
     if (compiler->error) {
         error = string_copy(compiler->error);
+    } else {
+        write_op(bcode, OP_RETURN, compiler->alpha.row);
     }
 
     compiler_delete(compiler);
@@ -865,16 +1232,13 @@ static usize disassemble_instruction(ByteCode *this, usize index) {
     case OP_GREATER_EQUAL: return debug_instruction("OP_GREATER_EQUAL", index);
     case OP_LESS: return debug_instruction("OP_LESS", index);
     case OP_LESS_EQUAL: return debug_instruction("OP_LESS_EQUAL", index);
+    case OP_PRINT: return debug_instruction("OP_PRINT", index);
+    case OP_POP: return debug_instruction("OP_POP", index);
     case OP_CONSTANT: return debug_constant_instruction("OP_CONSTANT", this, index);
+    case OP_DEFINE_GLOBAL: return debug_constant_instruction("OP_DEFINE_GLOBAL", this, index);
+    case OP_SET_GLOBAL: return debug_constant_instruction("OP_SET_GLOBAL", this, index);
+    case OP_GET_GLOBAL: return debug_constant_instruction("OP_GET_GLOBAL", this, index);
     default: printf("UNKNOWN OPCODE %d\n", op); return index + 1;
-    }
-}
-
-static void disassemble_byte_code(ByteCode *this, const char *name) {
-    printf("== %s ==", name);
-    usize index = 0;
-    while (index < this->count) {
-        index = disassemble_instruction(this, index);
     }
 }
 
@@ -924,7 +1288,7 @@ static Value machine_pop(Machine *this) {
     return this->stack[--this->stack_top];
 }
 
-static bool machine_equality(Value a, Value b) {
+static bool machine_equal(Value a, Value b) {
     switch (a.is) {
     case VALUE_NIL: return is_nil(b);
     case VALUE_BOOL: return is_bool(b) ? as_bool(a) == as_bool(b) : false;
@@ -942,7 +1306,7 @@ static bool machine_equality(Value a, Value b) {
         }
     case VALUE_STRING:
         switch (b.is) {
-        case VALUE_STRING: return string_equal(as_string(a), as_string(b));
+        case VALUE_STRING: return as_string(a) == as_string(b);
         default: return false;
         }
     default: return false;
@@ -954,7 +1318,7 @@ static void machine_run(Machine *this) {
     while (true) {
 #ifdef HYMN_DEBUG_STACK
         if (this->stack_top > 0) {
-            printf("STACK   ");
+            printf("STACK ================================================== ");
             for (usize i = 0; i < this->stack_top; i++) {
                 printf("[%zu: ", i);
                 debug_value(this->stack[i]);
@@ -968,7 +1332,11 @@ static void machine_run(Machine *this) {
 #endif
         u8 op = code[this->ip++];
         switch (op) {
-        case OP_RETURN: return;
+        case OP_RETURN:
+            return;
+        case OP_POP:
+            machine_pop(this);
+            break;
         case OP_TRUE:
             machine_push(this, new_bool(true));
             break;
@@ -981,13 +1349,13 @@ static void machine_run(Machine *this) {
         case OP_EQUAL: {
             Value b = machine_pop(this);
             Value a = machine_pop(this);
-            machine_push(this, new_bool(machine_equality(a, b)));
+            machine_push(this, new_bool(machine_equal(a, b)));
             break;
         }
         case OP_NOT_EQUAL: {
             Value b = machine_pop(this);
             Value a = machine_pop(this);
-            machine_push(this, new_bool(!machine_equality(a, b)));
+            machine_push(this, new_bool(!machine_equal(a, b)));
             break;
         }
         case OP_LESS: {
@@ -1011,20 +1379,20 @@ static void machine_run(Machine *this) {
             Value a = machine_pop(this);
             if (is_nil(a)) {
                 if (is_string(b)) {
-                    String *temp = new_string("Nil");
+                    String *temp = new_string(STR_NIL);
                     String *add = string_concat(temp, string_copy(as_string(b)));
                     string_delete(temp);
-                    machine_push(this, new_str(add));
+                    machine_push(this, machine_intern_string(this, add));
                 } else {
                     machine_runtime_error(this, "Operands can not be added.");
                     return;
                 }
             } else if (is_bool(a)) {
                 if (is_string(b)) {
-                    String *temp = new_string(as_bool(a) ? "True" : "False");
+                    String *temp = new_string(as_bool(a) ? STR_TRUE : STR_FALSE);
                     String *add = string_concat(temp, string_copy(as_string(b)));
                     string_delete(temp);
-                    machine_push(this, new_str(add));
+                    machine_push(this, machine_intern_string(this, add));
                 } else {
                     machine_runtime_error(this, "Operands can not be added.");
                     return;
@@ -1040,7 +1408,7 @@ static void machine_run(Machine *this) {
                     String *temp = int64_to_string(as_int(a));
                     String *add = string_concat(temp, as_string(b));
                     string_delete(temp);
-                    machine_push(this, new_str(add));
+                    machine_push(this, machine_intern_string(this, add));
                 } else {
                     machine_runtime_error(this, "Operands can not be added.");
                     return;
@@ -1056,7 +1424,7 @@ static void machine_run(Machine *this) {
                     String *temp = float64_to_string(as_float(a));
                     String *add = string_concat(temp, as_string(b));
                     string_delete(temp);
-                    machine_push(this, new_str(add));
+                    machine_push(this, machine_intern_string(this, add));
                 } else {
                     machine_runtime_error(this, "Operands can not be added.");
                     return;
@@ -1069,7 +1437,7 @@ static void machine_run(Machine *this) {
                     add = string_append(string_copy(s), "Nil");
                     break;
                 case VALUE_BOOL:
-                    add = string_append(string_copy(s), as_bool(b) ? "True" : "False");
+                    add = string_append(string_copy(s), as_bool(b) ? STR_TRUE : STR_FALSE);
                     break;
                 case VALUE_INTEGER: {
                     String *temp = int64_to_string(as_int(b));
@@ -1090,7 +1458,7 @@ static void machine_run(Machine *this) {
                     machine_runtime_error(this, "Operands can not be added.");
                     return;
                 }
-                machine_push(this, new_str(add));
+                machine_push(this, machine_intern_string(this, add));
             } else {
                 machine_runtime_error(this, "Operands can not be added.");
                 return;
@@ -1141,6 +1509,56 @@ static void machine_run(Machine *this) {
             machine_push(this, constant);
             break;
         }
+        case OP_DEFINE_GLOBAL: {
+            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            Value set = machine_peek(this, 1);
+            map_put(&this->globals, name, set);
+            machine_pop(this);
+            break;
+        }
+        case OP_SET_GLOBAL: {
+            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            Value set = machine_peek(this, 1);
+            Value exists = map_get(&this->globals, name);
+            if (is_undefined(exists)) {
+                machine_runtime_error(this, "Undefined variable '%s'.", name);
+                return;
+            }
+            map_put(&this->globals, name, set);
+            break;
+        }
+        case OP_GET_GLOBAL: {
+            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            Value get = map_get(&this->globals, name);
+            if (is_undefined(get)) {
+                machine_runtime_error(this, "Undefined variable '%s'.", name);
+                return;
+            }
+            machine_push(this, get);
+            break;
+        }
+        case OP_PRINT:
+            Value value = machine_pop(this);
+            switch (value.is) {
+            case VALUE_NIL:
+                printf("%s\n", STR_NIL);
+                break;
+            case VALUE_BOOL:
+                printf("%s\n", as_bool(value) ? STR_TRUE : STR_FALSE);
+                break;
+            case VALUE_INTEGER:
+                printf("%" PRId64 "\n", as_int(value));
+                break;
+            case VALUE_FLOAT:
+                printf("%g\n", as_float(value));
+                break;
+            case VALUE_STRING:
+                printf("%s\n", as_string(value));
+                break;
+            default:
+                printf("%p\n", &value);
+            }
+            break;
         default:
             machine_runtime_error(this, "Unknown instruction.");
             return;
@@ -1164,10 +1582,14 @@ static char *machine_interpret(Machine *this, ByteCode *bcode) {
 static inline Machine new_machine() {
     Machine this = {0};
     machine_reset_stack(&this);
+    map_init(&this.strings);
+    map_init(&this.globals);
     return this;
 }
 
 static void machine_delete(Machine *this) {
+    map_delete(&this->strings);
+    map_delete(&this->globals);
     string_delete(this->error);
 }
 
@@ -1189,7 +1611,7 @@ char *hymn_eval(Hymn *this, char *source) {
     ByteCode *bytes = &b;
     byte_code_init(bytes);
 
-    error = compile(bytes, source);
+    error = compile(machine, bytes, source);
     if (error == NULL) {
         error = machine_interpret(machine, bytes);
     }
@@ -1227,7 +1649,7 @@ char *hymn_repl(Hymn *this) {
             break;
         }
 
-        error = compile(bytes, input);
+        error = compile(machine, bytes, input);
         if (error) {
             break;
         }

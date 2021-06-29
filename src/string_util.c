@@ -189,8 +189,7 @@ int string_compare(String *a, String *b) {
 }
 
 bool string_equal(String *a, String *b) {
-    int comparison = string_compare(a, b);
-    return comparison == 0;
+    return 0 == string_compare(a, b);
 }
 
 void string_zero(String *this) {
