@@ -33,6 +33,8 @@
 #define STR_TRUE "True"
 #define STR_FALSE "False"
 
+#define UINT8_COUNT (UINT8_MAX + 1)
+
 #define macro_arithmetic_op(_binary_)                           \
     Value b = machine_pop(this);                                \
     Value a = machine_pop(this);                                \
@@ -111,8 +113,8 @@ enum TokenType {
     TOKEN_AND,
     TOKEN_ASSIGN,
     TOKEN_COMMA,
-    TOKEN_COMMENT,
     TOKEN_CONST,
+    TOKEN_BEGIN,
     TOKEN_DIVIDE,
     TOKEN_DOT,
     TOKEN_ELIF,
@@ -196,11 +198,14 @@ enum OpCode {
     OP_DEFINE_GLOBAL,
     OP_SET_GLOBAL,
     OP_GET_GLOBAL,
+    OP_SET_LOCAL,
+    OP_GET_LOCAL,
 };
 
 typedef struct Function Function;
 typedef struct Value Value;
 typedef struct Token Token;
+typedef struct Local Local;
 typedef struct Rule Rule;
 typedef struct Script Script;
 typedef struct ValueMapItem ValueMapItem;
@@ -208,6 +213,7 @@ typedef struct ValueMap ValueMap;
 typedef struct ValuePool ValuePool;
 typedef struct ByteCode ByteCode;
 typedef struct Machine Machine;
+typedef struct Scope Scope;
 typedef struct Compiler Compiler;
 
 static void compile_with_precedence(Compiler *this, enum Precedence precedence);
@@ -247,7 +253,12 @@ struct Token {
     int row;
     int column;
     usize start;
-    usize end;
+    int length;
+};
+
+struct Local {
+    Token name;
+    int depth;
 };
 
 struct Rule {
@@ -284,19 +295,26 @@ struct ValuePool {
 struct ByteCode {
     int count;
     int capacity;
-    u8 *code;
+    u8 *instructions;
     int *rows;
     ValuePool constants;
 };
 
 struct Machine {
-    ByteCode *bcode;
+    ByteCode *code;
     usize ip;
     Value stack[HYMN_STACK_MAX];
     usize stack_top;
     ValueMap strings;
     ValueMap globals;
     String *error;
+};
+
+struct Scope {
+    struct Scope *enclosing;
+    Local locals[UINT8_COUNT];
+    int local_count;
+    int depth;
 };
 
 struct Compiler {
@@ -309,7 +327,8 @@ struct Compiler {
     Token beta;
     Token gamma;
     Machine *machine;
-    ByteCode *bcode;
+    ByteCode *code;
+    Scope *scope;
     bool panic;
     String *error;
 };
@@ -318,8 +337,8 @@ Rule rules[] = {
     [TOKEN_ADD] = {NULL, compile_binary, PRECEDENCE_TERM},
     [TOKEN_AND] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_ASSIGN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_BEGIN] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_COMMENT] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_CONST] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_DIVIDE] = {NULL, compile_binary, PRECEDENCE_FACTOR},
     [TOKEN_DOT] = {NULL, NULL, PRECEDENCE_NONE},
@@ -574,6 +593,10 @@ static const char *token_name(enum TokenType type) {
     case TOKEN_FUNCTION: return "FUNCTION";
     case TOKEN_EOF: return "EOF";
     case TOKEN_IF: return "IF";
+    case TOKEN_ELSE: return "ELSE";
+    case TOKEN_ELIF: return "ELIF";
+    case TOKEN_BEGIN: return "BEGIN";
+    case TOKEN_END: return "END";
     case TOKEN_TRUE: return "TRUE";
     case TOKEN_FALSE: return "FALSE";
     case TOKEN_NIL: return "NIL";
@@ -588,6 +611,7 @@ static const char *token_name(enum TokenType type) {
     case TOKEN_PRINT: return "PRINT";
     case TOKEN_ASSIGN: return "ASSIGN";
     case TOKEN_LET: return "LET";
+    case TOKEN_CONST: return "CONST";
     default: return "?";
     }
 }
@@ -605,7 +629,13 @@ static void debug_value(Value value) {
     }
 }
 
-static inline Compiler new_compiler(char *source, Machine *machine, ByteCode *bcode) {
+static void compiler_scope_init(Compiler *this, Scope *scope) {
+    scope->local_count = 0;
+    scope->depth = 0;
+    this->scope = scope;
+}
+
+static inline Compiler new_compiler(char *source, Machine *machine, ByteCode *code, Scope *scope) {
     Compiler this = {0};
     this.row = 1;
     this.column = 1;
@@ -615,7 +645,8 @@ static inline Compiler new_compiler(char *source, Machine *machine, ByteCode *bc
     this.beta.type = TOKEN_UNDEFINED;
     this.gamma.type = TOKEN_UNDEFINED;
     this.machine = machine;
-    this.bcode = bcode;
+    this.code = code;
+    compiler_scope_init(&this, scope);
     return this;
 }
 
@@ -635,9 +666,9 @@ static void compile_error(Compiler *this, Token *token, const char *format, ...)
 
     this->error = string_append_format(this->error, "[Line %d] Error", token->row);
     if (token->type == TOKEN_EOF) {
-        this->error = string_append(this->error, " at end: ");
+        this->error = string_append(this->error, ": ");
     } else {
-        this->error = string_append_format(this->error, " at '%.*s': ", token->end - token->start, &this->source[token->start]);
+        this->error = string_append_format(this->error, " at '%.*s': ", token->length, &this->source[token->start]);
     }
 
     va_list ap;
@@ -650,6 +681,8 @@ static void compile_error(Compiler *this, Token *token, const char *format, ...)
     va_end(ap);
     this->error = string_append(this->error, chars);
     free(chars);
+
+    this->error = string_append_char(this->error, '\n');
 }
 
 static char next_char(Compiler *this) {
@@ -676,7 +709,9 @@ static char peek_char(Compiler *this) {
 }
 
 static void token(Compiler *this, enum TokenType type) {
+#ifdef HYMN_DEBUG_TOKEN
     printf("TOKEN: %s\n", token_name(type));
+#endif
     Token *gamma = &this->gamma;
     gamma->type = type;
     gamma->row = this->row;
@@ -684,23 +719,27 @@ static void token(Compiler *this, enum TokenType type) {
 }
 
 static void value_token(Compiler *this, enum TokenType type, usize start, usize end) {
+#ifdef HYMN_DEBUG_TOKEN
     printf("TOKEN: %s: %.*s\n", token_name(type), (int)(end - start), &this->source[start]);
+#endif
     Token *gamma = &this->gamma;
     gamma->type = type;
     gamma->row = this->row;
     gamma->column = this->column;
     gamma->start = start;
-    gamma->end = end;
+    gamma->length = (int)(end - start);
 }
 
 static void string_token(Compiler *this, usize start, usize end) {
+#ifdef HYMN_DEBUG_TOKEN
     printf("TOKEN: %s, \"%.*s\"\n", token_name(TOKEN_STRING), (int)(end - start), &this->source[start]);
+#endif
     Token *gamma = &this->gamma;
     gamma->type = TOKEN_STRING;
     gamma->row = this->row;
     gamma->column = this->column;
     gamma->start = start;
-    gamma->end = end;
+    gamma->length = (int)(end - start);
 }
 
 static enum TokenType ident_trie(char *ident, int offset, const char *rest, enum TokenType type) {
@@ -720,23 +759,31 @@ static enum TokenType ident_keyword(char *ident, usize size) {
     case 'i': keyword_size(size, 2) ident_trie(ident, 1, "f", TOKEN_IF);
     case 'u': keyword_size(size, 3) ident_trie(ident, 1, "se", TOKEN_USE);
     case 'a': keyword_size(size, 3) ident_trie(ident, 1, "nd", TOKEN_AND);
-    case 'e': keyword_size(size, 3) ident_trie(ident, 1, "nd", TOKEN_END);
     case 'n': keyword_size(size, 3) ident_trie(ident, 1, "il", TOKEN_NIL);
     case 'l': keyword_size(size, 3) ident_trie(ident, 1, "et", TOKEN_LET);
     case 't': keyword_size(size, 4) ident_trie(ident, 1, "rue", TOKEN_TRUE);
     case 'c': keyword_size(size, 5) ident_trie(ident, 1, "onst", TOKEN_CONST);
     case 'w': keyword_size(size, 5) ident_trie(ident, 1, "hile", TOKEN_WHILE);
     case 'p': keyword_size(size, 5) ident_trie(ident, 1, "rint", TOKEN_PRINT);
+    case 'b': keyword_size(size, 5) ident_trie(ident, 1, "egin", TOKEN_BEGIN);
     case 'r': keyword_size(size, 6) ident_trie(ident, 1, "eturn", TOKEN_RETURN);
-    case 'f':
-        if (size > 1) {
-            switch (ident[1]) {
-            case 'o': keyword_size(size, 3) ident_trie(ident, 2, "r", TOKEN_FOR);
-            case 'a': keyword_size(size, 5) ident_trie(ident, 2, "lse", TOKEN_FALSE);
-            case 'u': keyword_size(size, 8) ident_trie(ident, 2, "nction", TOKEN_FUNCTION);
-            }
-            break;
+    case 'e':
+        if (size == 3) {
+            return ident_trie(ident, 1, "nd", TOKEN_END);
+        } else if (size == 4 && ident[1] == 'l') {
+            ident_trie(ident, 2, "se", TOKEN_ELSE);
+            ident_trie(ident, 2, "if", TOKEN_ELIF);
         }
+        break;
+    case 'f':
+        if (size == 3) {
+            return ident_trie(ident, 1, "or", TOKEN_FOR);
+        } else if (size == 5) {
+            return ident_trie(ident, 1, "alse", TOKEN_FALSE);
+        } else if (size == 8) {
+            return ident_trie(ident, 1, "unction", TOKEN_FUNCTION);
+        }
+        break;
     }
     return TOKEN_UNDEFINED;
 }
@@ -749,13 +796,15 @@ static void push_ident_token(Compiler *this, usize start, usize end) {
         token(this, keyword);
         return;
     }
+#ifdef HYMN_DEBUG_TOKEN
     printf("TOKEN: %s, %.*s\n", token_name(TOKEN_IDENT), (int)(end - start), &this->source[start]);
+#endif
     Token *gamma = &this->gamma;
     gamma->row = this->row;
     gamma->column = this->column;
     gamma->type = TOKEN_IDENT;
     gamma->start = start;
-    gamma->end = end;
+    gamma->length = (int)(end - start);
 }
 
 static bool is_digit(char c) {
@@ -785,9 +834,11 @@ static void advance(Compiler *this) {
         case ' ':
         case '\t':
         case '\r':
+        case '\n':
             c = peek_char(this);
-            while (c != '\0' and (c == ' ' or c == '\t' or c == '\r')) {
-                c = next_char(this);
+            while (c != '\0' and (c == ' ' or c == '\t' or c == '\r' or c == '\n')) {
+                next_char(this);
+                c = peek_char(this);
             }
             continue;
         case '!':
@@ -835,7 +886,6 @@ static void advance(Compiler *this) {
         case '{': token(this, TOKEN_LEFT_BRACE); return;
         case '}': token(this, TOKEN_RIGHT_BRACE); return;
         case '\0': token(this, TOKEN_EOF); return;
-        case '\n': continue;
         case '"': {
             usize start = this->pos;
             while (true) {
@@ -907,13 +957,13 @@ static void value_pool_add(ValuePool *this, Value value) {
 static void byte_code_init(ByteCode *this) {
     this->count = 0;
     this->capacity = 8;
-    this->code = safe_malloc(8 * sizeof(u8));
+    this->instructions = safe_malloc(8 * sizeof(u8));
     this->rows = safe_malloc(8 * sizeof(int));
     value_pool_init(&this->constants);
 }
 
 static void byte_code_delete(ByteCode *this) {
-    free(this->code);
+    free(this->instructions);
     free(this->rows);
     value_pool_delete(&this->constants);
 }
@@ -927,18 +977,31 @@ static void write_op(ByteCode *this, u8 b, int row) {
     int count = this->count;
     if (count + 1 > this->capacity) {
         this->capacity *= 2;
-        this->code = safe_realloc(this->code, this->capacity * sizeof(u8));
+        this->instructions = safe_realloc(this->instructions, this->capacity * sizeof(u8));
         this->rows = safe_realloc(this->rows, this->capacity * sizeof(int));
     }
-    this->code[count] = b;
+    this->instructions[count] = b;
     this->rows[count] = row;
     this->count = count + 1;
 }
 
+static void write_two_op(ByteCode *this, u8 b, u8 n, int row) {
+    int count = this->count;
+    while (count + 2 > this->capacity) {
+        this->capacity *= 2;
+        this->instructions = safe_realloc(this->instructions, this->capacity * sizeof(u8));
+        this->rows = safe_realloc(this->rows, this->capacity * sizeof(int));
+    }
+    this->instructions[count] = b;
+    this->instructions[count + 1] = n;
+    this->rows[count] = row;
+    this->rows[count + 1] = row;
+    this->count = count + 2;
+}
+
 static void write_constant(ByteCode *this, Value value, int row) {
     u8 constant = (u8)byte_code_add_constant(this, value);
-    write_op(this, OP_CONSTANT, row);
-    write_op(this, constant, row);
+    write_two_op(this, OP_CONSTANT, constant, row);
 }
 
 static Rule *token_rule(enum TokenType type) {
@@ -1016,17 +1079,17 @@ static void compile_group(Compiler *this, bool assign) {
 
 static void compile_true(Compiler *this, bool assign) {
     (void)assign;
-    write_op(this->bcode, OP_TRUE, this->alpha.row);
+    write_op(this->code, OP_TRUE, this->alpha.row);
 }
 
 static void compile_false(Compiler *this, bool assign) {
     (void)assign;
-    write_op(this->bcode, OP_FALSE, this->alpha.row);
+    write_op(this->code, OP_FALSE, this->alpha.row);
 }
 
 static void compile_nil(Compiler *this, bool assign) {
     (void)assign;
-    write_op(this->bcode, OP_NIL, this->alpha.row);
+    write_op(this->code, OP_NIL, this->alpha.row);
 }
 
 static void compile_number(Compiler *this, bool assign) {
@@ -1035,12 +1098,12 @@ static void compile_number(Compiler *this, bool assign) {
     switch (alpha->type) {
     case TOKEN_INTEGER: {
         i64 number = (i64)strtoll(&this->source[alpha->start], NULL, 10);
-        write_constant(this->bcode, new_int(number), alpha->row);
+        write_constant(this->code, new_int(number), alpha->row);
         break;
     }
     case TOKEN_FLOAT: {
         double number = strtod(&this->source[alpha->start], NULL);
-        write_constant(this->bcode, new_float(number), alpha->row);
+        write_constant(this->code, new_float(number), alpha->row);
         break;
     }
     default:
@@ -1051,8 +1114,8 @@ static void compile_number(Compiler *this, bool assign) {
 static void compile_string(Compiler *this, bool assign) {
     (void)assign;
     Token *alpha = &this->alpha;
-    String *s = new_string_from_substring(this->source, alpha->start, alpha->end);
-    write_constant(this->bcode, machine_intern_string(this->machine, s), alpha->row);
+    String *s = new_string_from_substring(this->source, alpha->start, alpha->start + alpha->length);
+    write_constant(this->code, machine_intern_string(this->machine, s), alpha->row);
 }
 
 static void panic_halt(Compiler *this) {
@@ -1064,6 +1127,7 @@ static void panic_halt(Compiler *this) {
         case TOKEN_WHILE:
         case TOKEN_PRINT:
         case TOKEN_RETURN:
+        case TOKEN_BEGIN:
         case TOKEN_EOF:
             return;
         }
@@ -1072,36 +1136,109 @@ static void panic_halt(Compiler *this) {
 }
 
 static u8 ident_constant(Compiler *this, Token *token) {
-    String *s = new_string_from_substring(this->source, token->start, token->end);
-    return (u8)byte_code_add_constant(this->bcode, machine_intern_string(this->machine, s));
+    String *s = new_string_from_substring(this->source, token->start, token->start + token->length);
+    return (u8)byte_code_add_constant(this->code, machine_intern_string(this->machine, s));
 }
 
-static u8 variable_name(Compiler *this, const char *error) {
-    consume(this, TOKEN_IDENT, error);
-    return ident_constant(this, &this->alpha);
+static void push_local(Compiler *this, Token name) {
+    Scope *scope = this->scope;
+    if (scope->local_count == UINT8_COUNT) {
+        compile_error(this, &name, "Too many local variables in scope.");
+        return;
+    }
+    Local *local = &scope->locals[scope->local_count++];
+    local->name = name;
+    local->depth = -1;
 }
 
-static void define_variable(Compiler *this, u8 global, int row) {
-    write_op(this->bcode, OP_DEFINE_GLOBAL, row);
-    write_op(this->bcode, global, row);
+static bool ident_match(Compiler *this, Token *a, Token *b) {
+    if (a->length != b->length) {
+        return false;
+    }
+    return memcmp(&this->source[a->start], &this->source[b->start], a->length) == 0;
 }
 
 static void declare_variable(Compiler *this) {
-    u8 global = variable_name(this, "Expected variable name.");
+    Scope *scope = this->scope;
+    if (scope->depth == 0) {
+        return;
+    }
+    Token *name = &this->alpha;
+    for (int i = scope->local_count - 1; i >= 0; i--) {
+        Local *local = &scope->locals[i];
+        if (local->depth != -1 && local->depth < scope->depth) {
+            break;
+        } else if (ident_match(this, name, &local->name)) {
+            compile_error(this, name, "Variable already exists in this scope.");
+        }
+    }
+    push_local(this, *name);
+}
+
+static u8 variable(Compiler *this, const char *error) {
+    consume(this, TOKEN_IDENT, error);
+
+    declare_variable(this);
+    if (this->scope->depth > 0) {
+        return 0;
+    }
+
+    return ident_constant(this, &this->alpha);
+}
+
+static void local_initialize(Compiler *this) {
+    Scope *scope = this->scope;
+    scope->locals[scope->local_count - 1].depth = scope->depth;
+}
+
+static void define_variable(Compiler *this, u8 global, int row) {
+    if (this->scope->depth > 0) {
+        local_initialize(this);
+        return;
+    }
+    write_two_op(this->code, OP_DEFINE_GLOBAL, global, row);
+}
+
+static void declare_new_variable(Compiler *this) {
+    u8 global = variable(this, "Expected variable name.");
     consume(this, TOKEN_ASSIGN, "Expected '=' after variable");
     expression(this);
     define_variable(this, global, this->beta.row);
 }
 
+static int resolve_local(Compiler *this, Token *name) {
+    Scope *scope = this->scope;
+    for (int i = scope->local_count - 1; i >= 0; i--) {
+        Local *local = &scope->locals[i];
+        if (ident_match(this, name, &local->name)) {
+            if (local->depth == -1) {
+                compile_error(this, name, "Cannot reference local variable before initializing.");
+            }
+            return i;
+        }
+    }
+    return -1;
+}
+
 static void named_variable(Compiler *this, Token token, bool assign) {
-    u8 var = ident_constant(this, &token);
+    u8 get;
+    u8 set;
+    int var = resolve_local(this, &token);
+    if (var != -1) {
+        get = OP_GET_LOCAL;
+        set = OP_SET_LOCAL;
+    } else {
+        get = OP_GET_GLOBAL;
+        set = OP_SET_GLOBAL;
+        var = ident_constant(this, &token);
+    }
     if (assign && match(this, TOKEN_ASSIGN)) {
         expression(this);
-        write_op(this->bcode, OP_SET_GLOBAL, token.row);
+        write_op(this->code, set, token.row);
     } else {
-        write_op(this->bcode, OP_GET_GLOBAL, token.row);
+        write_op(this->code, get, token.row);
     }
-    write_op(this->bcode, var, token.row);
+    write_op(this->code, (u8)var, token.row);
 }
 
 static void compile_variable(Compiler *this, bool assign) {
@@ -1114,8 +1251,8 @@ static void compile_unary(Compiler *this, bool assign) {
     enum TokenType type = this->alpha.type;
     compile_with_precedence(this, PRECEDENCE_UNARY);
     switch (type) {
-    case TOKEN_NOT: write_op(this->bcode, OP_NOT, row); break;
-    case TOKEN_SUBTRACT: write_op(this->bcode, OP_NEGATE, row); break;
+    case TOKEN_NOT: write_op(this->code, OP_NOT, row); break;
+    case TOKEN_SUBTRACT: write_op(this->code, OP_NEGATE, row); break;
     }
 }
 
@@ -1126,30 +1263,54 @@ static void compile_binary(Compiler *this, bool assign) {
     Rule *rule = token_rule(type);
     compile_with_precedence(this, (enum Precedence)(rule->precedence + 1));
     switch (type) {
-    case TOKEN_ADD: write_op(this->bcode, OP_ADD, row); break;
-    case TOKEN_SUBTRACT: write_op(this->bcode, OP_SUBTRACT, row); break;
-    case TOKEN_MULTIPLY: write_op(this->bcode, OP_MULTIPLY, row); break;
-    case TOKEN_DIVIDE: write_op(this->bcode, OP_DIVIDE, row); break;
-    case TOKEN_EQUAL: write_op(this->bcode, OP_EQUAL, row); break;
-    case TOKEN_NOT_EQUAL: write_op(this->bcode, OP_NOT_EQUAL, row); break;
-    case TOKEN_LESS: write_op(this->bcode, OP_LESS, row); break;
-    case TOKEN_LESS_EQUAL: write_op(this->bcode, OP_LESS_EQUAL, row); break;
-    case TOKEN_GREATER: write_op(this->bcode, OP_GREATER, row); break;
-    case TOKEN_GREATER_EQUAL: write_op(this->bcode, OP_GREATER_EQUAL, row); break;
+    case TOKEN_ADD: write_op(this->code, OP_ADD, row); break;
+    case TOKEN_SUBTRACT: write_op(this->code, OP_SUBTRACT, row); break;
+    case TOKEN_MULTIPLY: write_op(this->code, OP_MULTIPLY, row); break;
+    case TOKEN_DIVIDE: write_op(this->code, OP_DIVIDE, row); break;
+    case TOKEN_EQUAL: write_op(this->code, OP_EQUAL, row); break;
+    case TOKEN_NOT_EQUAL: write_op(this->code, OP_NOT_EQUAL, row); break;
+    case TOKEN_LESS: write_op(this->code, OP_LESS, row); break;
+    case TOKEN_LESS_EQUAL: write_op(this->code, OP_LESS_EQUAL, row); break;
+    case TOKEN_GREATER: write_op(this->code, OP_GREATER, row); break;
+    case TOKEN_GREATER_EQUAL: write_op(this->code, OP_GREATER_EQUAL, row); break;
     }
 }
 
 static void declaration(Compiler *this) {
-    if (match(this, TOKEN_LET)) {
-        declare_variable(this);
+    if (match(this, TOKEN_LET) or match(this, TOKEN_CONST)) {
+        declare_new_variable(this);
     } else {
         statement(this);
     }
 }
 
+static void begin_scope(Compiler *this) {
+    this->scope->depth++;
+}
+
+static void end_scope(Compiler *this) {
+    Scope *scope = this->scope;
+    scope->depth--;
+    while (scope->local_count > 0 && scope->locals[scope->local_count - 1].depth > scope->depth) {
+        write_op(this->code, OP_POP, this->alpha.row);
+        scope->local_count--;
+    }
+}
+
+static void block(Compiler *this) {
+    while (!check(this, TOKEN_END) && !check(this, TOKEN_EOF)) {
+        declaration(this);
+    }
+    consume(this, TOKEN_END, "Expected 'end' after block.");
+}
+
 static void statement(Compiler *this) {
     if (match(this, TOKEN_PRINT)) {
         print_statement(this);
+    } else if (match(this, TOKEN_BEGIN)) {
+        begin_scope(this);
+        block(this);
+        end_scope(this);
     } else {
         expression_statement(this);
     }
@@ -1160,26 +1321,29 @@ static void statement(Compiler *this) {
 
 static void print_statement(Compiler *this) {
     expression(this);
-    write_op(this->bcode, OP_PRINT, this->alpha.row);
+    write_op(this->code, OP_PRINT, this->alpha.row);
 }
 
 static void expression_statement(Compiler *this) {
     expression(this);
-    write_op(this->bcode, OP_POP, this->alpha.row);
+    write_op(this->code, OP_POP, this->alpha.row);
 }
 
 static void expression(Compiler *this) {
     compile_with_precedence(this, PRECEDENCE_ASSIGN);
 }
 
-static char *compile(Machine *machine, ByteCode *bcode, char *source) {
-    Compiler c = new_compiler(source, machine, bcode);
+static char *compile(Machine *machine, ByteCode *code, char *source) {
+
+    Scope s = {0};
+    Scope *scope = &s;
+
+    Compiler c = new_compiler(source, machine, code, scope);
     Compiler *compiler = &c;
 
     advance(compiler);
     advance(compiler);
     while (!match(compiler, TOKEN_EOF)) {
-        printf(">>> %s, %s, %s\n", token_name(compiler->alpha.type), token_name(compiler->beta.type), token_name(compiler->gamma.type));
         declaration(compiler);
     }
 
@@ -1187,7 +1351,7 @@ static char *compile(Machine *machine, ByteCode *bcode, char *source) {
     if (compiler->error) {
         error = string_copy(compiler->error);
     } else {
-        write_op(bcode, OP_RETURN, compiler->alpha.row);
+        write_op(code, OP_RETURN, compiler->alpha.row);
     }
 
     compiler_delete(compiler);
@@ -1195,10 +1359,16 @@ static char *compile(Machine *machine, ByteCode *bcode, char *source) {
 }
 
 static usize debug_constant_instruction(const char *name, ByteCode *this, usize index) {
-    u8 constant = this->code[index + 1];
+    u8 constant = this->instructions[index + 1];
     printf("%s: [%d: ", name, constant);
     debug_value(this->constants.values[constant]);
     printf("]\n");
+    return index + 2;
+}
+
+static usize debug_byte_instruction(const char *name, ByteCode *this, usize index) {
+    u8 b = this->instructions[index + 1];
+    printf("%s: [%d]\n", name, b);
     return index + 2;
 }
 
@@ -1214,7 +1384,7 @@ static usize disassemble_instruction(ByteCode *this, usize index) {
     } else {
         printf("%4d ", this->rows[index]);
     }
-    u8 op = this->code[index];
+    u8 op = this->instructions[index];
     switch (op) {
     case OP_RETURN: return debug_instruction("OP_RETURN", index);
     case OP_ADD: return debug_instruction("OP_ADD", index);
@@ -1238,6 +1408,8 @@ static usize disassemble_instruction(ByteCode *this, usize index) {
     case OP_DEFINE_GLOBAL: return debug_constant_instruction("OP_DEFINE_GLOBAL", this, index);
     case OP_SET_GLOBAL: return debug_constant_instruction("OP_SET_GLOBAL", this, index);
     case OP_GET_GLOBAL: return debug_constant_instruction("OP_GET_GLOBAL", this, index);
+    case OP_SET_LOCAL: return debug_byte_instruction("OP_SET_LOCAL", this, index);
+    case OP_GET_LOCAL: return debug_byte_instruction("OP_GET_LOCAL", this, index);
     default: printf("UNKNOWN OPCODE %d\n", op); return index + 1;
     }
 }
@@ -1262,7 +1434,7 @@ static void machine_runtime_error(Machine *this, const char *format, ...) {
     this->error = string_append(this->error, chars);
     free(chars);
 
-    int row = this->bcode->rows[this->ip];
+    int row = this->code->rows[this->ip];
     this->error = string_append_format(this->error, "\n[Line %d] in script", row);
 
     machine_reset_stack(this);
@@ -1313,8 +1485,10 @@ static bool machine_equal(Value a, Value b) {
     }
 }
 
+#define read_byte() code[this->ip++]
+
 static void machine_run(Machine *this) {
-    u8 *code = this->bcode->code;
+    u8 *code = this->code->instructions;
     while (true) {
 #ifdef HYMN_DEBUG_STACK
         if (this->stack_top > 0) {
@@ -1328,9 +1502,9 @@ static void machine_run(Machine *this) {
         }
 #endif
 #ifdef HYMN_DEBUG_TRACE
-        disassemble_instruction(this->bcode, this->ip);
+        disassemble_instruction(this->code, this->ip);
 #endif
-        u8 op = code[this->ip++];
+        u8 op = read_byte();
         switch (op) {
         case OP_RETURN:
             return;
@@ -1505,19 +1679,19 @@ static void machine_run(Machine *this) {
             break;
         }
         case OP_CONSTANT: {
-            Value constant = this->bcode->constants.values[code[this->ip++]];
+            Value constant = this->code->constants.values[read_byte()];
             machine_push(this, constant);
             break;
         }
         case OP_DEFINE_GLOBAL: {
-            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            String *name = as_string(this->code->constants.values[read_byte()]);
             Value set = machine_peek(this, 1);
             map_put(&this->globals, name, set);
             machine_pop(this);
             break;
         }
         case OP_SET_GLOBAL: {
-            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            String *name = as_string(this->code->constants.values[read_byte()]);
             Value set = machine_peek(this, 1);
             Value exists = map_get(&this->globals, name);
             if (is_undefined(exists)) {
@@ -1528,13 +1702,23 @@ static void machine_run(Machine *this) {
             break;
         }
         case OP_GET_GLOBAL: {
-            String *name = as_string(this->bcode->constants.values[code[this->ip++]]);
+            String *name = as_string(this->code->constants.values[read_byte()]);
             Value get = map_get(&this->globals, name);
             if (is_undefined(get)) {
                 machine_runtime_error(this, "Undefined variable '%s'.", name);
                 return;
             }
             machine_push(this, get);
+            break;
+        }
+        case OP_SET_LOCAL: {
+            u8 b = read_byte();
+            this->stack[b] = machine_peek(this, 1);
+            break;
+        }
+        case OP_GET_LOCAL: {
+            u8 b = read_byte();
+            machine_push(this, this->stack[b]);
             break;
         }
         case OP_PRINT:
@@ -1566,8 +1750,8 @@ static void machine_run(Machine *this) {
     }
 }
 
-static char *machine_interpret(Machine *this, ByteCode *bcode) {
-    this->bcode = bcode;
+static char *machine_interpret(Machine *this, ByteCode *code) {
+    this->code = code;
     this->ip = 0;
 
     machine_run(this);
@@ -1602,8 +1786,6 @@ Hymn *new_hymn() {
 char *hymn_eval(Hymn *this, char *source) {
     (void *)this;
 
-    char *error = NULL;
-
     Machine m = new_machine();
     Machine *machine = &m;
 
@@ -1611,10 +1793,19 @@ char *hymn_eval(Hymn *this, char *source) {
     ByteCode *bytes = &b;
     byte_code_init(bytes);
 
-    error = compile(machine, bytes, source);
-    if (error == NULL) {
-        error = machine_interpret(machine, bytes);
+    char *error = compile(machine, bytes, source);
+    if (error) {
+        return error;
     }
+    error = machine_interpret(machine, bytes);
+    if (error) {
+        return error;
+    }
+
+    byte_code_delete(bytes);
+    byte_code_init(bytes);
+
+    machine_reset_stack(machine);
 
     byte_code_delete(bytes);
     machine_delete(machine);

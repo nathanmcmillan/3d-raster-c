@@ -38,7 +38,7 @@
       }
     },
     {
-      "match": "\\b(const|var|let)\\b",
+      "match": "\\b(const|let)\\b",
       "captures": {
         "1": {
           "name": "storage.modifier.hymn"
@@ -46,7 +46,7 @@
       }
     },
     {
-      "match": "^(import|use) +(?:\\w:?)*",
+      "match": "^(use) +(?:\\w:?)*",
       "captures": {
         "1": {
           "name": "keyword.import.hymn"
@@ -62,18 +62,10 @@
       }
     },
     {
-      "match": "\\b(if|elif|else|for|while|return|break|continue|and|or|not|match|is|pass|goto|label|iterate|in|async|await|yield|implements|try|except|then|end)\\b",
+      "match": "\\b(if|elif|else|for|while|return|break|continue|and|or|not|match|pass|in|async|await|try|except|begin|end)\\b",
       "captures": {
         "1": {
           "name": "keyword.control.hymn"
-        }
-      }
-    },
-    {
-      "match": "\\b(new)\\b",
-      "captures": {
-        "1": {
-          "name": "keyword.operator.new.hymn"
         }
       }
     },

@@ -12,8 +12,13 @@
 #include "string_util.h"
 #include "table.h"
 
+#define HYMN_DEBUG_NONE
+
+#ifndef HYMN_DEBUG_NONE
 #define HYMN_DEBUG_TRACE
 #define HYMN_DEBUG_STACK
+// #define HYMN_DEBUG_TOKEN
+#endif
 
 #define HYMN_STACK_MAX 256
 

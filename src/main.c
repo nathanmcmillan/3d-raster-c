@@ -199,29 +199,19 @@ int main(int argc, char **argv) {
 
     Hymn *vm = new_hymn();
 
-    {
-        char *error = hymn_repl(vm);
-        if (error != NULL) {
-            fprintf(stderr, "%s\n", error);
-            exit(1);
-        }
+    // {
+    //     char *error = hymn_repl(vm);
+    //     if (error != NULL) {
+    //         fprintf(stderr, "%s\n", error);
+    //         exit(1);
+    //     }
+    // }
+
+    char *error = hymn_read(vm, "test/test.hm");
+    if (error != NULL) {
+        fprintf(stderr, "%s\n", error);
+        exit(1);
     }
-
-    // {
-    //     char *error = hymn_eval(vm, "1 + 2");
-    //     if (error != NULL) {
-    //         fprintf(stderr, "Hymn error: %s\n", error);
-    //         exit(1);
-    //     }
-    // }
-
-    // {
-    //     char *error = hymn_eval(vm, "print(1 + 24 - 86.4)");
-    //     if (error != NULL) {
-    //         fprintf(stderr, "Hymn eval error: %s\n", error);
-    //         exit(1);
-    //     }
-    // }
 
 #ifdef HYMN
     return 0;
