@@ -12,7 +12,7 @@
 #include "string_util.h"
 #include "table.h"
 
-#define HYMN_DEBUG_NONE
+// #define HYMN_DEBUG_NONE
 
 #ifndef HYMN_DEBUG_NONE
 #define HYMN_DEBUG_TRACE
@@ -20,7 +20,10 @@
 // #define HYMN_DEBUG_TOKEN
 #endif
 
-#define HYMN_STACK_MAX 256
+#define UINT8_COUNT (UINT8_MAX + 1)
+
+#define HYMN_FRAMES_MAX 64
+#define HYMN_STACK_MAX (HYMN_FRAMES_MAX * UINT8_COUNT)
 
 typedef struct Hymn Hymn;
 

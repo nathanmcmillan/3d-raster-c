@@ -89,25 +89,6 @@
       }
     },
     {
-      "match": "^(\\w+) (\\w+) *($|\\(| )",
-      "captures": {
-        "1": {
-          "name": "entity.name.function.hymn"
-        },
-        "2": {
-          "name": "entity.name.function.hymn"
-        }
-      }
-    },
-    {
-      "match": "^(\\w+) *($|\\(| )",
-      "captures": {
-        "1": {
-          "name": "entity.name.function.hymn"
-        }
-      }
-    },
-    {
       "match": "(\\w+)(?=<.*>\\()",
       "captures": {
         "1": {
@@ -140,10 +121,13 @@
       }
     },
     {
-      "match": "(\\w+(?:\\.\\w+)*)(?= *(?:=|\\+=|-=|/=|\\*=|\\^=|\\|=|&=|<<=|>>=))",
+      "match": "(\\w+(?:\\.\\w+)*)(=)",
       "captures": {
         "1": {
           "name": "variable.other.assignment.hymn"
+        },
+        "2": {
+          "name": "keyword.operator.assignment.hymn"
         }
       }
     }
