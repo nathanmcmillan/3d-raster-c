@@ -16,13 +16,15 @@
 #define new_int(v) ((Value){VALUE_INTEGER, {.i = v}})
 #define new_float(v) ((Value){VALUE_FLOAT, {.f = v}})
 #define new_str(v) ((Value){VALUE_STRING, {.s = v}})
-#define new_func(v) ((Value){VALUE_FUNCTION, {.func = v}})
+#define new_func(v) ((Value){VALUE_FUNC, {.func = v}})
+#define new_native(v) ((Value){VALUE_FUNC_NATIVE, {.native = v}})
 
 #define as_bool(v) ((v).as.b)
 #define as_int(v) ((v).as.i)
 #define as_float(v) ((v).as.f)
 #define as_string(v) ((v).as.s)
 #define as_func(v) ((v).as.func)
+#define as_native(v) ((v).as.native)
 
 #define is_undefined(v) ((v).is == VALUE_UNDEFINED)
 #define is_nil(v) ((v).is == VALUE_NIL)
@@ -30,7 +32,8 @@
 #define is_int(v) ((v).is == VALUE_INTEGER)
 #define is_float(v) ((v).is == VALUE_FLOAT)
 #define is_string(v) ((v).is == VALUE_STRING)
-#define is_func(v) ((v).is == VALUE_FUNCTION)
+#define is_func(v) ((v).is == VALUE_FUNC)
+#define is_native(v) ((v).is == VALUE_FUNC_NATIVE)
 
 #define STR_NIL "Nil"
 #define STR_TRUE "True"
@@ -101,7 +104,8 @@ static const unsigned int MAXIMUM_BINS = 1 << 30;
 enum ValueType {
     VALUE_BOOL,
     VALUE_FLOAT,
-    VALUE_FUNCTION,
+    VALUE_FUNC,
+    VALUE_FUNC_NATIVE,
     VALUE_INTEGER,
     VALUE_LIST,
     VALUE_NIL,
@@ -206,6 +210,7 @@ enum OpCode {
     OP_JUMP,
     OP_JUMP_IF_FALSE,
     OP_LOOP,
+    OP_CALL,
 };
 
 enum FunctionType {
@@ -223,12 +228,14 @@ typedef struct ValueMap ValueMap;
 typedef struct ValuePool ValuePool;
 typedef struct ByteCode ByteCode;
 typedef struct Function Function;
+typedef struct NativeFunction NativeFunction;
 typedef struct Frame Frame;
 typedef struct Machine Machine;
 typedef struct Scope Scope;
 typedef struct Compiler Compiler;
 
 static void compile_with_precedence(Compiler *this, enum Precedence precedence);
+static void compile_call(Compiler *this, bool assign);
 static void compile_group(Compiler *this, bool assign);
 static void compile_true(Compiler *this, bool assign);
 static void compile_false(Compiler *this, bool assign);
@@ -254,6 +261,7 @@ struct Value {
         double f;
         String *s;
         Function *func;
+        NativeFunction *native;
     } as;
 };
 
@@ -316,10 +324,17 @@ struct Function {
     ByteCode code;
 };
 
+typedef Value (*NativeCall)(int count, Value *arguments);
+
+struct NativeFunction {
+    String *name;
+    NativeCall native;
+};
+
 struct Frame {
     Function *func;
     usize ip;
-    Value *stack;
+    usize stack_top;
 };
 
 struct Machine {
@@ -333,7 +348,8 @@ struct Machine {
 };
 
 struct Scope {
-    Function *function;
+    struct Scope *enclosing;
+    Function *func;
     enum FunctionType type;
     Local locals[UINT8_COUNT];
     int local_count;
@@ -384,7 +400,7 @@ Rule rules[] = {
     [TOKEN_LEFT_BRACKET] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_LINE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LEFT_PAREN] = {compile_group, NULL, PRECEDENCE_NONE},
+    [TOKEN_LEFT_PAREN] = {compile_group, compile_call, PRECEDENCE_CALL},
     [TOKEN_LESS] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_LESS_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_MULTIPLY] = {NULL, compile_binary, PRECEDENCE_FACTOR},
@@ -592,7 +608,8 @@ static const char *value_name(enum ValueType value) {
     case VALUE_INTEGER: return "INTEGER";
     case VALUE_FLOAT: return "FLOAT";
     case VALUE_STRING: return "STRING";
-    case VALUE_FUNCTION: return "FUNCTION";
+    case VALUE_FUNC: return "FUNCTION";
+    case VALUE_FUNC_NATIVE: return "NATIVE_FUNCTION";
     case VALUE_LIST: return "LIST";
     case VALUE_TABLE: return "TABLE";
     default: return "VALUE ?";
@@ -639,6 +656,7 @@ static const char *token_name(enum TokenType type) {
     case TOKEN_CONST: return "CONST";
     case TOKEN_COLON: return "COLON";
     case TOKEN_SEMICOLON: return "SEMICOLON";
+    case TOKEN_RETURN: return "RETURN";
     default: return "?";
     }
 }
@@ -652,6 +670,8 @@ static void debug_value(Value value) {
     case VALUE_INTEGER: printf("%" PRId64, as_int(value)); break;
     case VALUE_FLOAT: printf("%g", as_float(value)); break;
     case VALUE_STRING: printf("\"%s\"", as_string(value)); break;
+    case VALUE_FUNC: printf("<%s>", as_func(value)->name); break;
+    case VALUE_FUNC_NATIVE: printf("<%s>", as_native(value)->name); break;
     default: printf("?");
     }
 }
@@ -661,7 +681,7 @@ static void compiler_delete(Compiler *this) {
 }
 
 static inline ByteCode *current(Compiler *this) {
-    return &this->scope->function->code;
+    return &this->scope->func->code;
 }
 
 static void compile_error(Compiler *this, Token *token, const char *format, ...) {
@@ -984,16 +1004,24 @@ static Function *new_function() {
     return func;
 }
 
+static NativeFunction *new_native_function(String *name, NativeCall native) {
+    NativeFunction *func = safe_malloc(sizeof(NativeFunction));
+    func->name = name;
+    func->native = native;
+    return func;
+}
+
 static void compiler_scope_init(Compiler *this, Scope *scope, enum FunctionType type) {
+    scope->enclosing = this->scope;
     this->scope = scope;
 
     scope->local_count = 0;
     scope->depth = 0;
-    scope->function = new_function();
+    scope->func = new_function();
     scope->type = type;
 
     if (type != TYPE_SCRIPT) {
-        scope->function->name = new_string_from_substring(this->source, this->alpha.start, this->alpha.start + this->alpha.length);
+        scope->func->name = new_string_from_substring(this->source, this->alpha.start, this->alpha.start + this->alpha.length);
     }
 
     Local *local = &scope->locals[scope->local_count++];
@@ -1106,7 +1134,7 @@ static void compile_with_precedence(Compiler *this, enum Precedence precedence) 
     Rule *rule = token_rule(this->alpha.type);
     void (*prefix)(Compiler *, bool) = rule->prefix;
     if (prefix == NULL) {
-        compile_error(this, &this->alpha, "Expected expression after token '%s'.", token_name(this->alpha.type));
+        compile_error(this, &this->alpha, "Expected expression.");
         return;
     }
     bool assign = precedence <= PRECEDENCE_ASSIGN;
@@ -1115,7 +1143,7 @@ static void compile_with_precedence(Compiler *this, enum Precedence precedence) 
         advance(this);
         void (*infix)(Compiler *, bool) = token_rule(this->alpha.type)->infix;
         if (infix == NULL) {
-            compile_error(this, &this->alpha, "No infix rule");
+            compile_error(this, &this->alpha, "No infix rule found.");
             return;
         }
         infix(this, assign);
@@ -1131,6 +1159,28 @@ static void consume(Compiler *this, enum TokenType type, const char *error) {
         return;
     }
     compile_error(this, &this->beta, error);
+}
+
+static u8 arguments(Compiler *this) {
+    u8 count = 0;
+    if (!check(this, TOKEN_RIGHT_PAREN)) {
+        do {
+            expression(this);
+            if (count == 255) {
+                compile_error(this, &this->alpha, "Can't have more than 255 function arguments.");
+                break;
+            }
+            count++;
+        } while (match(this, TOKEN_COMMA));
+    }
+    consume(this, TOKEN_RIGHT_PAREN, "Expected ')' after function arguments.");
+    return count;
+}
+
+static void compile_call(Compiler *this, bool assign) {
+    (void)assign;
+    u8 args = arguments(this);
+    emit_two(this, OP_CALL, args);
 }
 
 static void compile_group(Compiler *this, bool assign) {
@@ -1185,6 +1235,10 @@ static void function_delete(Function *this) {
     free(this);
 }
 
+static void native_function_delete(NativeFunction *this) {
+    free(this);
+}
+
 static void panic_halt(Compiler *this) {
     this->panic = false;
     while (true) {
@@ -1199,6 +1253,19 @@ static void panic_halt(Compiler *this) {
             return;
         }
         advance(this);
+    }
+}
+
+static void begin_scope(Compiler *this) {
+    this->scope->depth++;
+}
+
+static void end_scope(Compiler *this) {
+    Scope *scope = this->scope;
+    scope->depth--;
+    while (scope->local_count > 0 && scope->locals[scope->local_count - 1].depth > scope->depth) {
+        emit(this, OP_POP);
+        scope->local_count--;
     }
 }
 
@@ -1248,6 +1315,9 @@ static u8 variable(Compiler *this, bool constant, const char *error) {
 
 static void local_initialize(Compiler *this) {
     Scope *scope = this->scope;
+    if (scope->depth == 0) {
+        return;
+    }
     scope->locals[scope->local_count - 1].depth = scope->depth;
 }
 
@@ -1378,26 +1448,62 @@ static void compile_or(Compiler *this, bool assign) {
     patch_jump(this, jump);
 }
 
+static Function *end_function(Compiler *this) {
+    emit_two(this, OP_NIL, OP_RETURN);
+    Function *func = this->scope->func;
+    this->scope = this->scope->enclosing;
+    return func;
+}
+
+static void compile_function(Compiler *this, enum FunctionType type) {
+    Scope scope = {0};
+    compiler_scope_init(this, &scope, type);
+
+    begin_scope(this);
+
+    consume(this, TOKEN_LEFT_PAREN, "Expected '(' after function name.");
+
+    if (!check(this, TOKEN_RIGHT_PAREN)) {
+        do {
+            this->scope->func->arity++;
+            if (this->scope->func->arity > 255) {
+                compile_error(this, &this->alpha, "Can't have more than 255 function parameters.");
+            }
+            u8 parameter = variable(this, false, "Expected parameter name.");
+            define_variable(this, parameter);
+        } while (match(this, TOKEN_COMMA));
+    }
+
+    consume(this, TOKEN_RIGHT_PAREN, "Expected ')' after function parameters.");
+
+    while (!check(this, TOKEN_END) && !check(this, TOKEN_EOF)) {
+        declaration(this);
+    }
+
+    end_scope(this);
+    consume(this, TOKEN_END, "Expected 'end' after function body.");
+
+    Function *func = end_function(this);
+
+    write_constant(current(this), new_func(func), this->alpha.row);
+}
+
+static void declare_function(Compiler *this) {
+    u8 global = variable(this, false, "Expected function name.");
+    local_initialize(this);
+    compile_function(this, TYPE_FUNCTION);
+    define_variable(this, global);
+}
+
 static void declaration(Compiler *this) {
     if (match(this, TOKEN_LET)) {
         declare_new_variable(this, false);
     } else if (match(this, TOKEN_CONST)) {
         declare_new_variable(this, true);
+    } else if (match(this, TOKEN_FUNCTION)) {
+        declare_function(this);
     } else {
         statement(this);
-    }
-}
-
-static void begin_scope(Compiler *this) {
-    this->scope->depth++;
-}
-
-static void end_scope(Compiler *this) {
-    Scope *scope = this->scope;
-    scope->depth--;
-    while (scope->local_count > 0 && scope->locals[scope->local_count - 1].depth > scope->depth) {
-        emit(this, OP_POP);
-        scope->local_count--;
     }
 }
 
@@ -1501,6 +1607,14 @@ static void while_statement(Compiler *this) {
     consume(this, TOKEN_END, "Expected 'end' after while loop.");
 }
 
+static void return_statement(Compiler *this) {
+    if (this->scope->type == TYPE_SCRIPT) {
+        compile_error(this, &this->alpha, "Can't return from outside a function.");
+    }
+    expression(this);
+    emit(this, OP_RETURN);
+}
+
 static void statement(Compiler *this) {
     if (match(this, TOKEN_PRINT)) {
         print_statement(this);
@@ -1510,6 +1624,8 @@ static void statement(Compiler *this) {
         for_statement(this);
     } else if (match(this, TOKEN_WHILE)) {
         while_statement(this);
+    } else if (match(this, TOKEN_RETURN)) {
+        return_statement(this);
     } else if (match(this, TOKEN_BEGIN)) {
         block(this);
         consume(this, TOKEN_END, "Expected 'end' after block.");
@@ -1537,10 +1653,9 @@ static void expression(Compiler *this) {
 
 static Function *compile(Machine *machine, char *source, char **error) {
 
-    Scope s = {0};
-    Scope *scope = &s;
+    Scope scope = {0};
 
-    Compiler c = new_compiler(source, machine, scope);
+    Compiler c = new_compiler(source, machine, &scope);
     Compiler *compiler = &c;
 
     advance(compiler);
@@ -1551,13 +1666,13 @@ static Function *compile(Machine *machine, char *source, char **error) {
 
     if (compiler->error) {
         *error = string_to_chars(compiler->error);
-    } else {
-        write_op(current(compiler), OP_RETURN, compiler->alpha.row);
     }
+
+    Function *func = end_function(compiler);
 
     compiler_delete(compiler);
 
-    return compiler->scope->function;
+    return func;
 }
 
 #ifdef HYMN_DEBUG_TRACE
@@ -1622,6 +1737,7 @@ static usize disassemble_instruction(ByteCode *this, usize index) {
     case OP_GET_GLOBAL: return debug_constant_instruction("OP_GET_GLOBAL", this, index);
     case OP_SET_LOCAL: return debug_byte_instruction("OP_SET_LOCAL", this, index);
     case OP_GET_LOCAL: return debug_byte_instruction("OP_GET_LOCAL", this, index);
+    case OP_CALL: return debug_byte_instruction("OP_CALL", this, index);
     default: printf("UNKNOWN OPCODE %d\n", op); return index + 1;
     }
 }
@@ -1648,11 +1764,21 @@ static void machine_runtime_error(Machine *this, const char *format, ...) {
     this->error = string_append(this->error, chars);
     free(chars);
 
-    Frame *frame = &this->frames[this->frame_count - 1];
-    usize ip = frame->ip - 1;
-    int row = frame->func->code.rows[ip];
+    this->error = string_append_char(this->error, '\n');
 
-    this->error = string_append_format(this->error, "\n[Line %d] in script", row);
+    for (int i = this->frame_count - 1; i >= 0; i--) {
+        Frame *frame = &this->frames[i];
+        Function *func = frame->func;
+        usize ip = frame->ip - 1;
+        int row = frame->func->code.rows[ip];
+
+        this->error = string_append_format(this->error, "[Line %d] in ", row);
+        if (func->name == NULL) {
+            this->error = string_append_format(this->error, "script\n");
+        } else {
+            this->error = string_append_format(this->error, "%s()\n", func->name);
+        }
+    }
 
     machine_reset_stack(this);
 }
@@ -1698,9 +1824,14 @@ static bool machine_equal(Value a, Value b) {
         case VALUE_STRING: return as_string(a) == as_string(b);
         default: return false;
         }
-    case VALUE_FUNCTION:
+    case VALUE_FUNC:
         switch (b.is) {
-        case VALUE_FUNCTION: return as_func(a) == as_func(b);
+        case VALUE_FUNC: return as_func(a) == as_func(b);
+        default: return false;
+        }
+    case VALUE_FUNC_NATIVE:
+        switch (b.is) {
+        case VALUE_FUNC_NATIVE: return as_native(a) == as_native(b);
         default: return false;
         }
     default: return false;
@@ -1714,8 +1845,45 @@ static bool machine_false(Value value) {
     case VALUE_INTEGER: return as_int(value) == 0;
     case VALUE_FLOAT: return as_float(value) == 0.0;
     case VALUE_STRING: return string_len(as_string(value)) == 0;
-    case VALUE_FUNCTION: return as_func(value) == NULL;
+    case VALUE_FUNC: return as_func(value) == NULL;
+    case VALUE_FUNC_NATIVE: return as_native(value) == NULL;
     default: return false;
+    }
+}
+
+static bool machine_call(Machine *this, Function *func, int count) {
+    if (count != func->arity) {
+        machine_runtime_error(this, "Expected %d function arguments but found %d.", func->arity, count);
+        return false;
+    }
+
+    if (this->frame_count == HYMN_FRAMES_MAX) {
+        machine_runtime_error(this, "Stack overflow.");
+        return false;
+    }
+
+    Frame *frame = &this->frames[this->frame_count++];
+    frame->func = func;
+    frame->ip = 0;
+    frame->stack_top = this->stack_top - count - 1;
+
+    return true;
+}
+
+static bool machine_call_value(Machine *this, Value call, int count) {
+    switch (call.is) {
+    case VALUE_FUNC:
+        return machine_call(this, as_func(call), count);
+    case VALUE_FUNC_NATIVE: {
+        NativeCall native = as_native(call)->native;
+        Value result = native(count, &this->stack[this->stack_top - count]);
+        this->stack_top -= count + 1;
+        machine_push(this, result);
+        return true;
+    }
+    default:
+        machine_runtime_error(this, "Only functions can be called.");
+        return false;
     }
 }
 
@@ -1747,13 +1915,21 @@ static void machine_run(Machine *this) {
         }
 #endif
 #ifdef HYMN_DEBUG_TRACE
-        // disassemble_instruction(&frame->func->code, frame->ip - frame->func->code.???);
         disassemble_instruction(&frame->func->code, frame->ip);
 #endif
         u8 op = read_byte(frame);
         switch (op) {
         case OP_RETURN:
-            return;
+            Value result = machine_pop(this);
+            this->frame_count--;
+            if (this->frame_count == 0) {
+                machine_pop(this);
+                return;
+            }
+            this->stack_top = frame->stack_top;
+            machine_push(this, result);
+            frame = &this->frames[this->frame_count - 1];
+            break;
         case OP_POP:
             machine_pop(this);
             break;
@@ -1766,6 +1942,15 @@ static void machine_run(Machine *this) {
         case OP_NIL:
             machine_push(this, new_nil());
             break;
+        case OP_CALL: {
+            int count = read_byte(frame);
+            Value peek = machine_peek(this, count + 1);
+            if (!machine_call_value(this, peek, count)) {
+                return;
+            }
+            frame = &this->frames[this->frame_count - 1];
+            break;
+        }
         case OP_JUMP: {
             u16 jump = read_short(frame);
             frame->ip += jump;
@@ -1821,7 +2006,7 @@ static void machine_run(Machine *this) {
                     string_delete(temp);
                     machine_push(this, machine_intern_string(this, add));
                 } else {
-                    machine_runtime_error(this, "Operands can not be added.");
+                    machine_runtime_error(this, "Operands can't be added.");
                     return;
                 }
             } else if (is_bool(a)) {
@@ -1831,7 +2016,7 @@ static void machine_run(Machine *this) {
                     string_delete(temp);
                     machine_push(this, machine_intern_string(this, add));
                 } else {
-                    machine_runtime_error(this, "Operands can not be added.");
+                    machine_runtime_error(this, "Operands can't be added.");
                     return;
                 }
             } else if (is_int(a)) {
@@ -1847,7 +2032,7 @@ static void machine_run(Machine *this) {
                     string_delete(temp);
                     machine_push(this, machine_intern_string(this, add));
                 } else {
-                    machine_runtime_error(this, "Operands can not be added.");
+                    machine_runtime_error(this, "Operands can't be added.");
                     return;
                 }
             } else if (is_float(a)) {
@@ -1863,7 +2048,7 @@ static void machine_run(Machine *this) {
                     string_delete(temp);
                     machine_push(this, machine_intern_string(this, add));
                 } else {
-                    machine_runtime_error(this, "Operands can not be added.");
+                    machine_runtime_error(this, "Operands can't be added.");
                     return;
                 }
             } else if (is_string(a)) {
@@ -1891,16 +2076,19 @@ static void machine_run(Machine *this) {
                 case VALUE_STRING:
                     add = string_concat(s, as_string(b));
                     break;
-                case VALUE_FUNCTION:
+                case VALUE_FUNC:
                     add = string_concat(s, as_func(b)->name);
                     break;
+                case VALUE_FUNC_NATIVE:
+                    add = string_concat(s, as_native(b)->name);
+                    break;
                 default:
-                    machine_runtime_error(this, "Operands can not be added.");
+                    machine_runtime_error(this, "Operands can't be added.");
                     return;
                 }
                 machine_push(this, machine_intern_string(this, add));
             } else {
-                machine_runtime_error(this, "Operands can not be added.");
+                machine_runtime_error(this, "Operands can't be added.");
                 return;
             }
             break;
@@ -1979,12 +2167,12 @@ static void machine_run(Machine *this) {
         }
         case OP_SET_LOCAL: {
             u8 slot = read_byte(frame);
-            frame->stack[slot] = machine_peek(this, 1);
+            this->stack[slot] = machine_peek(this, 1);
             break;
         }
         case OP_GET_LOCAL: {
             u8 slot = read_byte(frame);
-            machine_push(this, frame->stack[slot]);
+            machine_push(this, this->stack[slot]);
             break;
         }
         case OP_PRINT:
@@ -2005,7 +2193,10 @@ static void machine_run(Machine *this) {
             case VALUE_STRING:
                 printf("%s\n", as_string(value));
                 break;
-            case VALUE_FUNCTION:
+            case VALUE_FUNC:
+                printf("%s\n", as_func(value)->name);
+                break;
+            case VALUE_FUNC_NATIVE:
                 printf("%s\n", as_func(value)->name);
                 break;
             default:
@@ -2029,6 +2220,12 @@ static char *machine_interpret(Machine *this) {
     return error;
 }
 
+static void add_func(Machine *this, char *name, NativeCall func) {
+    Value intern = machine_intern_string(this, new_string(name));
+    NativeFunction *value = new_native_function(as_string(intern), func);
+    map_put(&this->globals, as_string(intern), new_native(value));
+}
+
 static inline Machine new_machine() {
     Machine this = {0};
     machine_reset_stack(&this);
@@ -2049,15 +2246,21 @@ Hymn *new_hymn() {
     return this;
 }
 
+static Value temp_native_test(int count, Value *arguments) {
+    if (count == 0) {
+        return new_nil();
+    }
+    i64 i = as_int(arguments[0]) + 1;
+    return new_int(i);
+}
+
 char *hymn_eval(Hymn *this, char *source) {
     (void *)this;
 
     Machine m = new_machine();
     Machine *machine = &m;
 
-    // ByteCode b = {0};
-    // ByteCode *bytes = &b;
-    // byte_code_init(bytes);
+    add_func(machine, "inc", temp_native_test);
 
     char *error = NULL;
 
@@ -2066,29 +2269,16 @@ char *hymn_eval(Hymn *this, char *source) {
         return error;
     }
 
-    // error = machine_interpret(machine, bytes);
-    // if (error) {
-    //     return error;
-    // }
-
     machine_push(machine, new_func(func));
-
-    Frame *frame = &m.frames[m.frame_count++];
-    frame->func = func;
-    frame->ip = 0;
-    frame->stack = m.stack;
+    machine_call(machine, func, 0);
 
     error = machine_interpret(machine);
     if (error) {
         return error;
     }
 
-    // byte_code_delete(bytes);
-    // byte_code_init(bytes);
-
     machine_reset_stack(machine);
 
-    // byte_code_delete(bytes);
     machine_delete(machine);
     return error;
 }
@@ -2110,10 +2300,6 @@ char *hymn_repl(Hymn *this) {
     Machine m = new_machine();
     Machine *machine = &m;
 
-    // ByteCode b = {0};
-    // ByteCode *bytes = &b;
-    // byte_code_init(bytes);
-
     while (true) {
         printf("> ");
         if (!fgets(input, sizeof(input), stdin)) {
@@ -2121,25 +2307,22 @@ char *hymn_repl(Hymn *this) {
             break;
         }
 
-        // error = compile(machine, bytes, input);
-        compile(machine, input, &error);
+        Function *func = compile(machine, input, &error);
         if (error) {
             break;
         }
 
-        // error = machine_interpret(machine, bytes);
+        machine_push(machine, new_func(func));
+        machine_call(machine, func, 0);
+
         error = machine_interpret(machine);
         if (error) {
-            break;
+            return error;
         }
-
-        // byte_code_delete(bytes);
-        // byte_code_init(bytes);
 
         machine_reset_stack(machine);
     }
 
-    // byte_code_delete(bytes);
     machine_delete(machine);
     return error;
 }

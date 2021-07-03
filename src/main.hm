@@ -21,6 +21,7 @@ function load()
   const thing = new_thing(4, 0)
   thing.update()
   print(thing.x)
+  print(len(thing))
 end
 
 function update()
