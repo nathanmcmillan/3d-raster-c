@@ -4,6 +4,7 @@ IndentWidth: 4
 AlignConsecutiveDeclarations: true
 AllowShortEnumsOnASingleLine: true
 AllowShortCaseLabelsOnASingleLine: true
+AllowShortIfStatementsOnASingleLine: true
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AllowShortFunctionsOnASingleLine: false

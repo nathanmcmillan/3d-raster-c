@@ -48,6 +48,8 @@ String *string_append_substring(String *this, char *b, usize start, usize end);
 int string_compare(String *a, String *b);
 bool string_equal(String *a, String *b);
 
+bool string_find(String *this, String *sub, usize *out);
+
 void string_zero(String *this);
 
 String *char_to_string(char ch);
@@ -67,6 +69,8 @@ String *uint64_to_string(u64 number);
 String *float_to_string(float number);
 String *float32_to_string(float number);
 String *float64_to_string(double number);
+
+String *pointer_to_string(void *pointer);
 
 bool string_to_bool(String *this);
 

@@ -192,6 +192,34 @@ bool string_equal(String *a, String *b) {
     return 0 == string_compare(a, b);
 }
 
+bool string_find(String *this, String *sub, usize *out) {
+    StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
+    StringHead *head_sub = (StringHead *)((char *)sub - sizeof(StringHead));
+    usize len = head->length;
+    usize len_sub = head_sub->length;
+    if (len_sub > len) {
+        return false;
+    } else if (len == 0) {
+        *out = 0;
+        return true;
+    }
+    usize end = len - len_sub + 1;
+    for (usize i = 0; i < end; i++) {
+        bool match = true;
+        for (usize k = 0; k < len_sub; k++) {
+            if (sub[k] != this[i + k]) {
+                match = false;
+                break;
+            }
+        }
+        if (match) {
+            *out = i;
+            return true;
+        }
+    }
+    return false;
+}
+
 void string_zero(String *this) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     head->length = 0;
@@ -323,6 +351,15 @@ String *float64_to_string(double number) {
     int len = snprintf(NULL, 0, "%f", number);
     char *str = safe_malloc(len + 1);
     snprintf(str, len + 1, "%f", number);
+    String *s = new_string_with_length(str, len);
+    free(str);
+    return s;
+}
+
+String *pointer_to_string(void *pointer) {
+    int len = snprintf(NULL, 0, "%p", pointer);
+    char *str = safe_malloc(len + 1);
+    snprintf(str, len + 1, "%p", pointer);
     String *s = new_string_with_length(str, len);
     free(str);
     return s;

@@ -10,7 +10,6 @@
 #include "mem.h"
 #include "pie.h"
 #include "string_util.h"
-#include "table.h"
 
 // #define HYMN_DEBUG_NONE
 
@@ -28,7 +27,7 @@
 typedef struct Hymn Hymn;
 
 struct Hymn {
-    Table *scripts;
+    String **scripts;
 };
 
 Hymn *new_hymn();
