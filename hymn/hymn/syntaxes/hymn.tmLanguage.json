@@ -88,7 +88,7 @@
       }
     },
     {
-      "match": "^(function) +(\\w+(?:\\.\\w+)?)",
+      "match": "^(func|function) +(\\w+(?:\\.\\w+)?)",
       "captures": {
         "1": {
           "name": "keyword.struct.hymn"
@@ -99,7 +99,7 @@
       }
     },
     {
-      "match": "\\b(function)\\b",
+      "match": "\\b(func|function)\\b",
       "captures": {
         "1": {
           "name": "keyword.struct.hymn"

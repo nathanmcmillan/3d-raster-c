@@ -16,7 +16,9 @@ function upper(string)
   let i = 0
   while i < size
     let c = string[i]
-    if c == 'a' c = 'A' end
+    if c == 'a' c = 'A'
+    elif c == 'b' c = 'B'
+    end
     push(new, c)
   end
   return new

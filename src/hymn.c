@@ -274,6 +274,7 @@ enum OpCode {
     OP_INDEX,
     OP_KEYS,
     OP_COPY,
+    OP_SLICE,
     OP_BIT_AND,
     OP_BIT_OR,
     OP_BIT_XOR,
@@ -319,7 +320,7 @@ static void compile_variable(Compiler *this, bool assign);
 static void compile_unary(Compiler *this, bool assign);
 static void compile_binary(Compiler *this, bool assign);
 static void compile_dot(Compiler *this, bool assign);
-static void compile_lookup(Compiler *this, bool assign);
+static void compile_square(Compiler *this, bool assign);
 static void compile_and(Compiler *this, bool assign);
 static void compile_or(Compiler *this, bool assign);
 static void array_push_expression(Compiler *this, bool assign);
@@ -492,7 +493,7 @@ Rule rules[] = {
     [TOKEN_INTEGER] = {compile_integer, NULL, PRECEDENCE_NONE},
     [TOKEN_LEFT_CURLY] = {compile_table, NULL, PRECEDENCE_NONE},
     [TOKEN_LEFT_PAREN] = {compile_group, compile_call, PRECEDENCE_CALL},
-    [TOKEN_LEFT_SQUARE] = {compile_array, compile_lookup, PRECEDENCE_CALL},
+    [TOKEN_LEFT_SQUARE] = {compile_array, compile_square, PRECEDENCE_CALL},
     [TOKEN_LESS] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_LESS_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
@@ -1267,19 +1268,19 @@ static Array *new_array(i64 length) {
     return new_array_with_capacity(length, length);
 }
 
-static Value *array_copy_items(Array *this) {
-    usize size = this->length * sizeof(Value);
-    Value *copy = safe_malloc(size);
-    memcpy(copy, this->items, size);
-    return copy;
+static Array *new_array_slice(Array *from, i64 start, i64 end) {
+    usize length = end - start;
+    usize size = length * sizeof(Value);
+    Array *this = safe_malloc(sizeof(Array));
+    this->items = safe_malloc(size);
+    memcpy(this->items, &from->items[start], size);
+    this->length = length;
+    this->capacity = length;
+    return this;
 }
 
 static Array *new_array_copy(Array *from) {
-    Array *this = safe_malloc(sizeof(Array));
-    this->items = array_copy_items(from);
-    this->length = from->length;
-    this->capacity = from->length;
-    return this;
+    return new_array_slice(from, 0, from->length);
 }
 
 static void array_update_capacity(Array *this, i64 length) {
@@ -1364,6 +1365,43 @@ static ValueMap *new_map_copy(ValueMap *from) {
     ValueMap *this = safe_calloc(1, sizeof(ValueMap));
     map_init(this);
     return this;
+}
+
+static Array *map_keys(ValueMap *this) {
+    Array *array = new_array_with_capacity(0, this->size);
+
+    unsigned int bin = 0;
+    ValueMapItem *item = NULL;
+
+    unsigned int bins = this->bins;
+    for (unsigned int i = 0; i < bins; i++) {
+        ValueMapItem *start = this->items[i];
+        if (start) {
+            bin = i;
+            item = start;
+            break;
+        }
+    }
+
+    if (item == NULL) return array;
+    array_push(array, new_string_value(item->key));
+
+    while (true) {
+        item = item->next;
+        if (item == NULL) {
+            for (bin = bin + 1; bin < bins; bin++) {
+                ValueMapItem *start = this->items[bin];
+                if (start) {
+                    item = start;
+                    break;
+                }
+            }
+            if (item == NULL) return array;
+        }
+        array_push(array, new_string_value(item->key));
+    }
+
+    return array;
 }
 
 static String *map_key_of(ValueMap *this, Value match) {
@@ -1700,7 +1738,6 @@ static bool ident_match(Compiler *this, Token *a, Token *b) {
 
 static u8 variable(Compiler *this, bool constant, const char *error) {
     consume(this, TOKEN_IDENT, error);
-
     Scope *scope = this->scope;
     if (scope->depth == 0) {
         return ident_constant(this, &this->alpha);
@@ -1726,7 +1763,7 @@ static void local_initialize(Compiler *this) {
     scope->locals[scope->local_count - 1].depth = scope->depth;
 }
 
-static void define_variable(Compiler *this, u8 global) {
+static void finalize_variable(Compiler *this, u8 global) {
     if (this->scope->depth > 0) {
         local_initialize(this);
         return;
@@ -1734,11 +1771,11 @@ static void define_variable(Compiler *this, u8 global) {
     emit_two(this, OP_DEFINE_GLOBAL, global);
 }
 
-static void declare_new_variable(Compiler *this, bool constant) {
+static void define_new_variable(Compiler *this, bool constant) {
     u8 global = variable(this, constant, "Expected variable name.");
     consume(this, TOKEN_ASSIGN, "Expected '=' after variable");
     expression(this);
-    define_variable(this, global);
+    finalize_variable(this, global);
 }
 
 static int resolve_local(Compiler *this, Token *name, bool *constant) {
@@ -1835,14 +1872,35 @@ static void compile_dot(Compiler *this, bool assign) {
     }
 }
 
-static void compile_lookup(Compiler *this, bool assign) {
-    expression(this);
-    consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
-    if (assign and match(this, TOKEN_ASSIGN)) {
-        expression(this);
-        emit(this, OP_SET_DYNAMIC);
+static void compile_square(Compiler *this, bool assign) {
+    if (match(this, TOKEN_COLON)) {
+        write_constant(current(this), new_int(0), this->alpha.row);
+        if (match(this, TOKEN_RIGHT_SQUARE)) {
+            write_constant(current(this), new_int(-1), this->alpha.row);
+        } else {
+            expression(this);
+            consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
+        }
+        emit(this, OP_SLICE);
     } else {
-        emit(this, OP_GET_DYNAMIC);
+        expression(this);
+        if (match(this, TOKEN_COLON)) {
+            if (match(this, TOKEN_RIGHT_SQUARE)) {
+                write_constant(current(this), new_int(-1), this->alpha.row);
+            } else {
+                expression(this);
+                consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
+            }
+            emit(this, OP_SLICE);
+        } else {
+            consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
+            if (assign and match(this, TOKEN_ASSIGN)) {
+                expression(this);
+                emit(this, OP_SET_DYNAMIC);
+            } else {
+                emit(this, OP_GET_DYNAMIC);
+            }
+        }
     }
 }
 
@@ -1903,7 +1961,7 @@ static void compile_function(Compiler *this, enum FunctionType type) {
                 compile_error(this, &this->alpha, "Can't have more than 255 function parameters.");
             }
             u8 parameter = variable(this, false, "Expected parameter name.");
-            define_variable(this, parameter);
+            finalize_variable(this, parameter);
         } while (match(this, TOKEN_COMMA));
     }
 
@@ -1925,14 +1983,14 @@ static void declare_function(Compiler *this) {
     u8 global = variable(this, false, "Expected function name.");
     local_initialize(this);
     compile_function(this, TYPE_FUNCTION);
-    define_variable(this, global);
+    finalize_variable(this, global);
 }
 
 static void declaration(Compiler *this) {
     if (match(this, TOKEN_LET)) {
-        declare_new_variable(this, false);
+        define_new_variable(this, false);
     } else if (match(this, TOKEN_CONST)) {
-        declare_new_variable(this, true);
+        define_new_variable(this, true);
     } else if (match(this, TOKEN_FUNCTION)) {
         declare_function(this);
     } else {
@@ -1982,9 +2040,9 @@ static void for_statement(Compiler *this) {
     begin_scope(this);
 
     if (match(this, TOKEN_LET)) {
-        declare_new_variable(this, false);
+        define_new_variable(this, false);
     } else if (match(this, TOKEN_CONST)) {
-        declare_new_variable(this, true);
+        define_new_variable(this, true);
     } else if (!check(this, TOKEN_SEMICOLON)) {
         expression_statement(this);
     }
@@ -2013,9 +2071,7 @@ static void for_statement(Compiler *this) {
     start = increment;
     patch_jump(this, body);
 
-    while (!check(this, TOKEN_END) && !check(this, TOKEN_EOF)) {
-        declaration(this);
-    }
+    block(this);
 
     emit_loop(this, start);
 
@@ -2288,6 +2344,7 @@ static usize disassemble_instruction(ByteCode *this, usize index) {
     case OP_POP: return debug_instruction("OP_POP", index);
     case OP_CLEAR: return debug_instruction("OP_CLEAR", index);
     case OP_COPY: return debug_instruction("OP_COPY", index);
+    case OP_SLICE: return debug_instruction("OP_SLICE", index);
     case OP_INDEX: return debug_instruction("OP_INDEX", index);
     case OP_KEYS: return debug_instruction("OP_KEYS", index);
     case OP_BIT_OR: return debug_instruction("OP_BIT_OR", index);
@@ -3098,14 +3155,71 @@ static void machine_run(Machine *this) {
             }
             break;
         }
+        case OP_SLICE: {
+            Value two = machine_pop(this);
+            if (!is_int(two)) {
+                machine_runtime_error(this, "Integer required for slice expression.");
+                return;
+            }
+            Value one = machine_pop(this);
+            if (!is_int(one)) {
+                machine_runtime_error(this, "Integer required for slice expression.");
+                return;
+            }
+            i64 left = as_int(one);
+            i64 right = as_int(two);
+            // FIXME: Use None type as a placeholder instead of -1, and do the actual len size
+            Value value = machine_pop(this);
+            if (is_string(value)) {
+                String *original = as_string(value);
+                i64 size = (i64)string_len(original);
+                if (right >= size) {
+                    machine_runtime_error(this, "String index out of bounds %d > %d.", right, size);
+                    return;
+                }
+                if (right < 0) {
+                    right = size + right;
+                    if (right < 0) {
+                        machine_runtime_error(this, "String index out of bounds %d.", right);
+                        return;
+                    }
+                }
+                if (left >= right) {
+                    machine_runtime_error(this, "String start index %d >= right index %d.", left, right);
+                    return;
+                }
+                String *sub = new_string_from_substring(original, left, right);
+                machine_push(this, machine_intern_string(this, sub));
+            } else if (is_array(value)) {
+                Array *array = as_array(value);
+                i64 size = array->length;
+                if (right >= size) {
+                    machine_runtime_error(this, "Array index out of bounds %d > %d.", right, size);
+                    return;
+                }
+                if (right < 0) {
+                    right = size + right;
+                    if (right < 0) {
+                        machine_runtime_error(this, "Array index out of bounds %d.", right);
+                        return;
+                    }
+                }
+                if (left >= right) {
+                    machine_runtime_error(this, "Array start index %d >= right index %d.", left, right);
+                    return;
+                }
+                Array *copy = new_array_slice(array, left, right);
+                machine_push(this, new_array_value(copy));
+                break;
+            } else {
+                machine_runtime_error(this, "Expected string or array for slice expression.");
+                return;
+            }
+            break;
+        }
         case OP_CLEAR: {
             Value value = machine_pop(this);
             switch (value.is) {
-            case VALUE_NONE:
-            case VALUE_FUNC:
-            case VALUE_FUNC_NATIVE:
-                machine_push(this, new_none());
-                break;
             case VALUE_BOOL:
                 machine_push(this, new_bool(false));
                 break;
@@ -3130,8 +3244,11 @@ static void machine_run(Machine *this) {
                 machine_push(this, value);
                 break;
             }
-            default:
+            case VALUE_NONE:
+            case VALUE_FUNC:
+            case VALUE_FUNC_NATIVE:
                 machine_push(this, new_none());
+                break;
             }
             break;
         }
@@ -3139,7 +3256,7 @@ static void machine_run(Machine *this) {
             Value value = machine_pop(this);
             if (is_table(value)) {
                 ValueMap *table = as_table(value);
-                Array *array = new_array_with_capacity(0, map_size(table));
+                Array *array = map_keys(table);
                 machine_push(this, new_array_value(array));
             } else {
                 machine_runtime_error(this, "Expected table for keys function.");
@@ -3173,7 +3290,7 @@ static void machine_run(Machine *this) {
                 if (key == NULL) {
                     machine_push(this, new_none());
                 } else {
-                    machine_push(this, machine_intern_string(this, key));
+                    machine_push(this, new_string_value(key));
                 }
                 break;
             default:
