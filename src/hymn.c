@@ -1876,7 +1876,7 @@ static void compile_square(Compiler *this, bool assign) {
     if (match(this, TOKEN_COLON)) {
         write_constant(current(this), new_int(0), this->alpha.row);
         if (match(this, TOKEN_RIGHT_SQUARE)) {
-            write_constant(current(this), new_int(-1), this->alpha.row);
+            write_constant(current(this), new_none(), this->alpha.row);
         } else {
             expression(this);
             consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
@@ -1886,7 +1886,7 @@ static void compile_square(Compiler *this, bool assign) {
         expression(this);
         if (match(this, TOKEN_COLON)) {
             if (match(this, TOKEN_RIGHT_SQUARE)) {
-                write_constant(current(this), new_int(-1), this->alpha.row);
+                write_constant(current(this), new_none(), this->alpha.row);
             } else {
                 expression(this);
                 consume(this, TOKEN_RIGHT_SQUARE, "Expected ']' after expression.");
@@ -2024,6 +2024,7 @@ static void if_statement(Compiler *this) {
         block(this);
     }
     patch_jump(this, jump_else);
+
     consume(this, TOKEN_END, "Expected 'end' after if statement.");
 }
 
@@ -3157,23 +3158,26 @@ static void machine_run(Machine *this) {
         }
         case OP_SLICE: {
             Value two = machine_pop(this);
-            if (!is_int(two)) {
-                machine_runtime_error(this, "Integer required for slice expression.");
-                return;
-            }
             Value one = machine_pop(this);
             if (!is_int(one)) {
                 machine_runtime_error(this, "Integer required for slice expression.");
                 return;
             }
             i64 left = as_int(one);
-            i64 right = as_int(two);
-            // FIXME: Use None type as a placeholder instead of -1, and do the actual len size
             Value value = machine_pop(this);
             if (is_string(value)) {
                 String *original = as_string(value);
                 i64 size = (i64)string_len(original);
-                if (right >= size) {
+                i64 right;
+                if (is_int(two)) {
+                    right = as_int(two);
+                } else if (is_none(two)) {
+                    right = size;
+                } else {
+                    machine_runtime_error(this, "Integer required for slice expression.");
+                    return;
+                }
+                if (right > size) {
                     machine_runtime_error(this, "String index out of bounds %d > %d.", right, size);
                     return;
                 }
@@ -3185,7 +3189,7 @@ static void machine_run(Machine *this) {
                     }
                 }
                 if (left >= right) {
-                    machine_runtime_error(this, "String start index %d >= right index %d.", left, right);
+                    machine_runtime_error(this, "String start index %d > right index %d.", left, right);
                     return;
                 }
                 String *sub = new_string_from_substring(original, left, right);
@@ -3193,7 +3197,16 @@ static void machine_run(Machine *this) {
             } else if (is_array(value)) {
                 Array *array = as_array(value);
                 i64 size = array->length;
-                if (right >= size) {
+                i64 right;
+                if (is_int(two)) {
+                    right = as_int(two);
+                } else if (is_none(two)) {
+                    right = size;
+                } else {
+                    machine_runtime_error(this, "Integer required for slice expression.");
+                    return;
+                }
+                if (right > size) {
                     machine_runtime_error(this, "Array index out of bounds %d > %d.", right, size);
                     return;
                 }
