@@ -1,3 +1,4 @@
+
 function last_index(array, value)
   let size = len(array)
   let i = size - 1

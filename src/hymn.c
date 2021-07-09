@@ -210,6 +210,11 @@ enum TokenType {
     TOKEN_BIT_NOT,
     TOKEN_BIT_LEFT_SHIFT,
     TOKEN_BIT_RIGHT_SHIFT,
+    TOKEN_TRY,
+    TOKEN_EXCEPT,
+    TOKEN_SWITCH,
+    TOKEN_CASE,
+    TOKEN_IN,
 };
 
 enum Precedence {
@@ -232,9 +237,17 @@ enum OpCode {
     OP_ARRAY_INSERT,
     OP_ARRAY_POP,
     OP_ARRAY_PUSH,
+    OP_BIT_AND,
+    OP_BIT_LEFT_SHIFT,
+    OP_BIT_NOT,
+    OP_BIT_OR,
+    OP_BIT_RIGHT_SHIFT,
+    OP_BIT_XOR,
     OP_CALL,
+    OP_CLEAR,
     OP_CONSTANT,
     OP_CONSTANT_TWO,
+    OP_COPY,
     OP_DEFINE_GLOBAL,
     OP_DELETE,
     OP_DIVIDE,
@@ -246,8 +259,10 @@ enum OpCode {
     OP_GET_PROPERTY,
     OP_GREATER,
     OP_GREATER_EQUAL,
+    OP_INDEX,
     OP_JUMP,
     OP_JUMP_IF_FALSE,
+    OP_KEYS,
     OP_LEN,
     OP_LESS,
     OP_LESS_EQUAL,
@@ -264,23 +279,13 @@ enum OpCode {
     OP_SET_GLOBAL,
     OP_SET_LOCAL,
     OP_SET_PROPERTY,
+    OP_SLICE,
     OP_SUBTRACT,
+    OP_TO_FLOAT,
+    OP_TO_INTEGER,
+    OP_TO_STRING,
     OP_TRUE,
     OP_TYPE,
-    OP_TO_INTEGER,
-    OP_TO_FLOAT,
-    OP_TO_STRING,
-    OP_CLEAR,
-    OP_INDEX,
-    OP_KEYS,
-    OP_COPY,
-    OP_SLICE,
-    OP_BIT_AND,
-    OP_BIT_OR,
-    OP_BIT_XOR,
-    OP_BIT_NOT,
-    OP_BIT_LEFT_SHIFT,
-    OP_BIT_RIGHT_SHIFT,
 };
 
 enum FunctionType {
@@ -472,8 +477,20 @@ Rule rules[] = {
     [TOKEN_AND] = {NULL, compile_and, PRECEDENCE_AND},
     [TOKEN_ASSIGN] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_BEGIN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_BIT_AND] = {NULL, compile_binary, PRECEDENCE_BITS},
+    [TOKEN_BIT_LEFT_SHIFT] = {NULL, compile_binary, PRECEDENCE_BITS},
+    [TOKEN_BIT_NOT] = {compile_unary, NULL, PRECEDENCE_NONE},
+    [TOKEN_BIT_OR] = {NULL, compile_binary, PRECEDENCE_BITS},
+    [TOKEN_BIT_RIGHT_SHIFT] = {NULL, compile_binary, PRECEDENCE_BITS},
+    [TOKEN_BIT_XOR] = {NULL, compile_binary, PRECEDENCE_BITS},
+    [TOKEN_BREAK] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_CASE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_CLEAR] = {clear_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_COMMA] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_CONST] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_CONTINUE] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_COPY] = {copy_expression, NULL, PRECEDENCE_NONE},
+    [TOKEN_DELETE] = {delete_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_DIVIDE] = {NULL, compile_binary, PRECEDENCE_FACTOR},
     [TOKEN_DOT] = {NULL, compile_dot, PRECEDENCE_CALL},
     [TOKEN_ELIF] = {NULL, NULL, PRECEDENCE_NONE},
@@ -482,6 +499,7 @@ Rule rules[] = {
     [TOKEN_EOF] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_EQUAL] = {NULL, compile_binary, PRECEDENCE_EQUALITY},
     [TOKEN_ERROR] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_EXCEPT] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_FALSE] = {compile_false, NULL, PRECEDENCE_NONE},
     [TOKEN_FLOAT] = {compile_float, NULL, PRECEDENCE_NONE},
     [TOKEN_FOR] = {NULL, NULL, PRECEDENCE_NONE},
@@ -490,14 +508,18 @@ Rule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_IDENT] = {compile_variable, NULL, PRECEDENCE_NONE},
     [TOKEN_IF] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_IN] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_INDEX] = {index_expression, NULL, PRECEDENCE_NONE},
+    [TOKEN_INSERT] = {array_insert_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_INTEGER] = {compile_integer, NULL, PRECEDENCE_NONE},
+    [TOKEN_KEYS] = {keys_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_LEFT_CURLY] = {compile_table, NULL, PRECEDENCE_NONE},
     [TOKEN_LEFT_PAREN] = {compile_group, compile_call, PRECEDENCE_CALL},
     [TOKEN_LEFT_SQUARE] = {compile_array, compile_square, PRECEDENCE_CALL},
+    [TOKEN_LEN] = {len_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_LESS] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_LESS_EQUAL] = {NULL, compile_binary, PRECEDENCE_COMPARE},
     [TOKEN_LET] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_LEN] = {len_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_LINE] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_MULTIPLY] = {NULL, compile_binary, PRECEDENCE_FACTOR},
     [TOKEN_NONE] = {compile_none, NULL, PRECEDENCE_NONE},
@@ -505,38 +527,26 @@ Rule rules[] = {
     [TOKEN_NOT_EQUAL] = {NULL, compile_binary, PRECEDENCE_EQUALITY},
     [TOKEN_OR] = {NULL, compile_or, PRECEDENCE_OR},
     [TOKEN_PASS] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_PRINT] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_INSERT] = {array_insert_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_DELETE] = {delete_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_PUSH] = {array_push_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_POP] = {array_pop_expression, NULL, PRECEDENCE_NONE},
+    [TOKEN_PRINT] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_PUSH] = {array_push_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RIGHT_CURLY] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_RIGHT_SQUARE] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_STRING] = {compile_string, NULL, PRECEDENCE_NONE},
     [TOKEN_SUBTRACT] = {compile_unary, compile_binary, PRECEDENCE_TERM},
+    [TOKEN_SWITCH] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_TO_FLOAT] = {cast_float_expression, NULL, PRECEDENCE_NONE},
+    [TOKEN_TO_INTEGER] = {cast_integer_expression, NULL, PRECEDENCE_NONE},
+    [TOKEN_TO_STRING] = {cast_string_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_TRUE] = {compile_true, NULL, PRECEDENCE_NONE},
+    [TOKEN_TRY] = {NULL, NULL, PRECEDENCE_NONE},
+    [TOKEN_TYPE] = {type_expression, NULL, PRECEDENCE_NONE},
     [TOKEN_UNDEFINED] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_USE] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_VALUE] = {NULL, NULL, PRECEDENCE_NONE},
     [TOKEN_WHILE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_TO_INTEGER] = {cast_integer_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_TO_FLOAT] = {cast_float_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_TO_STRING] = {cast_string_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_TYPE] = {type_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_CLEAR] = {clear_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_COPY] = {copy_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_KEYS] = {keys_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_INDEX] = {index_expression, NULL, PRECEDENCE_NONE},
-    [TOKEN_BREAK] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_CONTINUE] = {NULL, NULL, PRECEDENCE_NONE},
-    [TOKEN_BIT_AND] = {NULL, compile_binary, PRECEDENCE_BITS},
-    [TOKEN_BIT_OR] = {NULL, compile_binary, PRECEDENCE_BITS},
-    [TOKEN_BIT_XOR] = {NULL, compile_binary, PRECEDENCE_BITS},
-    [TOKEN_BIT_NOT] = {compile_unary, NULL, PRECEDENCE_NONE},
-    [TOKEN_BIT_LEFT_SHIFT] = {NULL, compile_binary, PRECEDENCE_BITS},
-    [TOKEN_BIT_RIGHT_SHIFT] = {NULL, compile_binary, PRECEDENCE_BITS},
 };
 
 static usize string_hashcode(String *key) {
@@ -735,66 +745,72 @@ static const char *value_name(enum ValueType value) {
 
 static const char *token_name(enum TokenType type) {
     switch (type) {
-    case TOKEN_USE: return "USE";
-    case TOKEN_FOR: return "FOR";
-    case TOKEN_WHILE: return "WHILE";
-    case TOKEN_AND: return "AND";
-    case TOKEN_OR: return "OR";
-    case TOKEN_FLOAT: return "FLOAT";
-    case TOKEN_INTEGER: return "INTEGER";
-    case TOKEN_LEFT_PAREN: return "LEFT_PAREN";
-    case TOKEN_RIGHT_PAREN: return "RIGHT_PAREN";
     case TOKEN_ADD: return "ADD";
-    case TOKEN_SUBTRACT: return "SUBTRACT";
-    case TOKEN_MULTIPLY: return "MULTIPLY";
-    case TOKEN_DIVIDE: return "DIVIDE";
-    case TOKEN_IDENT: return "IDENT";
-    case TOKEN_FUNCTION: return "FUNCTION";
-    case TOKEN_EOF: return "EOF";
-    case TOKEN_IF: return "IF";
-    case TOKEN_ELSE: return "ELSE";
-    case TOKEN_ELIF: return "ELIF";
+    case TOKEN_AND: return "AND";
+    case TOKEN_ASSIGN: return "ASSIGN";
     case TOKEN_BEGIN: return "BEGIN";
+    case TOKEN_BIT_AND: return "BTIWISE_AND";
+    case TOKEN_BIT_LEFT_SHIFT: return "BTIWISE_LEFT_SHIFT";
+    case TOKEN_BIT_NOT: return "BTIWISE_NOT";
+    case TOKEN_BIT_OR: return "BTIWISE_OR";
+    case TOKEN_BIT_RIGHT_SHIFT: return "BTIWISE_RIGHT_SHIFT";
+    case TOKEN_BIT_XOR: return "BTIWISE_XOR";
+    case TOKEN_BREAK: return "BREAK";
+    case TOKEN_CASE: return "CASE";
+    case TOKEN_CLEAR: return "CLEAR";
+    case TOKEN_COLON: return "COLON";
+    case TOKEN_CONST: return "CONST";
+    case TOKEN_CONTINUE: return "CONTINUE";
+    case TOKEN_COPY: return "COPY";
+    case TOKEN_DELETE: return "DELETE";
+    case TOKEN_DIVIDE: return "DIVIDE";
+    case TOKEN_ELIF: return "ELIF";
+    case TOKEN_ELSE: return "ELSE";
     case TOKEN_END: return "END";
-    case TOKEN_TRUE: return "TRUE";
-    case TOKEN_FALSE: return "FALSE";
-    case TOKEN_NONE: return "NONE";
-    case TOKEN_NOT: return "NOT";
+    case TOKEN_EOF: return "EOF";
     case TOKEN_EQUAL: return "EQUAL";
-    case TOKEN_NOT_EQUAL: return "NOT_EQUAL";
-    case TOKEN_LESS: return "LESS";
-    case TOKEN_LESS_EQUAL: return "LESS_EQUAL";
+    case TOKEN_EXCEPT: return "EXCEPT";
+    case TOKEN_FALSE: return "FALSE";
+    case TOKEN_FLOAT: return "FLOAT";
+    case TOKEN_FOR: return "FOR";
+    case TOKEN_FUNCTION: return "FUNCTION";
     case TOKEN_GREATER: return "GREATER";
     case TOKEN_GREATER_EQUAL: return "GREATER_EQUAL";
-    case TOKEN_STRING: return "STRING";
-    case TOKEN_PRINT: return "PRINT";
-    case TOKEN_DELETE: return "DELETE";
-    case TOKEN_INSERT: return "INSERT";
-    case TOKEN_PUSH: return "PUSH";
-    case TOKEN_POP: return "POP";
-    case TOKEN_ASSIGN: return "ASSIGN";
-    case TOKEN_LET: return "LET";
-    case TOKEN_LEN: return "LEN";
-    case TOKEN_CONST: return "CONST";
-    case TOKEN_COLON: return "COLON";
-    case TOKEN_SEMICOLON: return "SEMICOLON";
-    case TOKEN_RETURN: return "RETURN";
-    case TOKEN_TO_INTEGER: return "TO_INTEGER";
-    case TOKEN_TO_FLOAT: return "TO_FLOAT";
-    case TOKEN_TO_STRING: return "TO_STRING";
-    case TOKEN_TYPE: return "TYPE";
-    case TOKEN_CLEAR: return "CLEAR";
-    case TOKEN_COPY: return "COPY";
+    case TOKEN_IDENT: return "IDENT";
+    case TOKEN_IF: return "IF";
+    case TOKEN_IN: return "IN";
     case TOKEN_INDEX: return "INDEX";
+    case TOKEN_INSERT: return "INSERT";
+    case TOKEN_INTEGER: return "INTEGER";
     case TOKEN_KEYS: return "KEYS";
-    case TOKEN_BREAK: return "BREAK";
-    case TOKEN_CONTINUE: return "CONTINUE";
-    case TOKEN_BIT_AND: return "BTIWISE_AND";
-    case TOKEN_BIT_OR: return "BTIWISE_OR";
-    case TOKEN_BIT_XOR: return "BTIWISE_XOR";
-    case TOKEN_BIT_NOT: return "BTIWISE_NOT";
-    case TOKEN_BIT_LEFT_SHIFT: return "BTIWISE_LEFT_SHIFT";
-    case TOKEN_BIT_RIGHT_SHIFT: return "BTIWISE_RIGHT_SHIFT";
+    case TOKEN_LEFT_PAREN: return "LEFT_PAREN";
+    case TOKEN_LEN: return "LEN";
+    case TOKEN_LESS: return "LESS";
+    case TOKEN_LESS_EQUAL: return "LESS_EQUAL";
+    case TOKEN_LET: return "LET";
+    case TOKEN_MULTIPLY: return "MULTIPLY";
+    case TOKEN_NONE: return "NONE";
+    case TOKEN_NOT: return "NOT";
+    case TOKEN_NOT_EQUAL: return "NOT_EQUAL";
+    case TOKEN_OR: return "OR";
+    case TOKEN_PASS: return "PASS";
+    case TOKEN_POP: return "POP";
+    case TOKEN_PRINT: return "PRINT";
+    case TOKEN_PUSH: return "PUSH";
+    case TOKEN_RETURN: return "RETURN";
+    case TOKEN_RIGHT_PAREN: return "RIGHT_PAREN";
+    case TOKEN_SEMICOLON: return "SEMICOLON";
+    case TOKEN_STRING: return "STRING";
+    case TOKEN_SUBTRACT: return "SUBTRACT";
+    case TOKEN_SWITCH: return "SWITCH";
+    case TOKEN_TO_FLOAT: return "TO_FLOAT";
+    case TOKEN_TO_INTEGER: return "TO_INTEGER";
+    case TOKEN_TO_STRING: return "TO_STRING";
+    case TOKEN_TRUE: return "TRUE";
+    case TOKEN_TRY: return "TRY";
+    case TOKEN_TYPE: return "TYPE";
+    case TOKEN_WHILE: return "WHILE";
+    case TOKEN_USE: return "USE";
     default: return "TOKEN";
     }
 }
@@ -950,20 +966,26 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         if (size == 6) return ident_trie(ident, 1, "eturn", TOKEN_RETURN);
         break;
     case 's':
-        if (size == 6) return ident_trie(ident, 1, "tring", TOKEN_TO_STRING);
+        if (size == 6) {
+            if (ident[1] == 'w') return ident_trie(ident, 2, "itch", TOKEN_SWITCH);
+            if (ident[1] == 't') return ident_trie(ident, 2, "ring", TOKEN_TO_STRING);
+        }
         break;
     case 'k':
         if (size == 4) return ident_trie(ident, 1, "eys", TOKEN_KEYS);
         break;
     case 'c':
-        if (size == 4) return ident_trie(ident, 1, "opy", TOKEN_COPY);
+        if (size == 4) {
+            if (ident[1] == 'o') return ident_trie(ident, 2, "py", TOKEN_COPY);
+            if (ident[1] == 'a') return ident_trie(ident, 2, "se", TOKEN_CASE);
+        }
         if (size == 5) {
             if (ident[1] == 'l') return ident_trie(ident, 2, "ear", TOKEN_CLEAR);
             if (ident[1] == 'o') return ident_trie(ident, 2, "nst", TOKEN_CONST);
         }
         break;
     case 'l':
-        if (size == 3 && ident[1] == 'e') {
+        if (size == 3 and ident[1] == 'e') {
             if (ident[2] == 't') return TOKEN_LET;
             if (ident[2] == 'n') return TOKEN_LEN;
         }
@@ -975,23 +997,32 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         }
         break;
     case 'i':
-        if (size == 2) return ident_trie(ident, 1, "f", TOKEN_IF);
         if (size == 3) return ident_trie(ident, 1, "nt", TOKEN_TO_INTEGER);
         if (size == 5) return ident_trie(ident, 1, "ndex", TOKEN_INDEX);
         if (size == 6) return ident_trie(ident, 1, "nsert", TOKEN_INSERT);
+        if (size == 2) {
+            if (ident[1] == 'f') return TOKEN_IF;
+            if (ident[1] == 'n') return TOKEN_IN;
+        }
         break;
     case 'p':
         if (size == 3) return ident_trie(ident, 1, "op", TOKEN_POP);
-        if (size == 4) return ident_trie(ident, 1, "ush", TOKEN_PUSH);
         if (size == 5) return ident_trie(ident, 1, "rint", TOKEN_PRINT);
+        if (size == 4) {
+            if (ident[1] == 'u') return ident_trie(ident, 2, "sh", TOKEN_PUSH);
+            if (ident[1] == 'a') return ident_trie(ident, 2, "ss", TOKEN_PASS);
+        }
         break;
     case 'e':
         if (size == 3) {
             return ident_trie(ident, 1, "nd", TOKEN_END);
-        } else if (size == 4 && ident[1] == 'l') {
-            switch (ident[2]) {
-            case 's': return ident_trie(ident, 3, "e", TOKEN_ELSE);
-            case 'i': return ident_trie(ident, 3, "f", TOKEN_ELIF);
+        } else if (size == 4 and ident[1] == 'l') {
+            if (ident[2] == 's') {
+                if (ident[3] == 'e') {
+                    return TOKEN_ELSE;
+                }
+            } else if (ident[2] == 'i' and ident[3] == 'f') {
+                return TOKEN_ELIF;
             }
         }
         break;
@@ -1575,7 +1606,7 @@ static void compile_with_precedence(Compiler *this, enum Precedence precedence) 
         }
         infix(this, assign);
     }
-    if (assign && match(this, TOKEN_ASSIGN)) {
+    if (assign and match(this, TOKEN_ASSIGN)) {
         compile_error(this, &this->beta, "Invalid assignment target.");
     }
 }
@@ -1706,7 +1737,7 @@ static void begin_scope(Compiler *this) {
 static void end_scope(Compiler *this) {
     Scope *scope = this->scope;
     scope->depth--;
-    while (scope->local_count > 0 && scope->locals[scope->local_count - 1].depth > scope->depth) {
+    while (scope->local_count > 0 and scope->locals[scope->local_count - 1].depth > scope->depth) {
         emit(this, OP_POP);
         scope->local_count--;
     }
@@ -1745,7 +1776,7 @@ static u8 variable(Compiler *this, bool constant, const char *error) {
     Token *name = &this->alpha;
     for (int i = scope->local_count - 1; i >= 0; i--) {
         Local *local = &scope->locals[i];
-        if (local->depth != -1 && local->depth < scope->depth) {
+        if (local->depth != -1 and local->depth < scope->depth) {
             break;
         } else if (ident_match(this, name, &local->name)) {
             compile_error(this, name, "Variable already exists in this scope.");
@@ -1810,7 +1841,7 @@ static void named_variable(Compiler *this, Token token, bool assign) {
         // during compile they're literally just the string reference
         // this will need to change in order to store that it's const or not
     }
-    if (assign && match(this, TOKEN_ASSIGN)) {
+    if (assign and match(this, TOKEN_ASSIGN)) {
         if (constant) {
             compile_error(this, &token, "Constant variable can't be modified.");
         }
@@ -1904,7 +1935,7 @@ static void compile_square(Compiler *this, bool assign) {
     }
 }
 
-static int jump_instruction(Compiler *this, u8 instruction) {
+static int emit_jump(Compiler *this, u8 instruction) {
     emit(this, instruction);
     emit_two(this, UINT8_MAX, UINT8_MAX);
     return current(this)->count - 2;
@@ -1923,7 +1954,7 @@ static void patch_jump(Compiler *this, int jump) {
 
 static void compile_and(Compiler *this, bool assign) {
     (void)assign;
-    int jump = jump_instruction(this, OP_JUMP_IF_FALSE);
+    int jump = emit_jump(this, OP_JUMP_IF_FALSE);
     emit(this, OP_POP);
     compile_with_precedence(this, PRECEDENCE_AND);
     patch_jump(this, jump);
@@ -1931,8 +1962,8 @@ static void compile_and(Compiler *this, bool assign) {
 
 static void compile_or(Compiler *this, bool assign) {
     (void)assign;
-    int jump_else = jump_instruction(this, OP_JUMP_IF_FALSE);
-    int jump = jump_instruction(this, OP_JUMP);
+    int jump_else = emit_jump(this, OP_JUMP_IF_FALSE);
+    int jump = emit_jump(this, OP_JUMP);
     patch_jump(this, jump_else);
     emit(this, OP_POP);
     compile_with_precedence(this, PRECEDENCE_OR);
@@ -1967,7 +1998,7 @@ static void compile_function(Compiler *this, enum FunctionType type) {
 
     consume(this, TOKEN_RIGHT_PAREN, "Expected ')' after function parameters.");
 
-    while (!check(this, TOKEN_END) && !check(this, TOKEN_EOF)) {
+    while (!check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
         declaration(this);
     }
 
@@ -2000,32 +2031,116 @@ static void declaration(Compiler *this) {
 
 static void block(Compiler *this) {
     begin_scope(this);
-    while (!check(this, TOKEN_END) && !check(this, TOKEN_EOF)) {
+    while (!check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
         declaration(this);
     }
     end_scope(this);
 }
 
+struct JumpList {
+    int jump;
+    struct JumpList *next;
+};
+
 static void if_statement(Compiler *this) {
     expression(this);
-    int jump = jump_instruction(this, OP_JUMP_IF_FALSE);
-    emit(this, OP_POP);
+    int jump = emit_jump(this, OP_JUMP_IF_FALSE);
 
+    emit(this, OP_POP);
     begin_scope(this);
-    while (!check(this, TOKEN_END) && !check(this, TOKEN_ELSE) && !check(this, TOKEN_EOF)) {
+    while (!check(this, TOKEN_ELIF) and !check(this, TOKEN_ELSE) and !check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
         declaration(this);
     }
     end_scope(this);
 
-    int jump_else = jump_instruction(this, OP_JUMP);
+    struct JumpList jump_end = {0};
+    jump_end.jump = emit_jump(this, OP_JUMP);
+    struct JumpList *tail = &jump_end;
+
+    while (match(this, TOKEN_ELIF)) {
+
+        patch_jump(this, jump);
+        emit(this, OP_POP);
+
+        expression(this);
+        jump = emit_jump(this, OP_JUMP_IF_FALSE);
+
+        emit(this, OP_POP);
+        begin_scope(this);
+        while (!check(this, TOKEN_ELIF) and !check(this, TOKEN_ELSE) and !check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
+            declaration(this);
+        }
+        end_scope(this);
+
+        struct JumpList *next = safe_malloc(sizeof(struct JumpList));
+        next->jump = emit_jump(this, OP_JUMP);
+        next->next = NULL;
+
+        tail->next = next;
+        tail = next;
+    }
+
     patch_jump(this, jump);
     emit(this, OP_POP);
+
     if (match(this, TOKEN_ELSE)) {
         block(this);
     }
-    patch_jump(this, jump_else);
+
+    patch_jump(this, jump_end.jump);
+    struct JumpList *current = jump_end.next;
+    while (current != NULL) {
+        patch_jump(this, current->jump);
+        struct JumpList *next = current->next;
+        free(current);
+        current = next;
+    }
 
     consume(this, TOKEN_END, "Expected 'end' after if statement.");
+}
+
+static bool match_literal(Compiler *this) {
+    switch (this->beta.type) {
+    case TOKEN_NONE:
+    case TOKEN_TRUE:
+    case TOKEN_FALSE:
+    case TOKEN_INTEGER:
+    case TOKEN_FLOAT:
+    case TOKEN_STRING:
+        advance(this);
+        return true;
+    }
+    return false;
+}
+
+static void switch_statement(Compiler *this) {
+    expression(this);
+
+    while (match(this, TOKEN_CASE)) {
+        if (!match_literal(this)) {
+            compile_error(this, &this->beta, "Expected literal for case.");
+        }
+        while (match(this, TOKEN_OR)) {
+            if (!match_literal(this)) {
+                compile_error(this, &this->beta, "Expected literal after 'or' in case.");
+            }
+        }
+        begin_scope(this);
+        while (!check(this, TOKEN_CASE) and !check(this, TOKEN_ELSE) and !check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
+            declaration(this);
+        }
+        end_scope(this);
+    }
+
+    if (match(this, TOKEN_ELSE)) {
+        begin_scope(this);
+        while (!check(this, TOKEN_END) and !check(this, TOKEN_EOF)) {
+            declaration(this);
+        }
+        end_scope(this);
+    }
+
+    consume(this, TOKEN_END, "Expected 'end' after switch statement.");
 }
 
 static void emit_loop(Compiler *this, int start) {
@@ -2056,13 +2171,13 @@ static void for_statement(Compiler *this) {
     if (!check(this, TOKEN_SEMICOLON)) {
         expression(this);
 
-        jump = jump_instruction(this, OP_JUMP_IF_FALSE);
+        jump = emit_jump(this, OP_JUMP_IF_FALSE);
         emit(this, OP_POP);
     }
 
     consume(this, TOKEN_SEMICOLON, "Expected ';' in for.");
 
-    int body = jump_instruction(this, OP_JUMP);
+    int body = emit_jump(this, OP_JUMP);
     int increment = current(this)->count;
 
     expression(this);
@@ -2088,7 +2203,7 @@ static void for_statement(Compiler *this) {
 static void while_statement(Compiler *this) {
     int start = current(this)->count;
     expression(this);
-    int jump = jump_instruction(this, OP_JUMP_IF_FALSE);
+    int jump = emit_jump(this, OP_JUMP_IF_FALSE);
     emit(this, OP_POP);
     block(this);
     emit_loop(this, start);
@@ -2112,17 +2227,27 @@ static void print_statement(Compiler *this) {
     emit(this, OP_PRINT);
 }
 
+static void use_statement(Compiler *this) {
+    consume(this, TOKEN_STRING, "Expected file path after use.");
+}
+
 static void statement(Compiler *this) {
     if (match(this, TOKEN_PRINT)) {
         print_statement(this);
+    } else if (match(this, TOKEN_USE)) {
+        use_statement(this);
     } else if (match(this, TOKEN_IF)) {
         if_statement(this);
+    } else if (match(this, TOKEN_SWITCH)) {
+        switch_statement(this);
     } else if (match(this, TOKEN_FOR)) {
         for_statement(this);
     } else if (match(this, TOKEN_WHILE)) {
         while_statement(this);
     } else if (match(this, TOKEN_RETURN)) {
         return_statement(this);
+    } else if (match(this, TOKEN_PASS)) {
+        // do nothing
     } else if (match(this, TOKEN_BEGIN)) {
         block(this);
         consume(this, TOKEN_END, "Expected 'end' after block.");

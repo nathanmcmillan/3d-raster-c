@@ -64,7 +64,7 @@
       }
     },
     {
-      "match": "^(use) +(?:\\w:?)*",
+      "match": "\\b(use)\\b",
       "captures": {
         "1": {
           "name": "keyword.import.hymn"
@@ -80,7 +80,7 @@
       }
     },
     {
-      "match": "\\b(if|elif|else|for|while|return|break|continue|and|or|not|match|pass|in|async|await|try|except|begin|end)\\b",
+      "match": "\\b(if|elif|else|for|while|return|break|continue|and|or|switch|case|pass|in|try|except|begin|end)\\b",
       "captures": {
         "1": {
           "name": "keyword.control.hymn"
@@ -88,7 +88,7 @@
       }
     },
     {
-      "match": "^(func|function) +(\\w+(?:\\.\\w+)?)",
+      "match": "\\b(func|function)\\b(\\w+(?:\\.\\w+)?)",
       "captures": {
         "1": {
           "name": "keyword.struct.hymn"
