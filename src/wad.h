@@ -6,7 +6,7 @@
 #define WAD_PARSER_H
 
 #include "array.h"
-#include "fileio.h"
+#include "file_io.h"
 #include "pie.h"
 #include "string_util.h"
 #include "table.h"

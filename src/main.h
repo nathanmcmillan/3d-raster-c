@@ -15,7 +15,7 @@
 
 #include "assets.h"
 #include "canvas.h"
-#include "fileio.h"
+#include "file_io.h"
 #include "hymn.h"
 #include "input.h"
 #include "log.h"

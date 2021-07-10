@@ -1,5 +1,0 @@
-
-try
-  print("xyz")
-except e
-  print(e)

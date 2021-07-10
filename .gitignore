@@ -3,12 +3,15 @@
 build/
 objects/
 
+SDL2.dll
+
 tags
 ctags.opts
+ctags.sh
 
-SDL2.dll
+clean.bat
 compile.bat
+run.bat
+test.bat
 
 .DS_Store
-
-test/test.hm

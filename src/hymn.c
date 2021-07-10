@@ -346,6 +346,16 @@ static void statement(Compiler *this);
 static void expression_statement(Compiler *this);
 static void expression(Compiler *this);
 
+struct JumpList {
+    int jump;
+    struct JumpList *next;
+};
+
+struct LoopList {
+    int start;
+    struct LoopList *next;
+};
+
 struct Token {
     enum TokenType type;
     int row;
@@ -468,6 +478,8 @@ struct Compiler {
     Token gamma;
     Machine *machine;
     Scope *scope;
+    struct LoopList *loop;
+    struct JumpList *jump;
     bool panic;
     String *error;
 };
@@ -957,7 +969,10 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         if (size == 5) return ident_trie(ident, 1, "hile", TOKEN_WHILE);
         break;
     case 'b':
-        if (size == 5) return ident_trie(ident, 1, "egin", TOKEN_BEGIN);
+        if (size == 5) {
+            if (ident[1] == 'e') return ident_trie(ident, 2, "gin", TOKEN_BEGIN);
+            if (ident[1] == 'r') return ident_trie(ident, 2, "eak", TOKEN_BREAK);
+        }
         break;
     case 'd':
         if (size == 6) return ident_trie(ident, 1, "elete", TOKEN_DELETE);
@@ -975,11 +990,11 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         if (size == 4) return ident_trie(ident, 1, "eys", TOKEN_KEYS);
         break;
     case 'c':
+        if (size == 8) return ident_trie(ident, 1, "ontinue", TOKEN_CONTINUE);
         if (size == 4) {
             if (ident[1] == 'o') return ident_trie(ident, 2, "py", TOKEN_COPY);
             if (ident[1] == 'a') return ident_trie(ident, 2, "se", TOKEN_CASE);
-        }
-        if (size == 5) {
+        } else if (size == 5) {
             if (ident[1] == 'l') return ident_trie(ident, 2, "ear", TOKEN_CLEAR);
             if (ident[1] == 'o') return ident_trie(ident, 2, "nst", TOKEN_CONST);
         }
@@ -991,6 +1006,7 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         }
         break;
     case 't':
+        if (size == 3) return ident_trie(ident, 1, "ry", TOKEN_TRY);
         if (size == 4) {
             if (ident[1] == 'r') return ident_trie(ident, 2, "ue", TOKEN_TRUE);
             if (ident[1] == 'y') return ident_trie(ident, 2, "pe", TOKEN_TYPE);
@@ -1014,9 +1030,9 @@ static enum TokenType ident_keyword(char *ident, usize size) {
         }
         break;
     case 'e':
-        if (size == 3) {
-            return ident_trie(ident, 1, "nd", TOKEN_END);
-        } else if (size == 4 and ident[1] == 'l') {
+        if (size == 3) return ident_trie(ident, 1, "nd", TOKEN_END);
+        if (size == 6) return ident_trie(ident, 1, "xcept", TOKEN_EXCEPT);
+        if (size == 4 and ident[1] == 'l') {
             if (ident[2] == 's') {
                 if (ident[3] == 'e') {
                     return TOKEN_ELSE;
@@ -2037,11 +2053,6 @@ static void block(Compiler *this) {
     end_scope(this);
 }
 
-struct JumpList {
-    int jump;
-    struct JumpList *next;
-};
-
 static void if_statement(Compiler *this) {
     expression(this);
     int jump = emit_jump(this, OP_JUMP_IF_FALSE);
@@ -2202,13 +2213,35 @@ static void for_statement(Compiler *this) {
 
 static void while_statement(Compiler *this) {
     int start = current(this)->count;
+
+    struct LoopList *loop_next = this->loop;
+    struct LoopList *loop = safe_malloc(sizeof(struct LoopList));
+    loop->start = start;
+    loop->next = loop_next;
+    this->loop = loop;
+
     expression(this);
     int jump = emit_jump(this, OP_JUMP_IF_FALSE);
+
     emit(this, OP_POP);
     block(this);
     emit_loop(this, start);
+
+    free(loop);
+    this->loop = loop_next;
+
     patch_jump(this, jump);
     emit(this, OP_POP);
+
+    struct JumpList *jump_link = this->jump;
+    this->jump = NULL;
+    while (jump_link != NULL) {
+        patch_jump(this, jump_link->jump);
+        struct JumpList *next = jump_link->next;
+        free(jump_link);
+        jump_link = next;
+    }
+
     consume(this, TOKEN_END, "Expected 'end' after while loop.");
 }
 
@@ -2218,6 +2251,24 @@ static void return_statement(Compiler *this) {
     }
     expression(this);
     emit(this, OP_RETURN);
+}
+
+static void break_statement(Compiler *this) {
+    if (this->loop == NULL) {
+        compile_error(this, &this->alpha, "Can't use 'break' outside of a loop.");
+    }
+    struct JumpList *jump_next = this->jump;
+    struct JumpList *jump = safe_malloc(sizeof(struct JumpList));
+    jump->jump = emit_jump(this, OP_JUMP);
+    jump->next = jump_next;
+    this->jump = jump;
+}
+
+static void continue_statement(Compiler *this) {
+    if (this->loop == NULL) {
+        compile_error(this, &this->alpha, "Can't use 'continue' outside of a loop.");
+    }
+    emit_loop(this, this->loop->start);
 }
 
 static void print_statement(Compiler *this) {
@@ -2246,6 +2297,10 @@ static void statement(Compiler *this) {
         while_statement(this);
     } else if (match(this, TOKEN_RETURN)) {
         return_statement(this);
+    } else if (match(this, TOKEN_BREAK)) {
+        break_statement(this);
+    } else if (match(this, TOKEN_CONTINUE)) {
+        continue_statement(this);
     } else if (match(this, TOKEN_PASS)) {
         // do nothing
     } else if (match(this, TOKEN_BEGIN)) {

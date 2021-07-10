@@ -60,7 +60,7 @@ list-objects:
 list-dependency:
 	@echo $(DEPENDENCY)
 
-TEST_SOURCE = $(wildcard tests/*.c)
+TEST_SOURCE = $(wildcard test/*.c)
 
 test: $(TEST_SOURCE)
 	$(CC) $(TEST_SOURCE) $(COMPILER_FLAGS) -o unit-tests $(LIBS)

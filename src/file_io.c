@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "fileio.h"
+#include "file_io.h"
 
 usize file_size(char *path) {
     FILE *fp = fopen(path, "r");

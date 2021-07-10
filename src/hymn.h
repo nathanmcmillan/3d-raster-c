@@ -5,7 +5,7 @@
 #ifndef HYMN_H
 #define HYMN_H
 
-#include "fileio.h"
+#include "file_io.h"
 #include "log.h"
 #include "mem.h"
 #include "pie.h"
