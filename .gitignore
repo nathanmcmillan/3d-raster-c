@@ -2,6 +2,8 @@
 
 build/
 objects/
+testing/
+target/
 
 SDL2.dll
 
@@ -15,3 +17,11 @@ run.bat
 test.bat
 
 .DS_Store
+tests
+
+scroll-and-sigil
+!scroll-and-sigil/
+
+scroll-and-sigil.exe
+
+*.obj

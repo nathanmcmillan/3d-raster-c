@@ -4,11 +4,11 @@
 
 #include "paint.h"
 
-Paint *new_paint() {
-    return safe_calloc(sizeof(Paint), 1);
+Image *new_image() {
+    return safe_calloc(sizeof(Image), 1);
 }
 
-void paint_delete(Paint *this) {
+void image_delete(Image *this) {
     free(this->pixels);
     free(this);
 }

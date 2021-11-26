@@ -171,6 +171,7 @@ void *table_remove(Table *this, void *key) {
     TableItem *item = this->items[bin];
     TableItem *previous = NULL;
     while (item != NULL) {
+        // FIXME: free item
         if (hash == item->hash and this->equals_fn(key, item->key)) {
             if (previous == NULL) {
                 this->items[bin] = item->next;

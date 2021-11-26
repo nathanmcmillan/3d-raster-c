@@ -2,7 +2,43 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "main.h"
+#include <SDL.h>
+
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "assets.h"
+#include "canvas.h"
+#include "file_io.h"
+#include "hymn.h"
+#include "input.h"
+#include "log.h"
+#include "paint.h"
+#include "pie.h"
+#include "state.h"
+#include "wad.h"
+
+typedef struct Window Window;
+typedef struct Main Main;
+
+struct Window {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *texture;
+    Canvas *canvas;
+};
+
+struct Main {
+    Window *win;
+    Hymn *vm;
+    Input input;
+    Game *game;
+    Paint *paint;
+    State *state;
+};
 
 static const int SCREEN_WIDTH = 640;
 static const int SCREEN_HEIGHT = 400;
@@ -95,38 +131,24 @@ static void poll_events(Input *in) {
     }
 }
 
-static void game_call(Game *game, char *call) {
-    Hymn *vm = game->vm;
-    String *error = hymn_call(vm, call);
-    if (error != NULL) {
-        fprintf(stderr, "Hymn call error: %s\n", error);
-    }
-}
-
-static void game_update(Game *game) {
-    state_update(game->state);
-    game_call(game, "update");
-}
-
-static void game_draw(Game *game) {
-    state_draw(game->state);
-    game_call(game, "draw");
-}
-
-static void game_load(Game *game) {
-
+static void main_load(Main *game) {
     String *font_str = cat("pack/paint/tic_80_wide_font.wad");
     Wad *font_wad = wad_parse(font_str).wad;
     wad_delete(font_wad);
 
-    String *map = cat("pack/maps/base.wad");
-    game_state_open(game->game, map);
+    String *map = cat("pack/maps/home.wad");
+    game_open(game->game, map);
     string_delete(map);
 
-    Paint *font = new_paint();
-    paint_delete(font);
+    Image *font = new_image();
+    image_delete(font);
 
-    game_call(game, "load");
+    char *error = hymn_call(game->vm, "load", 0);
+    if (error != NULL) {
+        fprintf(stderr, error);
+        fflush(stderr);
+        exit(1);
+    }
 }
 
 static void window_update(Window *win) {
@@ -134,20 +156,18 @@ static void window_update(Window *win) {
     SDL_RenderCopy(win->renderer, win->texture, NULL, NULL);
 }
 
-static void main_loop(Game *game) {
+static void main_loop(Main *game) {
     Window *win = game->win;
     SDL_Renderer *renderer = win->renderer;
-    Canvas *canvas = win->canvas;
 
     u32 time = SDL_GetTicks();
 
     while (run) {
         poll_events(&game->input);
 
-        game_update(game);
+        game->state->update(game->state);
+        game->state->draw(game->state);
 
-        canvas_clear_color(canvas);
-        game_draw(game);
         window_update(win);
 
         sleeping(time);
@@ -157,7 +177,7 @@ static void main_loop(Game *game) {
     }
 }
 
-static void game_delete(Game *game) {
+static void main_delete(Main *game) {
     hymn_delete(game->vm);
     free(game->win->canvas->pixels);
     free(game->win->canvas);
@@ -165,17 +185,32 @@ static void game_delete(Game *game) {
     free(game);
 }
 
-static void game_switch_state(Game *game, void *state) {
+static void switch_state(Main *game, void *state) {
     game->state = (State *)state;
+}
+
+static HymnValue null_pointer(Hymn *this, int count, HymnValue *arguments) {
+    (void)this;
+    (void)count;
+    (void)arguments;
+    return hymn_new_pointer(NULL);
+}
+
+static HymnValue read_file(Hymn *this, int count, HymnValue *arguments) {
+    (void)this;
+    if (count != 1) {
+        return hymn_new_none();
+    }
+    HymnString *string = hymn_as_string(arguments[0]);
+    HymnString *content = cat(string);
+    HymnObjectString *object = hymn_new_string_object(content);
+    return hymn_new_string_value(object);
 }
 
 int main(int argc, char **argv) {
     (int)argc;
     (void *)argv;
 
-#define HYMN
-
-#ifndef HYMN
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
@@ -195,47 +230,31 @@ int main(int argc, char **argv) {
     win->renderer = renderer;
     win->texture = texture;
     win->canvas = canvas;
-#endif
 
     Hymn *vm = new_hymn();
 
-    // {
-    //     char *error = hymn_repl(vm);
-    //     if (error != NULL) {
-    //         fprintf(stderr, "%s\n", error);
-    //         exit(1);
-    //     }
-    // }
+    // hymn_import_path("src\\<path>.hm");
 
-    char *error = hymn_read(vm, "test/test.hm");
+    char *error = hymn_read(vm, "src/main.hm");
     if (error != NULL) {
         fprintf(stderr, "%s\n", error);
         exit(1);
     }
 
-#ifdef HYMN
-    return 0;
-#else
-
-    // char *error = hymn_read(vm, "src/main.hm");
-    // if (error != NULL) {
-    //     fprintf(stderr, "Hymn read error: %s\n", error);
-    //     exit(1);
-    // }
-
-    hymn_add_func(vm, "graphics", canvas_rect_vm);
+    hymn_add_function(vm, "read_file", read_file);
+    hymn_add_function(vm, "graphics_rect", canvas_rectangle_vm);
     hymn_add_pointer(vm, "canvas", canvas);
 
     Assets *assets = new_assets();
 
-    Game *game = safe_calloc(sizeof(Game), 1);
+    Main *game = safe_calloc(sizeof(Main), 1);
     game->win = win;
     game->vm = vm;
-    game->game = new_game_state(canvas, &game->input, assets);
-    game->paint = new_paint_state(canvas, &game->input, assets);
-    game_switch_state(game, game->game);
+    game->game = new_game(canvas, game->vm, &game->input, assets);
+    game->paint = new_paint(canvas, &game->input, assets);
+    switch_state(game, game->game);
 
-    game_load(game);
+    main_load(game);
 
     SDL_StartTextInput();
 
@@ -247,9 +266,11 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    game_delete(game);
+    main_delete(game);
     assets_delete(assets);
 
+    printf("exiting...\n");
+    fflush(stdout);
+
     return 0;
-#endif
 }

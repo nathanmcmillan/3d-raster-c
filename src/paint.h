@@ -8,16 +8,16 @@
 #include "mem.h"
 #include "pie.h"
 
-typedef struct Paint Paint;
+typedef struct Image Image;
 
-struct Paint {
+struct Image {
     i32 width;
     i32 height;
     u8 *pixels;
 };
 
-Paint *new_paint();
+Image *new_image();
 
-void paint_delete(Paint *this);
+void image_delete(Image *this);
 
 #endif

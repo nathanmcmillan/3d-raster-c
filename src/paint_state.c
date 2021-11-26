@@ -4,26 +4,26 @@
 
 #include "state.h"
 
-PaintState *new_paint_state(Canvas *canvas, Input *input, Assets *assets) {
-    PaintState *this = safe_calloc(1, sizeof(PaintState));
+Paint *new_paint(Canvas *canvas, Input *input, Assets *assets) {
+    Paint *this = safe_calloc(1, sizeof(Paint));
     this->state.canvas = canvas;
     this->state.input = input;
     this->state.assets = assets;
-    this->state.update = paint_state_update;
-    this->state.draw = paint_state_draw;
+    this->state.update = paint_update;
+    this->state.draw = paint_draw;
     return this;
 }
 
-void paint_state_update(void *state) {
-    PaintState *this = (PaintState *)state;
+void paint_update(void *state) {
+    Paint *this = (Paint *)state;
     (void *)this;
 }
 
-void paint_state_draw(void *state) {
-    PaintState *this = (PaintState *)state;
+void paint_draw(void *state) {
+    Paint *this = (Paint *)state;
     (void *)this;
 }
 
-void paint_state_delete(PaintState *this) {
+void paint_delete(Paint *this) {
     free(this);
 }

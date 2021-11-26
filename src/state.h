@@ -10,6 +10,7 @@
 #include "assets.h"
 #include "camera.h"
 #include "canvas.h"
+#include "hymn.h"
 #include "input.h"
 #include "matrix.h"
 #include "mem.h"
@@ -22,45 +23,38 @@
 #include "world.h"
 
 typedef struct State State;
-typedef struct GameState GameState;
-typedef struct PaintState PaintState;
+typedef struct Game Game;
+typedef struct Paint Paint;
 
 struct State {
     Canvas *canvas;
+    Hymn *vm;
     Input *input;
     Assets *assets;
     void (*update)(void *);
     void (*draw)(void *);
 };
 
-struct GameState {
+struct Game {
     State state;
     World *world;
     Camera *camera;
     Thing *hero;
 };
 
-struct PaintState {
+struct Paint {
     State state;
 };
 
-inline void state_update(State *state) {
-    state->update(state);
-}
+Game *new_game(Canvas *canvas, Hymn *vm, Input *input, Assets *assets);
+void game_open(Game *this, String *content);
+void game_update(void *state);
+void game_draw(void *state);
+void game_delete(Game *this);
 
-inline void state_draw(State *state) {
-    state->draw(state);
-}
-
-GameState *new_game_state(Canvas *canvas, Input *input, Assets *assets);
-void game_state_open(GameState *this, String *content);
-void game_state_update(void *state);
-void game_state_draw(void *state);
-void game_state_delete(GameState *this);
-
-PaintState *new_paint_state(Canvas *canvas, Input *input, Assets *assets);
-void paint_state_update(void *state);
-void paint_state_draw(void *state);
-void paint_state_delete(PaintState *this);
+Paint *new_paint(Canvas *canvas, Input *input, Assets *assets);
+void paint_update(void *state);
+void paint_draw(void *state);
+void paint_delete(Paint *this);
 
 #endif

@@ -19,11 +19,19 @@
 typedef void *Slice;
 typedef struct SliceHead SliceHead;
 
+#ifdef __GNUC__
+#define PACK(expr) expr __attribute__((__packed__))
+#elif _MSC_VER
+#define PACK(expr) __pragma(pack(push, 1)) expr __pragma(pack(pop))
+#endif
+
 PACK(struct SliceHead {
     usize length;
     usize capacity;
     void **Slice;
 });
+
+#undef PACK
 
 Slice new_slice_with_capacity(const usize member_size, const usize length, const usize capacity);
 Slice new_slice(const usize member_size, const usize length);

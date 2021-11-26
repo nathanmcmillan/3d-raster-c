@@ -1,13 +1,11 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+-- This Source Code Form is subject to the terms of the Mozilla Public
+-- License, v. 2.0. If a copy of the MPL was not distributed with this
+-- file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-function thing_update()
-  pass
-end
+function thing_update() end
 
 function new_thing(x, y)
-  const t = {}
+  let t = {}
   t.x = x
   t.y = y
   t.update = thing_update

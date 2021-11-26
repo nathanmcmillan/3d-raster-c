@@ -169,7 +169,7 @@ MaybeWad wad_parse(String *str) {
         if (c == '#') {
             pc = c;
             i++;
-            while (i < len and str[c] != '\n') {
+            while (i < len and str[i] != '\n') {
                 i++;
             }
         } else if (c == '\n' or c == ' ') {
@@ -248,9 +248,6 @@ MaybeWad wad_parse(String *str) {
             }
             pc = c;
             i = skip_space(str, i);
-        } else if (parsing_key) {
-            pc = c;
-            key = string_append_char(key, c);
         } else if (c == '"') {
             i++;
             if (i == len)
@@ -270,6 +267,9 @@ MaybeWad wad_parse(String *str) {
                 }
             }
             pc = c;
+        } else if (parsing_key) {
+            pc = c;
+            key = string_append_char(key, c);
         } else {
             pc = c;
             value = string_append_char(value, c);

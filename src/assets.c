@@ -10,10 +10,10 @@ Assets *new_assets() {
     return assets;
 }
 
-void assets_paint_save(Assets *this, char *name, Paint *paint) {
+void assets_paint_save(Assets *this, char *name, Image *paint) {
 
     if (this->paint_capacity == 0) {
-        this->paint = safe_malloc(sizeof(Paint *));
+        this->paint = safe_malloc(sizeof(Image *));
         this->paint[0] = paint;
         this->paint_capacity = 1;
         this->paint_count = 1;
@@ -22,7 +22,7 @@ void assets_paint_save(Assets *this, char *name, Paint *paint) {
 
     if (this->paint_count == this->paint_capacity) {
         this->paint_capacity += 8;
-        this->paint = safe_realloc(this->paint, this->paint_capacity * sizeof(Paint *));
+        this->paint = safe_realloc(this->paint, this->paint_capacity * sizeof(Image *));
     }
 
     this->paint[this->paint_count] = paint;
@@ -43,11 +43,11 @@ int assets_paint_name_to_index(Assets *this, char *name) {
     return index[0];
 }
 
-Paint *assets_paint_get(Assets *this, int index) {
+Image *assets_paint_get(Assets *this, int index) {
     return this->paint[index];
 }
 
-Paint *assets_paint_find(Assets *this, char *name) {
+Image *assets_paint_find(Assets *this, char *name) {
     int *index = table_get(this->paint_indices, name);
     if (index == NULL) {
         return NULL;

@@ -19,11 +19,19 @@ typedef char String;
 
 typedef struct StringHead StringHead;
 
+#ifdef __GNUC__
+#define PACK(expr) expr __attribute__((__packed__))
+#elif _MSC_VER
+#define PACK(expr) __pragma(pack(push, 1)) expr __pragma(pack(pop))
+#endif
+
 PACK(struct StringHead {
     usize length;
     usize capacity;
     char **chars;
 });
+
+#undef PACK
 
 String *new_string_with_length(char *init, usize length);
 String *new_string_from_substring(char *init, usize start, usize end);

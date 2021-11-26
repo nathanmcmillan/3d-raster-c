@@ -25,6 +25,7 @@ struct Camera {
     float ry;
     float radius;
     Thing *target;
+    Sector *sector;
 };
 
 Camera *new_camera(float radius);

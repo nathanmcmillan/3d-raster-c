@@ -1,13 +1,19 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+-- This Source Code Form is subject to the terms of the Mozilla Public
+-- License, v. 2.0. If a copy of the MPL was not distributed with this
+-- file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use thing
+push(__paths, "src\\<path>.hm")
 
-const game = {}
+use "thing"
+use "wad"
+use "texture"
 
-let canvas = nil
-let graphics = nil
+let game = {}
+
+let canvas = none
+let graphics_rect = none
+
+let tic = none
 
 let x = 10
 
@@ -16,18 +22,22 @@ function rgb(r, g, b)
 end
 
 function load()
-  print('load')
+  print("load...")
 
-  const thing = new_thing(4, 0)
+  let thing = new_thing(4, 0)
   thing.update()
-  print(thing.x)
-  print(len(thing))
+
+  let raw = read_file("pack/paint/tic_80_wide_font.wad")
+  let font = load_wad(raw)
+  -- print(font)
+  -- let texture = load_texture(font)
+  -- print(texture)
 end
 
 function update()
-  x = x + 2
+  x += 2
 end
 
 function draw()
-  graphics.rect(canvas, rgb(255, 0, 255), x, 60, x + 32, 92)
+  graphics_rect(canvas, rgb(255, 0, 255), x, 60, x + 32, 92)
 end
