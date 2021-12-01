@@ -4,11 +4,26 @@
 
 #include "paint.h"
 
-Image *new_image() {
-    return safe_calloc(sizeof(Image), 1);
+Paint *new_paint(Canvas *canvas, Input *input, Resources *resources) {
+    Paint *this = safe_calloc(1, sizeof(Paint));
+    this->state.canvas = canvas;
+    this->state.input = input;
+    this->state.resources = resources;
+    this->state.update = paint_update;
+    this->state.draw = paint_draw;
+    return this;
 }
 
-void image_delete(Image *this) {
-    free(this->pixels);
+void paint_update(void *state) {
+    Paint *this = (Paint *)state;
+    (void *)this;
+}
+
+void paint_draw(void *state) {
+    Paint *this = (Paint *)state;
+    (void *)this;
+}
+
+void paint_delete(Paint *this) {
     free(this);
 }

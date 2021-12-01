@@ -10,14 +10,13 @@ Camera *new_camera(float radius) {
     return c;
 }
 
-void camera_update(Camera *this) {
+void camera_third_person_update(Camera *camera) {
+    float sin_x = sinf(camera->look);
+    float cos_x = cosf(camera->look);
+    float sin_y = sinf(camera->angle);
+    float cos_y = cosf(camera->angle);
 
-    float sin_x = sinf(this->rx);
-    float cos_x = cosf(this->rx);
-    float sin_y = sinf(this->ry);
-    float cos_y = cosf(this->ry);
-
-    this->x = this->target->x - this->radius * cos_x * sin_y;
-    this->y = this->target->y + this->radius * sin_x + this->target->height;
-    this->z = this->target->z + this->radius * cos_x * cos_y;
+    camera->x = camera->target->x - camera->radius * cos_x * sin_y;
+    camera->y = camera->target->y + camera->radius * sin_x + camera->target->height;
+    camera->z = camera->target->z + camera->radius * cos_x * cos_y;
 }

@@ -11,7 +11,7 @@
 
 #include "hymn.h"
 #include "mem.h"
-#include "pie.h"
+#include "super.h"
 #include "vec.h"
 
 typedef struct Canvas Canvas;
@@ -28,6 +28,7 @@ i32 orient(i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2);
 i32 abs32(i32 i);
 i32 min32(i32 a, i32 b);
 i32 max32(i32 a, i32 b);
+i32 clamp32(i32 a, i32 min, i32 max);
 
 Canvas *new_canvas(i32 width, i32 height);
 

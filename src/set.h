@@ -10,8 +10,7 @@
 #include <stdlib.h>
 
 #include "mem.h"
-#include "pie.h"
-#include "slice.h"
+#include "super.h"
 
 typedef struct SetItem SetItem;
 typedef struct Set Set;
@@ -38,6 +37,8 @@ bool set_address_equal(void *a, void *b);
 usize set_address_hashcode(void *key);
 
 Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *));
+
+Set *new_address_set();
 
 void set_add(Set *this, void *key);
 bool set_has(Set *this, void *key);

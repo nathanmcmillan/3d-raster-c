@@ -2,18 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#ifndef PIE_H
-#define PIE_H
+#ifndef SUPER_H
+#define SUPER_H
 
 #include <inttypes.h>
 
 #define and &&
 #define or ||
-
-// #define is ==
-// #define isnt !=
-// #define not !
-// #define null ((void *)0)
 
 typedef int8_t i8;
 typedef int16_t i16;

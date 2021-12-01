@@ -42,6 +42,10 @@ Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
     return this;
 }
 
+Set *new_address_set() {
+    return new_set(set_address_equal, set_address_hashcode);
+}
+
 static unsigned int get_bin(Set *this, usize hash) {
     return (this->bins - 1) & hash;
 }
@@ -51,7 +55,6 @@ static usize hash_mix(usize hash) {
 }
 
 static void resize(Set *this) {
-
     unsigned int old_bins = this->bins;
     unsigned int bins = old_bins << 1;
 

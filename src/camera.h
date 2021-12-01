@@ -21,14 +21,14 @@ struct Camera {
     float x;
     float y;
     float z;
-    float rx;
-    float ry;
+    float angle;
+    float look;
     float radius;
     Thing *target;
     Sector *sector;
 };
 
 Camera *new_camera(float radius);
-void camera_update(Camera *this);
+void camera_thrid_person_update(Camera *camera);
 
 #endif

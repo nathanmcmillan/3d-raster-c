@@ -7,8 +7,8 @@
 
 #include "array.h"
 #include "file_io.h"
-#include "pie.h"
 #include "string_util.h"
+#include "super.h"
 #include "table.h"
 
 typedef Table WadObject;
@@ -44,6 +44,7 @@ Wad *new_wad_array();
 Wad *new_wad_string(String *value);
 
 WadObject *wad_get_object(Wad *element);
+bool wad_has(Wad *element, char *key);
 WadArray *wad_get_array(Wad *element);
 String *wad_get_string(Wad *element);
 int wad_get_int(Wad *element);

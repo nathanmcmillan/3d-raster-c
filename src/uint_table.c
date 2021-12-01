@@ -35,7 +35,6 @@ static usize hash_mix(unsigned int hash) {
 }
 
 static void resize(UIntTable *this) {
-
     unsigned int old_bins = this->bins;
     unsigned int bins = old_bins << 1;
 

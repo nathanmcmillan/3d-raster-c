@@ -2973,7 +2973,6 @@ static void optimize(Compiler *C) {
     int count = code->count;
     int one = 0;
     while (one < count) {
-
 #define SET(I, O) instructions[I] = O
 #define REWRITE(S, X) count -= rewrite(instructions, lines, count, one + S, X)
 #define REPEAT continue
@@ -3372,7 +3371,6 @@ static void patch_jump_for_list(Compiler *C) {
 }
 
 static void iterator_statement(Compiler *C, bool pair) {
-
     local_initialize(C);
 
     uint8_t index = (uint8_t)C->scope->local_count;
@@ -6255,7 +6253,6 @@ char *hymn_debug(Hymn *H, const char *script) {
 }
 
 char *hymn_call(Hymn *H, const char *name, int arguments) {
-
     // TODO: NEED A NON-INTERN STRING LOOKUP FOR GLOBALS
 
     HymnObjectString *string = machine_intern_string(H, hymn_new_string(name));

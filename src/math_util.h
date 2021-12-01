@@ -18,9 +18,9 @@
 
 #define FLOAT_PRECISION 0.00000001f
 
-#define FLOAT_ZERO(F) fabs(F) < FLOAT_PRECISION
-#define FLOAT_NOT_ZERO(F) fabs(F) > FLOAT_PRECISION
-#define FLOAT_EQUAL(X, Y) fabs(X - Y) < FLOAT_PRECISION
+#define FLOAT_ZERO(F) fabsf(F) < FLOAT_PRECISION
+#define FLOAT_NOT_ZERO(F) fabsf(F) > FLOAT_PRECISION
+#define FLOAT_EQUAL(X, Y) fabsf(X - Y) < FLOAT_PRECISION
 
 #define DEGREE_TO_RADIAN(D) (D * (MATH_PI / 180.0f))
 #define RADIAN_TO_DEGREE(R) (R * (180.0f / MATH_PI))

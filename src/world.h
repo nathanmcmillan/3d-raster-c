@@ -11,20 +11,17 @@
 #include "array.h"
 #include "math_util.h"
 #include "mem.h"
-#include "pie.h"
 #include "sector.h"
 #include "set.h"
 #include "sprite.h"
-#include "triangulate.h"
+#include "super.h"
 #include "world.h"
 
 #define WORLD_SCALE 0.25f
 #define WORLD_CELL_SHIFT 5
 
-extern const float gravity;
-extern const float wind_resistance;
-
-extern unsigned int thing_unique_id;
+#define GRAVITY 0.028f
+#define RESISTANCE 0.88f
 
 enum ThingType {
     THING_TYPE_HERO,
@@ -45,12 +42,6 @@ struct World {
     Thing **things;
     int thing_cap;
     int thing_count;
-    Thing **thing_sprites;
-    int thing_sprites_cap;
-    int thing_sprites_count;
-    Thing **thing_models;
-    int thing_models_cap;
-    int thing_models_count;
     Particle **particles;
     int particle_cap;
     int particle_count;
@@ -64,9 +55,15 @@ struct World {
     int columns;
     int rows;
     int cell_count;
+    u32 tick;
+    u32 *sectors_visited;
+    u32 *lines_visited;
 };
 
 World *new_world();
+
+int world_cell(float f);
+float world_float_cell(float f);
 
 void world_clear(World *this);
 void world_add_thing(World *this, Thing *t);
@@ -186,5 +183,7 @@ struct Decal {
 };
 
 Decal *new_decal(World *map);
+
+void world_delete(World *world);
 
 #endif

@@ -10,51 +10,39 @@
 #include "array.h"
 #include "math_util.h"
 #include "mem.h"
-#include "triangle.h"
+#include "set.h"
 #include "vec.h"
 
-#define LINE_NO_WALL -1
+#define LINE_NO_SIDE -1
 #define SECTOR_NO_SURFACE -1
 
-extern unsigned int sector_unique_id;
-
+typedef struct Side Side;
 typedef struct Line Line;
-typedef struct Wall Wall;
 typedef struct Sector Sector;
 
+struct Side {
+    float x;
+    float y;
+    int top;
+    int middle;
+    int bottom;
+};
+
 struct Line {
-    Sector *plus;
-    Sector *minus;
-    Vec *a;
-    Vec *b;
-    Wall *top;
-    Wall *middle;
-    Wall *bottom;
-    Vec normal;
-};
-
-Line *new_line(Vec *a, Vec *b, int low, int mid, int top);
-void line_set_sectors(Line *this, Sector *plus, Sector *minus);
-MaybeVec line_intersect(Line *this, Line *with);
-
-struct Wall {
+    int id;
+    Sector *front;
+    Sector *back;
     Vec *a;
     Vec *b;
     Vec normal;
-    int texture;
-    float floor;
-    float ceiling;
-    float u;
-    float v;
-    float s;
-    float t;
+    Side side_front;
+    Side side_back;
 };
 
-Wall *new_wall(Vec *a, Vec *b, int texture);
-void wall_set(Wall *this, float floor, float ceiling, float u, float v, float s, float t);
+Line *new_line(int id, Vec *a, Vec *b, int bottom, int middle, int top);
 
 struct Sector {
-    unsigned int id;
+    int id;
     Vec **vecs;
     int vec_count;
     Line **lines;
@@ -63,20 +51,21 @@ struct Sector {
     float floor;
     float ceiling;
     float top;
-    int floor_paint;
-    int ceiling_paint;
-    Triangle **triangles;
-    int triangle_count;
+    int floor_image;
+    int ceiling_image;
     Sector **inside;
     int inside_count;
     Sector *outside;
+    Sector **neighbors;
+    int neighbor_count;
 };
 
-Sector *new_sector(Vec **vecs, int vec_count, Line **lines, int line_count, float bottom, float floor, float ceiling, float top, int floor_paint, int ceiling_paint);
+Sector *new_sector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image);
 bool sector_contains(Sector *this, float x, float y);
 Sector *sector_find(Sector *this, float x, float y);
 bool sector_has_floor(Sector *this);
 bool sector_has_ceiling(Sector *this);
 void sector_inside_outside(Sector **sectors, int sector_count);
+void sector_neighbors(Sector **sectors, int sector_count, Line **lines, int line_count);
 
 #endif

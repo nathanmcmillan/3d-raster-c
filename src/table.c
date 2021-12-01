@@ -59,7 +59,6 @@ static usize hash_mix(usize hash) {
 }
 
 static void resize(Table *this) {
-
     unsigned int old_bins = this->bins;
     unsigned int bins = old_bins << 1;
 

@@ -12,7 +12,7 @@
 
 #include "math_util.h"
 #include "mem.h"
-#include "pie.h"
+#include "super.h"
 
 #define VECTOR_3_ADD(a, b) \
     a.x += b.x;            \
@@ -44,7 +44,6 @@
 typedef struct Vec Vec;
 typedef struct MaybeVec MaybeVec;
 
-typedef struct Vec2 Vec2;
 typedef struct Vec3 Vec3;
 typedef struct Vec4 Vec4;
 
@@ -61,12 +60,9 @@ struct MaybeVec {
 Vec *new_vec(float x, float y);
 Vec *vec_copy(Vec *with);
 Vec vec_of(Vec *with);
-bool vec_intersect(Vec *va, Vec *vb, Vec *vc, Vec *vd);
-
-struct Vec2 {
-    float x;
-    float y;
-};
+Vec vec_normal(Vec *a, Vec *b);
+bool line_intersect(Vec *va, Vec *vb, Vec *vc, Vec *vd);
+MaybeVec line_intersect_at(Vec *va, Vec *vb, Vec *vc, Vec *vd);
 
 struct Vec3 {
     float x;

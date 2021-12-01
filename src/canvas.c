@@ -126,7 +126,6 @@ void canvas_rectangle(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
 }
 
 void canvas_project(Canvas *this, float *out, float *matrix, float *vec) {
-
     float x = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
     float y = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
     float z = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];

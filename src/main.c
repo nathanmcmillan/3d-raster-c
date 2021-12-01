@@ -10,15 +10,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "assets.h"
 #include "canvas.h"
 #include "file_io.h"
+#include "game.h"
 #include "hymn.h"
+#include "image.h"
 #include "input.h"
 #include "log.h"
 #include "paint.h"
-#include "pie.h"
+#include "resources.h"
 #include "state.h"
+#include "super.h"
 #include "wad.h"
 
 typedef struct Window Window;
@@ -46,7 +48,6 @@ static const int SCREEN_HEIGHT = 400;
 static bool run = true;
 
 static void window_init(SDL_Window **win, SDL_Renderer **ren) {
-
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Could not initialize SDL: %s\n", SDL_GetError());
         exit(1);
@@ -132,16 +133,14 @@ static void poll_events(Input *in) {
 }
 
 static void main_load(Main *game) {
-    String *font_str = cat("pack/paint/tic_80_wide_font.wad");
-    Wad *font_wad = wad_parse(font_str).wad;
+    String *font_string = cat("pack/paint/tic_80_wide_font.wad");
+    Wad *font_wad = wad_parse(font_string).wad;
     wad_delete(font_wad);
+    string_delete(font_string);
 
     String *map = cat("pack/maps/home.wad");
     game_open(game->game, map);
     string_delete(map);
-
-    Image *font = new_image();
-    image_delete(font);
 
     char *error = hymn_call(game->vm, "load", 0);
     if (error != NULL) {
@@ -245,7 +244,7 @@ int main(int argc, char **argv) {
     hymn_add_function(vm, "graphics_rect", canvas_rectangle_vm);
     hymn_add_pointer(vm, "canvas", canvas);
 
-    Assets *assets = new_assets();
+    Resources *assets = new_resources();
 
     Main *game = safe_calloc(sizeof(Main), 1);
     game->win = win;
@@ -267,7 +266,7 @@ int main(int argc, char **argv) {
     SDL_Quit();
 
     main_delete(game);
-    assets_delete(assets);
+    resources_delete(assets);
 
     printf("exiting...\n");
     fflush(stdout);

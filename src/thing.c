@@ -4,11 +4,6 @@
 
 #include "world.h"
 
-const float gravity = 0.028f;
-const float wind_resistance = 0.88f;
-
-unsigned int thing_unique_id = 0;
-
 void thing_remove_from_cells(Thing *this) {
     World *map = this->map;
     for (int r = this->r_min; r <= this->r_max; r++)
@@ -63,7 +58,6 @@ void thing_resolve_collision(Thing *this, Thing *b) {
 }
 
 void thing_line_collision(Thing *this, Line *ld) {
-
     float box = this->box;
 
     float vx = ld->b->x - ld->a->x;
@@ -95,16 +89,16 @@ void thing_line_collision(Thing *this, Line *ld) {
 
     bool collision = false;
 
-    if (ld->middle != NULL) {
+    if (ld->side_front.middle != LINE_NO_SIDE) {
         collision = true;
     } else {
-        if (this->y + this->height > ld->plus->ceiling or this->y + 1.0f < ld->plus->floor) {
+        if (this->y + this->height > ld->front->ceiling or this->y + 1.0f < ld->front->floor) {
             collision = true;
         }
     }
 
     if (collision) {
-        if (this->sec == ld->plus)
+        if (this->sec == ld->front)
             return;
 
         float overlap;
@@ -143,8 +137,8 @@ void thing_nop_update(void *this) {
 
 void thing_standard_update(Thing *this) {
     if (this->ground) {
-        this->dx *= wind_resistance;
-        this->dz *= wind_resistance;
+        this->dx *= RESISTANCE;
+        this->dz *= RESISTANCE;
     }
 
     if (FLOAT_NOT_ZERO(this->dx) or FLOAT_NOT_ZERO(this->dz)) {
@@ -162,8 +156,8 @@ void thing_standard_update(Thing *this) {
         int r_min = (int)(this->z - box) >> WORLD_CELL_SHIFT;
         int r_max = (int)(this->z + box) >> WORLD_CELL_SHIFT;
 
-        Set *collided = new_set(set_address_equal, set_address_hashcode);
-        Set *collisions = new_set(set_address_equal, set_address_hashcode);
+        Set *collided = new_address_set();
+        Set *collisions = new_address_set();
 
         World *map = this->map;
 
@@ -219,8 +213,7 @@ void thing_standard_update(Thing *this) {
     }
 
     if (this->ground == false or FLOAT_NOT_ZERO(this->dy)) {
-
-        this->dy -= gravity;
+        this->dy -= GRAVITY;
         this->y += this->dy;
 
         if (this->y < this->sec->floor) {
@@ -234,8 +227,6 @@ void thing_standard_update(Thing *this) {
 }
 
 void thing_initialize(Thing *this, World *map, float x, float z, float r, float box, float height) {
-
-    this->id = thing_unique_id++;
     this->map = map;
     this->sec = world_find_sector(map, x, z);
 

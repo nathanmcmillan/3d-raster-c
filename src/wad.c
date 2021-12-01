@@ -32,6 +32,13 @@ WadObject *wad_get_object(Wad *element) {
     return element->value.object;
 }
 
+bool wad_has(Wad *element, char *key) {
+    if (element == NULL) {
+        return false;
+    }
+    return table_has(wad_get_object(element), key);
+}
+
 WadArray *wad_get_array(Wad *element) {
     if (element == NULL) {
         return NULL;
@@ -149,8 +156,7 @@ static usize skip_space(String *str, usize i) {
     return i - 1;
 }
 
-MaybeWad wad_parse(String *str) {
-
+MaybeWad wad_parse(String *input) {
     Wad *wad = new_wad_object();
 
     Array *stack = new_array(0);
@@ -162,14 +168,14 @@ MaybeWad wad_parse(String *str) {
     char pc = '\0';
     bool parsing_key = true;
 
-    usize len = string_len(str);
+    usize len = string_len(input);
 
     for (usize i = 0; i < len; i++) {
-        char c = str[i];
+        char c = input[i];
         if (c == '#') {
             pc = c;
             i++;
-            while (i < len and str[i] != '\n') {
+            while (i < len and input[i] != '\n') {
                 i++;
             }
         } else if (c == '\n' or c == ' ') {
@@ -186,11 +192,11 @@ MaybeWad wad_parse(String *str) {
                 string_zero(value);
             }
             pc = c;
-            i = skip_space(str, i);
-        } else if (c == '=') {
+            i = skip_space(input, i);
+        } else if (c == ':') {
             parsing_key = false;
             pc = c;
-            i = skip_space(str, i);
+            i = skip_space(input, i);
         } else if (c == '{') {
             Wad *map = new_wad_object();
             Wad *head = stack->items[0];
@@ -203,7 +209,7 @@ MaybeWad wad_parse(String *str) {
             }
             array_insert(stack, 0, map);
             pc = c;
-            i = skip_space(str, i);
+            i = skip_space(input, i);
         } else if (c == '[') {
             Wad *ls = new_wad_array();
             Wad *head = stack->items[0];
@@ -216,7 +222,7 @@ MaybeWad wad_parse(String *str) {
             array_insert(stack, 0, ls);
             parsing_key = false;
             pc = c;
-            i = skip_space(str, i);
+            i = skip_space(input, i);
         } else if (c == '}') {
             if (pc != ' ' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
                 Wad *head = stack->items[0];
@@ -232,7 +238,7 @@ MaybeWad wad_parse(String *str) {
                 parsing_key = true;
             }
             pc = c;
-            i = skip_space(str, i);
+            i = skip_space(input, i);
         } else if (c == ']') {
             if (pc != ' ' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
                 Wad *head = stack->items[0];
@@ -247,23 +253,23 @@ MaybeWad wad_parse(String *str) {
                 parsing_key = true;
             }
             pc = c;
-            i = skip_space(str, i);
+            i = skip_space(input, i);
         } else if (c == '"') {
             i++;
             if (i == len)
                 break;
-            char e = str[i];
+            char e = input[i];
             while (i < len) {
                 if (e == '"' or e == '\n') {
                     break;
-                } else if (e == '\\' and i + 1 < len and str[i + 1] == '"') {
+                } else if (e == '\\' and i + 1 < len and input[i + 1] == '"') {
                     value = string_append_char(value, '"');
                     i += 2;
-                    e = str[i];
+                    e = input[i];
                 } else {
                     value = string_append_char(value, e);
                     i++;
-                    e = str[i];
+                    e = input[i];
                 }
             }
             pc = c;

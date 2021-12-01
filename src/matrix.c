@@ -13,7 +13,6 @@ void matrix_print(float *matrix) {
 }
 
 void matrix_identity(float *matrix) {
-
     matrix[0] = 1.0f;
     matrix[1] = 0.0f;
     matrix[2] = 0.0f;
@@ -36,7 +35,6 @@ void matrix_identity(float *matrix) {
 }
 
 void matrix_orthographic(float *matrix, float left, float right, float bottom, float top, float near, float far) {
-
     matrix[0] = 2.0f / (right - left);
     matrix[1] = 0.0f;
     matrix[2] = 0.0f;
@@ -59,7 +57,6 @@ void matrix_orthographic(float *matrix, float left, float right, float bottom, f
 }
 
 void matrix_frustum(float *matrix, float left, float right, float bottom, float top, float near, float far) {
-
     matrix[0] = (2.0f * near) / (right - left);
     matrix[1] = 0.0f;
     matrix[2] = 0.0f;
@@ -82,7 +79,6 @@ void matrix_frustum(float *matrix, float left, float right, float bottom, float 
 }
 
 void matrix_perspective(float *matrix, float fov, float near, float far, float aspect) {
-
     float top = near * tanf(fov * MATH_PI / 360.0f);
     float bottom = -top;
     float left = bottom * aspect;
@@ -92,7 +88,6 @@ void matrix_perspective(float *matrix, float fov, float near, float far, float a
 }
 
 void matrix_translate(float *matrix, float x, float y, float z) {
-
     matrix[12] = x * matrix[0] + y * matrix[4] + z * matrix[8] + matrix[12];
     matrix[13] = x * matrix[1] + y * matrix[5] + z * matrix[9] + matrix[13];
     matrix[14] = x * matrix[2] + y * matrix[6] + z * matrix[10] + matrix[14];
@@ -100,7 +95,6 @@ void matrix_translate(float *matrix, float x, float y, float z) {
 }
 
 void matrix_multiply(float *matrix, float *a, float *b) {
-
     matrix[0] = a[0] * b[0] + a[4] * b[1] + a[8] * b[2] + a[12] * b[3];
     matrix[1] = a[1] * b[0] + a[5] * b[1] + a[9] * b[2] + a[13] * b[3];
     matrix[2] = a[2] * b[0] + a[6] * b[1] + a[10] * b[2] + a[14] * b[3];
@@ -123,7 +117,6 @@ void matrix_multiply(float *matrix, float *a, float *b) {
 }
 
 void matrix_rotate_x(float *matrix, float sine, float cosine) {
-
     float temp[16];
 
     temp[0] = 1.0f;
@@ -153,7 +146,6 @@ void matrix_rotate_x(float *matrix, float sine, float cosine) {
 }
 
 void matrix_rotate_y(float *matrix, float sine, float cosine) {
-
     float temp[16];
 
     temp[0] = cosine;
@@ -183,7 +175,6 @@ void matrix_rotate_y(float *matrix, float sine, float cosine) {
 }
 
 void matrix_rotate_z(float *matrix, float sine, float cosine) {
-
     float temp[16];
 
     temp[0] = cosine;
@@ -213,14 +204,12 @@ void matrix_rotate_z(float *matrix, float sine, float cosine) {
 }
 
 void matrix_set_translation(float *matrix, float x, float y, float z) {
-
     matrix[12] = x;
     matrix[13] = y;
     matrix[14] = z;
 }
 
 void matrix_inverse(float *matrix, float *from) {
-
     float src[16];
 
     src[0] = from[0];
@@ -315,7 +304,6 @@ void matrix_inverse(float *matrix, float *from) {
 }
 
 void matrix_transpose(float *matrix, float *from) {
-
     matrix[0] = from[0];
     matrix[4] = from[1];
     matrix[8] = from[2];
@@ -338,14 +326,12 @@ void matrix_transpose(float *matrix, float *from) {
 }
 
 void matrix_multiply_vector3(float *out, float *matrix, float *vec) {
-
     out[0] = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
     out[1] = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
     out[2] = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];
 }
 
 void matrix_multiply_vector4(Vec4 *out, float *matrix, Vec4 *vec) {
-
     out->x = vec->x * matrix[0] + vec->y * matrix[4] + vec->z * matrix[8] + vec->w * matrix[12];
     out->y = vec->x * matrix[1] + vec->y * matrix[5] + vec->z * matrix[9] + vec->w * matrix[13];
     out->z = vec->x * matrix[2] + vec->y * matrix[6] + vec->z * matrix[10] + vec->w * matrix[14];
@@ -353,7 +339,6 @@ void matrix_multiply_vector4(Vec4 *out, float *matrix, Vec4 *vec) {
 }
 
 void matrix_look_at(float *matrix, Vec3 *eye, Vec3 *center) {
-
     Vec3 forward = {
         center->x - eye->x,
         center->y - eye->y,
@@ -391,7 +376,6 @@ void matrix_look_at(float *matrix, Vec3 *eye, Vec3 *center) {
 }
 
 void matrix_frustum_planes(float *frustum, float *matrix) {
-
     // Left
     frustum[0] = matrix[3] + matrix[0];
     frustum[1] = matrix[7] + matrix[4];
@@ -441,7 +425,6 @@ void matrix_frustum_planes(float *frustum, float *matrix) {
 }
 
 void matrix_frustum_corners(Vec4 *corners, float *matrix) {
-
     corners[0] = (Vec4){-1, -1, -1, 1}; // Left  Bottom Near
     corners[1] = (Vec4){1, -1, -1, 1};  // Right Bottom Near
     corners[2] = (Vec4){-1, 1, -1, 1};  // Left  Top    Near
@@ -462,14 +445,12 @@ void matrix_frustum_corners(Vec4 *corners, float *matrix) {
 }
 
 void matrix_orthographic_projection(float *mvp, float *orthographic, float *mv, float x, float y) {
-
     matrix_identity(mv);
     matrix_translate(mv, x, y, 0);
     matrix_multiply(mvp, orthographic, mv);
 }
 
 void matrix_perspective_projection(float *mvp, float *perspective, float *mv, float x, float y, float z, float rx, float ry) {
-
     matrix_identity(mv);
     matrix_rotate_x(mv, sinf(rx), cosf(rx));
     matrix_rotate_y(mv, sinf(ry), cosf(ry));

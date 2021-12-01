@@ -7,16 +7,17 @@
 
 #include <math.h>
 
-#include "assets.h"
 #include "camera.h"
 #include "canvas.h"
 #include "hymn.h"
+#include "image.h"
 #include "input.h"
 #include "matrix.h"
 #include "mem.h"
-#include "pie.h"
+#include "resources.h"
 #include "sprite.h"
 #include "string_util.h"
+#include "super.h"
 #include "uint_table.h"
 #include "vec.h"
 #include "wad.h"
@@ -30,7 +31,7 @@ struct State {
     Canvas *canvas;
     Hymn *vm;
     Input *input;
-    Assets *assets;
+    Resources *resources;
     void (*update)(void *);
     void (*draw)(void *);
 };
@@ -40,21 +41,11 @@ struct Game {
     World *world;
     Camera *camera;
     Thing *hero;
+    u32 *palette;
 };
 
 struct Paint {
     State state;
 };
-
-Game *new_game(Canvas *canvas, Hymn *vm, Input *input, Assets *assets);
-void game_open(Game *this, String *content);
-void game_update(void *state);
-void game_draw(void *state);
-void game_delete(Game *this);
-
-Paint *new_paint(Canvas *canvas, Input *input, Assets *assets);
-void paint_update(void *state);
-void paint_draw(void *state);
-void paint_delete(Paint *this);
 
 #endif
