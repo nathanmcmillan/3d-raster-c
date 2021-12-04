@@ -5,7 +5,7 @@
 #include "list.h"
 
 List *list_init() {
-    return safe_calloc(1, sizeof(List));
+    return Calloc(1, sizeof(List));
 }
 
 void list_add(List *this, void *item) {
@@ -14,7 +14,7 @@ void list_add(List *this, void *item) {
         return;
     }
     List *link = this->next;
-    List *node = safe_calloc(1, sizeof(List));
+    List *node = Calloc(1, sizeof(List));
     node->item = item;
     node->next = link;
     this->next = node;
@@ -25,7 +25,7 @@ void list_push(List *this, void *item) {
         this->item = item;
         return;
     }
-    List *tail = safe_calloc(1, sizeof(List));
+    List *tail = Calloc(1, sizeof(List));
     tail->item = item;
     while (true) {
         List *next = this->next;
@@ -49,7 +49,7 @@ void list_remove(List *this, void *item) {
             } else {
                 this->item = next->item;
                 this->next = next->next;
-                free(next);
+                Free(next);
             }
             return;
         }
@@ -70,7 +70,7 @@ void list_remove_index(List *this, unsigned int index) {
             } else {
                 this->item = next->item;
                 this->next = next->next;
-                free(next);
+                Free(next);
             }
             return;
         }
@@ -83,7 +83,7 @@ void list_insert(List *this, unsigned int index, void *item) {
         this->item = item;
         return;
     }
-    List *tail = safe_calloc(1, sizeof(List));
+    List *tail = Calloc(1, sizeof(List));
     tail->item = item;
     unsigned int i = 0;
     while (true) {
@@ -103,7 +103,7 @@ void list_insert_sort(List *this, int (*compare)(void *, void *), void *item) {
         this->item = item;
         return;
     }
-    List *tail = safe_calloc(1, sizeof(List));
+    List *tail = Calloc(1, sizeof(List));
     tail->item = item;
     while (true) {
         List *next = this->next;
@@ -172,7 +172,7 @@ void **list_to_array(List *this) {
     if (size == 0) {
         return NULL;
     }
-    void **array = safe_malloc(size * sizeof(void *));
+    void **array = Malloc(size * sizeof(void *));
     for (unsigned int i = 0; i < size; i++) {
         array[i] = this->item;
         this = this->next;
@@ -183,7 +183,7 @@ void **list_to_array(List *this) {
 void list_delete(List *this) {
     do {
         List *node = this->next;
-        free(this);
+        Free(this);
         this = node;
     } while (this);
 }

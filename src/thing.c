@@ -6,9 +6,11 @@
 
 void thing_remove_from_cells(Thing *this) {
     World *map = this->map;
-    for (int r = this->r_min; r <= this->r_max; r++)
-        for (int c = this->c_min; c <= this->c_max; c++)
+    for (int r = this->r_min; r <= this->r_max; r++) {
+        for (int c = this->c_min; c <= this->c_max; c++) {
             cell_remove_thing(&map->cells[c + r * map->columns], this);
+        }
+    }
 }
 
 void thing_add_to_cells(Thing *this) {
@@ -132,7 +134,7 @@ void thing_line_collision(Thing *this, Line *ld) {
 }
 
 void thing_nop_update(void *this) {
-    (void *)this;
+    (void)this;
 }
 
 void thing_standard_update(Thing *this) {

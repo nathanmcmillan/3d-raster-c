@@ -6,7 +6,7 @@
 
 static StringHead *string_head_init(usize length, usize capacity) {
     usize memory = sizeof(StringHead) + length + 1;
-    StringHead *head = (StringHead *)safe_malloc(memory);
+    StringHead *head = (StringHead *)Malloc(memory);
     memset(head, 0, memory);
     head->length = length;
     head->capacity = capacity;
@@ -61,7 +61,7 @@ void string_delete(String *this) {
     if (this == NULL) {
         return;
     }
-    free((char *)this - sizeof(StringHead));
+    Free((char *)this - sizeof(StringHead));
 }
 
 String *string_concat(String *a, String *b) {
@@ -131,7 +131,7 @@ String *substring(String *this, usize start, usize end) {
 
 static StringHead *string_resize(StringHead *head, usize capacity) {
     usize memory = sizeof(StringHead) + capacity + 1;
-    StringHead *new = safe_realloc(head, memory);
+    StringHead *new = Realloc(head, memory);
     new->capacity = capacity;
     return new;
 }
@@ -227,119 +227,119 @@ void string_zero(String *this) {
 }
 
 String *char_to_string(char ch) {
-    char *str = safe_malloc(2);
+    char *str = Malloc(2);
     str[0] = ch;
     str[1] = '\0';
     String *s = new_string_with_length(str, 1);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *int_to_string(int number) {
     int len = snprintf(NULL, 0, "%d", number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%d", number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *int8_to_string(i8 number) {
     int len = snprintf(NULL, 0, "%" PRId8, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId8, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *int16_to_string(i16 number) {
     int len = snprintf(NULL, 0, "%" PRId16, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId16, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *int32_to_string(i32 number) {
     int len = snprintf(NULL, 0, "%" PRId32, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId32, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *int64_to_string(i64 number) {
     int len = snprintf(NULL, 0, "%" PRId64, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId64, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *usize_to_string(usize number) {
     int len = snprintf(NULL, 0, "%zu", number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%zu", number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *uint_to_string(unsigned int number) {
     int len = snprintf(NULL, 0, "%u", number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%u", number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *uint8_to_string(u8 number) {
     int len = snprintf(NULL, 0, "%" PRId8, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId8, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *uint16_to_string(u16 number) {
     int len = snprintf(NULL, 0, "%" PRId16, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId16, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *uint32_to_string(u32 number) {
     int len = snprintf(NULL, 0, "%" PRId32, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId32, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *uint64_to_string(u64 number) {
     int len = snprintf(NULL, 0, "%" PRId64, number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%" PRId64, number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *float_to_string(float number) {
     int len = snprintf(NULL, 0, "%f", number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%f", number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
@@ -349,19 +349,19 @@ String *float32_to_string(float number) {
 
 String *float64_to_string(double number) {
     int len = snprintf(NULL, 0, "%f", number);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%f", number);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
 String *pointer_to_string(void *pointer) {
     int len = snprintf(NULL, 0, "%p", pointer);
-    char *str = safe_malloc(len + 1);
+    char *str = Malloc(len + 1);
     snprintf(str, len + 1, "%p", pointer);
     String *s = new_string_with_length(str, len);
-    free(str);
+    Free(str);
     return s;
 }
 
@@ -427,7 +427,7 @@ double string_to_float64(String *this) {
 
 char *string_to_chars(String *this) {
     usize len = string_len(this);
-    char *s = safe_malloc((len + 1) * sizeof(char));
+    char *s = Malloc((len + 1) * sizeof(char));
     memcpy(s, this, len);
     s[len] = '\0';
     return s;
@@ -438,12 +438,12 @@ String *string_format(const char *format, ...) {
     va_start(ap, format);
     int len = vsnprintf(NULL, 0, format, ap);
     va_end(ap);
-    char *chars = safe_malloc((len + 1) * sizeof(char));
+    char *chars = Malloc((len + 1) * sizeof(char));
     va_start(ap, format);
     len = vsnprintf(chars, len + 1, format, ap);
     va_end(ap);
     String *str = new_string_with_length(chars, len);
-    free(chars);
+    Free(chars);
     return str;
 }
 
@@ -452,11 +452,11 @@ String *string_append_format(String *this, const char *format, ...) {
     va_start(ap, format);
     int len = vsnprintf(NULL, 0, format, ap);
     va_end(ap);
-    char *chars = safe_malloc((len + 1) * sizeof(char));
+    char *chars = Malloc((len + 1) * sizeof(char));
     va_start(ap, format);
     len = vsnprintf(chars, len + 1, format, ap);
     va_end(ap);
     this = string_append(this, chars);
-    free(chars);
+    Free(chars);
     return this;
 }

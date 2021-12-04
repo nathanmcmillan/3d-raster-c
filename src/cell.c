@@ -6,7 +6,7 @@
 
 void cell_add_line(Cell *this, Line *ld) {
     if (this->line_count == 0) {
-        this->lines = safe_malloc(sizeof(Line *));
+        this->lines = Malloc(sizeof(Line *));
         this->lines[0] = ld;
         this->line_count = 1;
         return;
@@ -20,14 +20,14 @@ void cell_add_line(Cell *this, Line *ld) {
         }
     }
 
-    this->lines = safe_realloc(this->lines, (len + 1) * sizeof(Line *));
+    this->lines = Realloc(this->lines, (len + 1) * sizeof(Line *));
     this->lines[len] = ld;
     this->line_count++;
 }
 
 void cell_add_thing(Cell *this, Thing *t) {
     if (this->thing_cap == 0) {
-        this->things = safe_malloc(sizeof(Thing *));
+        this->things = Malloc(sizeof(Thing *));
         this->things[0] = t;
         this->thing_cap = 1;
         this->thing_count = 1;
@@ -36,7 +36,7 @@ void cell_add_thing(Cell *this, Thing *t) {
 
     if (this->thing_count == this->thing_cap) {
         this->thing_cap += 8;
-        this->things = safe_realloc(this->things, this->thing_cap * sizeof(Thing *));
+        this->things = Realloc(this->things, this->thing_cap * sizeof(Thing *));
     }
 
     this->things[this->thing_count] = t;
@@ -57,7 +57,7 @@ void cell_remove_thing(Cell *this, Thing *t) {
 
 void cell_add_particle(Cell *this, Particle *t) {
     if (this->particle_cap == 0) {
-        this->particles = safe_malloc(sizeof(Particle *));
+        this->particles = Malloc(sizeof(Particle *));
         this->particles[0] = t;
         this->particle_cap = 1;
         this->particle_count = 1;
@@ -66,7 +66,7 @@ void cell_add_particle(Cell *this, Particle *t) {
 
     if (this->particle_count == this->particle_cap) {
         this->particle_cap += 8;
-        this->particles = safe_realloc(this->particles, this->particle_cap * sizeof(Particle *));
+        this->particles = Realloc(this->particles, this->particle_cap * sizeof(Particle *));
     }
 
     this->particles[this->particle_count] = t;
@@ -87,7 +87,7 @@ void cell_remove_particle(Cell *this, Particle *t) {
 
 void cell_add_decal(Cell *this, Decal *t) {
     if (this->decal_cap == 0) {
-        this->decals = safe_malloc(sizeof(Decal *));
+        this->decals = Malloc(sizeof(Decal *));
         this->decals[0] = t;
         this->decal_cap = 1;
         this->decal_count = 1;
@@ -96,7 +96,7 @@ void cell_add_decal(Cell *this, Decal *t) {
 
     if (this->decal_count == this->decal_cap) {
         this->decal_cap += 8;
-        this->decals = safe_realloc(this->decals, this->decal_cap * sizeof(Decal *));
+        this->decals = Realloc(this->decals, this->decal_cap * sizeof(Decal *));
     }
 
     this->decals[this->decal_count] = t;

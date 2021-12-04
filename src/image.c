@@ -4,23 +4,24 @@
 
 #include "image.h"
 
-Image *new_image(i32 width, i32 height, u8 *pixels) {
-    Image *image = safe_malloc(sizeof(Image));
+Image *NewImage(char name[16], u8 *pixels, i32 width, i32 height) {
+    Image *image = Calloc(1, sizeof(Image));
+    int n = 0;
+    while (n < 16 && name[n] != '\0') {
+        image->name[n] = name[n];
+        n++;
+    }
+    image->name[n] = '\0';
+    image->pixels = pixels;
     image->width = width;
     image->height = height;
-    image->pixels = pixels;
     return image;
 }
 
-void image_delete(Image *this) {
-    free(this->pixels);
-    free(this);
-}
-
-ImageFile *read_image_file(String *content) {
-    MaybeWad maybe_wad = wad_parse(content);
+Image *ImageRead(String *string) {
+    MaybeWad maybe_wad = wad_parse(string);
     if (maybe_wad.error != NULL) {
-        fprintf(stderr, maybe_wad.error);
+        fprintf(stderr, "%s\n", maybe_wad.error);
         exit(1);
     }
     Wad *wad = maybe_wad.wad;
@@ -31,25 +32,22 @@ ImageFile *read_image_file(String *content) {
     if (wad_has(wad, "transparency")) {
         transparency = wad_get_int(wad_get_from_object(wad, "transparency"));
     }
-    WadArray *pixels = wad_get_array(wad_get_from_object(wad, "pixels"));
-    u8 *out = safe_malloc(width * height);
+    WadArray *data = wad_get_array(wad_get_from_object(wad, "pixels"));
+    u8 *pixels = Malloc(width * height);
     for (int h = 0; h < height; h++) {
         int row = h * height;
         for (int c = 0; c < width; c++) {
             int i = c + row;
-            int p = wad_get_int(array_get(pixels, i));
-            out[i] = p == transparency ? UINT8_MAX : (u8)p;
+            int p = wad_get_int(array_get(data, i));
+            pixels[i] = p == transparency ? UINT8_MAX : (u8)p;
         }
     }
-    Image *image = new_image(width, height, out);
-    ImageFile *file = safe_calloc(1, sizeof(ImageFile));
-    file->name = string_copy(name);
-    file->image = image;
+    Image *image = NewImage(name, pixels, width, height);
     wad_delete(wad);
-    return file;
+    return image;
 }
 
-void image_file_delete(ImageFile *this) {
-    free(this->name);
-    free(this);
+void ImageFree(Image *image) {
+    Free(image->pixels);
+    Free(image);
 }

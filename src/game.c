@@ -4,43 +4,43 @@
 
 #include "game.h"
 
-Game *new_game(Canvas *canvas, Hymn *vm, Input *input, Resources *resources) {
-    Game *this = safe_calloc(1, sizeof(Game));
-    this->state.canvas = canvas;
+Game *new_game(Hymn *vm, Input *input) {
+    Game *this = Calloc(1, sizeof(Game));
     this->state.vm = vm;
     this->state.input = input;
-    this->state.resources = resources;
     this->state.update = game_update;
     this->state.draw = game_draw;
     this->world = new_world();
     this->camera = new_camera(8.0);
-    u32 *palette = safe_calloc(256, sizeof(u32));
-    palette[0] = 0xffffff;
-    palette[1] = 0xff0000;
-    palette[2] = 0x00ff00;
-    palette[3] = 0x0000ff;
-    this->palette = palette;
     return this;
 }
 
-static int texture(Resources *resources, String *name) {
+static int texture(String *name) {
     if (strcmp(name, "none")) {
         return -1;
     }
-    return resources_image_name_to_index(resources, name);
+    return ResourceImageIndex(name);
 }
 
 void game_open(Game *this, String *content) {
+    printf("game open...\n");
+
     World *world = this->world;
-    Resources *resources = this->state.resources;
 
     // ...
 
     // String *tiles_string = cat("pack/paint/tiles.wad");
     // ImageFile *tiles = read_image_file(tiles_string);
     // string_delete(tiles_string);
-    // resources_add_image(resources, tiles->name, tiles->image);
+    // ResourceAddImage(resources, tiles->name, tiles->image);
     // image_file_delete(tiles); // fix table, need to copy string...
+
+    String *font_string = Read("pack/paint/tic_80_wide_font.wad");
+    Image *font_image = ImageRead(font_string);
+    ResourceAddImage(font_image);
+    // Wad *font_wad = wad_parse(font_string).wad;
+    // wad_delete(font_wad);
+    string_delete(font_string);
 
     // ...
 
@@ -48,7 +48,7 @@ void game_open(Game *this, String *content) {
 
     MaybeWad parse = wad_parse(content);
     if (parse.error) {
-        fprintf(stderr, parse.error);
+        fprintf(stderr, "%s\n", parse.error);
         exit(1);
     }
     Wad *wad = parse.wad;
@@ -83,11 +83,11 @@ void game_open(Game *this, String *content) {
         Wad *sector = ((Wad *)map_sectors->items[i]);
         float floor = wad_get_float(wad_get_from_object(sector, "f"));
         float ceiling = wad_get_float(wad_get_from_object(sector, "c"));
-        int floor_image = texture(resources, wad_get_string(wad_get_from_object(sector, "b")));
-        int ceiling_image = texture(resources, wad_get_string(wad_get_from_object(sector, "t")));
+        int floor_image = texture(wad_get_string(wad_get_from_object(sector, "b")));
+        int ceiling_image = texture(wad_get_string(wad_get_from_object(sector, "t")));
         WadArray *line_pointers = wad_get_array(wad_get_from_object(sector, "w"));
         int line_count = (int)array_size(line_pointers);
-        Line **sector_lines = safe_calloc(line_count, sizeof(Line *));
+        Line **sector_lines = Calloc(line_count, sizeof(Line *));
         for (int d = 0; d < line_count; d++) {
             sector_lines[d] = array_get(lines, wad_get_int((Wad *)line_pointers->items[d]));
         }
@@ -117,6 +117,8 @@ void game_open(Game *this, String *content) {
 
     array_delete(vecs);
     wad_delete(wad);
+
+    printf("done game open...\n");
 }
 
 void game_update(void *state) {
@@ -173,11 +175,15 @@ void game_update(void *state) {
 }
 
 void game_draw(void *state) {
-    Game *this = (Game *)state;
-    draw_world(this);
-    hymn_call(this->state.vm, "draw", 0);
+    Game *game = (Game *)state;
+    draw_world(game);
+    hymn_call(game->state.vm, "draw", 0);
+
+    Image *font = ResourceImageSearch("TIC80WIDE");
+
+    CanvasImage(font, 15, 15);
 }
 
 void game_delete(Game *this) {
-    free(this);
+    Free(this);
 }

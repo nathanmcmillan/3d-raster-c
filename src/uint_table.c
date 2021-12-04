@@ -19,10 +19,10 @@ usize uint_table_address_hashcode(unsigned int key) {
 }
 
 UIntTable *new_uint_table() {
-    UIntTable *this = safe_malloc(sizeof(UIntTable));
+    UIntTable *this = Malloc(sizeof(UIntTable));
     this->size = 0;
     this->bins = INITIAL_BINS;
-    this->items = safe_calloc(this->bins, sizeof(UIntTableItem *));
+    this->items = Calloc(this->bins, sizeof(UIntTableItem *));
     return this;
 }
 
@@ -43,7 +43,7 @@ static void resize(UIntTable *this) {
     }
 
     UIntTableItem **old_items = this->items;
-    UIntTableItem **items = safe_calloc(bins, sizeof(UIntTableItem *));
+    UIntTableItem **items = Calloc(bins, sizeof(UIntTableItem *));
 
     for (unsigned int i = 0; i < old_bins; i++) {
         UIntTableItem *item = old_items[i];
@@ -88,7 +88,7 @@ static void resize(UIntTable *this) {
         }
     }
 
-    free(old_items);
+    Free(old_items);
 
     this->bins = bins;
     this->items = items;
@@ -107,7 +107,7 @@ void uint_table_put(UIntTable *this, unsigned int key, void *value) {
         previous = item;
         item = item->next;
     }
-    item = safe_malloc(sizeof(UIntTableItem));
+    item = Malloc(sizeof(UIntTableItem));
     item->hash = hash;
     item->key = key;
     item->value = value;
@@ -167,7 +167,7 @@ void uint_table_clear(UIntTable *this) {
         UIntTableItem *item = this->items[i];
         while (item != NULL) {
             UIntTableItem *next = item->next;
-            free(item);
+            Free(item);
             item = next;
         }
         this->items[i] = NULL;
@@ -189,12 +189,12 @@ unsigned int uint_table_size(UIntTable *this) {
 
 void uint_table_release(UIntTable *this) {
     uint_table_clear(this);
-    free(this->items);
+    Free(this->items);
 }
 
 void uint_table_delete(UIntTable *this) {
     uint_table_release(this);
-    free(this);
+    Free(this);
 }
 
 UIntTableIter new_uint_table_iterator(UIntTable *this) {

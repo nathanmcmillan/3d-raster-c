@@ -5,7 +5,7 @@
 #include "sector.h"
 
 Line *new_line(int id, Vec *a, Vec *b, int bottom, int middle, int top) {
-    Line *line = safe_calloc(1, sizeof(Line));
+    Line *line = Calloc(1, sizeof(Line));
     line->id = id;
     line->a = a;
     line->b = b;

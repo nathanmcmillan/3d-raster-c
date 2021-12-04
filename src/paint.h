@@ -7,7 +7,7 @@
 
 #include "state.h"
 
-Paint *new_paint(Canvas *canvas, Input *input, Resources *resources);
+Paint *new_paint(Input *input);
 void paint_update(void *state);
 void paint_draw(void *state);
 void paint_delete(Paint *this);

@@ -5,10 +5,10 @@
 #include "sector.h"
 
 Sector *new_sector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image) {
-    Sector *s = safe_calloc(1, sizeof(Sector));
+    Sector *s = Calloc(1, sizeof(Sector));
     s->id = id;
     int vec_count = line_count - 1;
-    s->vecs = safe_calloc(vec_count, sizeof(Vec *));
+    s->vecs = Calloc(vec_count, sizeof(Vec *));
     s->vec_count = vec_count;
     for (int v = 0; v < vec_count; v++) {
         s->vecs[v] = lines[v]->a;
@@ -30,7 +30,7 @@ bool sector_contains(Sector *this, float x, float y) {
     for (int v = 0; v < count; v++) {
         Vec *a = vecs[v];
         Vec *b = vecs[n];
-        if (a->y > y != b->y > y) {
+        if ((a->y > y) != (b->y > y)) {
             float value = (b->x - a->x) * (y - a->y) / (b->y - a->y) + a->x;
             if (x < value) {
                 odd = !odd;
@@ -71,9 +71,9 @@ bool sector_has_ceiling(Sector *this) {
 
 void sector_add_inside(Sector *this, Sector *inside) {
     if (this->inside_count == 0) {
-        this->inside = safe_malloc(sizeof(Sector *));
+        this->inside = Malloc(sizeof(Sector *));
     } else {
-        this->inside = safe_realloc(this->inside, (this->inside_count + 1) * sizeof(Sector *));
+        this->inside = Realloc(this->inside, (this->inside_count + 1) * sizeof(Sector *));
     }
     this->inside[this->inside_count] = inside;
     this->inside_count++;
@@ -146,7 +146,7 @@ void sector_inside_outside(Sector **sectors, int sector_count) {
         }
         if (inside_count != sector->inside_count) {
             sector->inside_count = inside_count;
-            sector->inside = safe_realloc(sector->inside, inside_count * sizeof(Sector *));
+            sector->inside = Realloc(sector->inside, inside_count * sizeof(Sector *));
         }
         for (int i = 0; i < inside_count; i++) {
             sector->inside[i]->outside = sector;
@@ -190,9 +190,9 @@ bool sector_has_neighbor(Sector *sector, Sector *other) {
 
 void sector_add_neighbor(Sector *this, Sector *neighbor) {
     if (this->neighbor_count == 0) {
-        this->neighbors = safe_malloc(sizeof(Sector *));
+        this->neighbors = Malloc(sizeof(Sector *));
     } else {
-        this->neighbors = safe_realloc(this->neighbors, (this->neighbor_count + 1) * sizeof(Sector *));
+        this->neighbors = Realloc(this->neighbors, (this->neighbor_count + 1) * sizeof(Sector *));
     }
     this->neighbors[this->neighbor_count] = neighbor;
     this->neighbor_count++;

@@ -10,24 +10,19 @@
 #include "wad.h"
 
 typedef struct Image Image;
-typedef struct ImageFile ImageFile;
 
 struct Image {
+    char name[16];
+    u8 *pixels;
+    // sprites
     i32 width;
     i32 height;
-    u8 *pixels;
 };
 
-struct ImageFile {
-    char *name;
-    Image *image;
-    // sprites;
-};
+Image *NewImage(char name[16], u8 *pixels, i32 width, i32 height);
 
-Image *new_image();
-void image_delete(Image *this);
+Image *ImageRead(String *string);
 
-ImageFile *read_image_file(String *content);
-void image_file_delete(ImageFile *this);
+void ImageFree(Image *image);
 
 #endif

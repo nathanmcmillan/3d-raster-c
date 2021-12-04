@@ -5,7 +5,7 @@
 #include "world.h"
 
 World *new_world() {
-    return safe_calloc(1, sizeof(World));
+    return Calloc(1, sizeof(World));
 }
 
 int world_cell(float f) {
@@ -17,20 +17,20 @@ float world_float_cell(float f) {
 }
 
 void world_clear(World *world) {
-    free(world->sectors_visited);
-    free(world->lines_visited);
+    Free(world->sectors_visited);
+    Free(world->lines_visited);
 }
 
 void world_add_thing(World *this, Thing *t) {
     if (this->thing_cap == 0) {
-        this->things = safe_malloc(sizeof(Thing *));
+        this->things = Malloc(sizeof(Thing *));
         this->things[0] = t;
         this->thing_cap = 1;
         this->thing_count = 1;
     } else {
         if (this->thing_count == this->thing_cap) {
             this->thing_cap += 8;
-            this->things = safe_realloc(this->things, this->thing_cap * sizeof(Thing *));
+            this->things = Realloc(this->things, this->thing_cap * sizeof(Thing *));
         }
         this->things[this->thing_count] = t;
         this->thing_count++;
@@ -51,14 +51,14 @@ void world_remove_thing(World *this, Thing *t) {
 
 void world_add_particle(World *this, Particle *t) {
     if (this->particle_cap == 0) {
-        this->particles = safe_malloc(sizeof(Particle *));
+        this->particles = Malloc(sizeof(Particle *));
         this->particles[0] = t;
         this->particle_cap = 1;
         this->particle_count = 1;
     } else {
         if (this->particle_count == this->particle_cap) {
             this->particle_cap += 8;
-            this->particles = safe_realloc(this->particles, this->particle_cap * sizeof(Particle *));
+            this->particles = Realloc(this->particles, this->particle_cap * sizeof(Particle *));
         }
         this->particles[this->particle_count] = t;
         this->particle_count++;
@@ -79,14 +79,14 @@ void world_remove_particle(World *this, Particle *t) {
 
 void world_add_decal(World *this, Decal *t) {
     if (this->decal_cap == 0) {
-        this->decals = safe_malloc(sizeof(Decal *));
+        this->decals = Malloc(sizeof(Decal *));
         this->decals[0] = t;
         this->decal_cap = 1;
         this->decal_count = 1;
     } else {
         if (this->decal_count == this->decal_cap) {
             this->decal_cap += 8;
-            this->decals = safe_realloc(this->decals, this->decal_cap * sizeof(Decal *));
+            this->decals = Realloc(this->decals, this->decal_cap * sizeof(Decal *));
         }
         this->decals[this->decal_count] = t;
         this->decal_count++;
@@ -107,14 +107,14 @@ void world_remove_decal(World *this, Decal *t) {
 
 void world_add_sector(World *this, Sector *s) {
     if (this->sector_cap == 0) {
-        this->sectors = safe_malloc(sizeof(Sector *));
+        this->sectors = Malloc(sizeof(Sector *));
         this->sectors[0] = s;
         this->sector_cap = 1;
         this->sector_count = 1;
     } else {
         if (this->sector_count == this->sector_cap) {
             this->sector_cap += 8;
-            this->sectors = safe_realloc(this->sectors, this->sector_cap * sizeof(Sector *));
+            this->sectors = Realloc(this->sectors, this->sector_cap * sizeof(Sector *));
         }
         this->sectors[this->sector_count] = s;
         this->sector_count++;
@@ -186,6 +186,7 @@ static void world_build_cell_lines(World *this, Line *line) {
 }
 
 void world_build(World *this, Array *lines) {
+    printf("building world...\n");
     this->lines = (Line **)array_copy_items(lines);
     this->line_count = (int)array_size(lines);
     float top = 0.0f;
@@ -210,7 +211,7 @@ void world_build(World *this, Array *lines) {
     this->rows = (int)ceil(top / size);
     this->columns = (int)ceil(right / size);
     this->cell_count = this->rows * this->columns;
-    this->cells = safe_calloc(this->cell_count, sizeof(Cell));
+    this->cells = Calloc(this->cell_count, sizeof(Cell));
     sector_inside_outside(this->sectors, this->sector_count);
     sector_neighbors(this->sectors, this->sector_count, this->lines, this->line_count);
     for (int i = 0; i < this->line_count; i++) {
@@ -218,6 +219,7 @@ void world_build(World *this, Array *lines) {
     }
     this->sectors_visited = calloc(sector_count, sizeof(u32));
     this->lines_visited = calloc(this->line_count, sizeof(u32));
+    printf("done building world...\n");
 }
 
 void world_update(World *world) {
@@ -243,5 +245,5 @@ void world_update(World *world) {
 
 void world_delete(World *world) {
     world_clear(world);
-    free(world);
+    Free(world);
 }

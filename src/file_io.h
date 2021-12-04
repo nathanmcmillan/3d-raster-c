@@ -17,7 +17,7 @@
 
 usize file_size(char *path);
 usize file_binary_size(char *path);
-String *cat(char *path);
+String *Read(char *path);
 void core_write(char *path, char *content);
 char *read_binary(char *path, usize *size_pointer);
 

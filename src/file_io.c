@@ -34,20 +34,20 @@ usize file_binary_size(char *path) {
     return num;
 }
 
-String *cat(char *path) {
+String *Read(char *path) {
     usize size = file_size(path);
     FILE *fp = fopen(path, "r");
     if (fp == NULL) {
         fprintf(stderr, "Could not open file: %s", path);
         exit(1);
     }
-    char *content = safe_malloc((size + 1) * sizeof(char));
+    char *content = Malloc((size + 1) * sizeof(char));
     for (usize i = 0; i < size; i++) {
         content[i] = (char)fgetc(fp);
     }
     fclose(fp);
     String *s = new_string_with_length(content, size);
-    free(content);
+    Free(content);
     return s;
 }
 
@@ -68,7 +68,7 @@ char *read_binary(char *path, usize *size_pointer) {
         fprintf(stderr, "Could not open file: %s", path);
         exit(1);
     }
-    char *content = safe_malloc(size * sizeof(char));
+    char *content = Malloc(size * sizeof(char));
     for (usize i = 0; i < size; i++) {
         content[i] = (char)fgetc(fp);
     }

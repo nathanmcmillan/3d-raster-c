@@ -5,7 +5,7 @@
 #include "camera.h"
 
 Camera *new_camera(float radius) {
-    Camera *c = safe_calloc(1, sizeof(Camera));
+    Camera *c = Calloc(1, sizeof(Camera));
     c->radius = radius;
     return c;
 }

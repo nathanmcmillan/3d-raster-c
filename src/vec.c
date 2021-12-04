@@ -5,14 +5,14 @@
 #include "vec.h"
 
 Vec *new_vec(float x, float y) {
-    Vec *v = safe_malloc(sizeof(Vec));
+    Vec *v = Malloc(sizeof(Vec));
     v->x = x;
     v->y = y;
     return v;
 }
 
 Vec *vec_copy(Vec *with) {
-    Vec *v = safe_malloc(sizeof(Vec));
+    Vec *v = Malloc(sizeof(Vec));
     v->x = with->x;
     v->y = with->y;
     return v;

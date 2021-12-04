@@ -4,55 +4,43 @@
 
 #include "resources.h"
 
-Resources *new_resources() {
-    Resources *assets = safe_calloc(1, sizeof(Resources));
-    assets->image_table = new_string_table();
-    return assets;
+static Image **IMAGES = NULL;
+static int IMAGE_COUNT = 0;
+static int IMAGE_CAPACITY = 0;
+
+void ResourceAddImage(Image *image) {
+    if (IMAGE_CAPACITY == 0) {
+        IMAGES = Malloc(sizeof(Image *));
+        IMAGE_CAPACITY = 1;
+    } else if (IMAGE_COUNT == IMAGE_CAPACITY) {
+        IMAGE_CAPACITY += 8;
+        IMAGES = Realloc(IMAGES, IMAGE_CAPACITY * sizeof(Image *));
+    }
+    IMAGES[IMAGE_COUNT] = image;
+    IMAGE_COUNT++;
 }
 
-void resources_add_image(Resources *this, char *name, Image *paint) {
-    if (this->image_capacity == 0) {
-        this->images = safe_malloc(sizeof(Image *));
-        this->images[0] = paint;
-        this->image_capacity = 1;
-        this->image_count = 1;
-    } else {
-        if (this->image_count == this->image_capacity) {
-            this->image_capacity += 8;
-            this->images = safe_realloc(this->images, this->image_capacity * sizeof(Image *));
+Image *ResourceImage(int index) {
+    return IMAGES[index];
+}
+
+int ResourceImageIndex(char *name) {
+    for (int i = 0; i < IMAGE_COUNT; i++) {
+        if (strcmp(IMAGES[i]->name, name) == 0) {
+            return i;
         }
-        this->images[this->image_count] = paint;
-        this->image_count++;
     }
-    printf("WWW..\n");
-    int *index = safe_malloc(sizeof(int));
-    index[0] = this->image_count - 1;
-    table_put(this->image_table, name, index);
-    printf("FFF..\n");
+    return -1;
 }
 
-int resources_image_name_to_index(Resources *this, char *name) {
-    int *index = table_get(this->image_table, name);
-    if (index == NULL) {
-        return -1;
-    }
-    return index[0];
-}
-
-Image *resources_image_get(Resources *this, int index) {
-    return this->images[index];
-}
-
-Image *resources_image_find(Resources *this, char *name) {
-    int *index = table_get(this->image_table, name);
-    if (index == NULL) {
+Image *ResourceImageSearch(char *name) {
+    int index = ResourceImageIndex(name);
+    if (index == -1) {
         return NULL;
     }
-    return this->images[index[0]];
+    return IMAGES[index];
 }
 
-void resources_delete(Resources *this) {
-    free(this->images);
-    table_delete(this->image_table);
-    free(this);
+void ResourceFree() {
+    Free(IMAGES);
 }

@@ -5,21 +5,21 @@
 #include "wad.h"
 
 Wad *new_wad_object() {
-    Wad *e = safe_calloc(1, sizeof(Wad));
+    Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_OBJECT;
     e->value.object = new_string_table();
     return e;
 }
 
 Wad *new_wad_array() {
-    Wad *e = safe_calloc(1, sizeof(Wad));
+    Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_ARRAY;
     e->value.array = new_array(0);
     return e;
 }
 
 Wad *new_wad_string(String *value) {
-    Wad *e = safe_calloc(1, sizeof(Wad));
+    Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_STRING;
     e->value.str = string_copy(value);
     return e;
@@ -136,27 +136,32 @@ void wad_delete(Wad *element) {
     case WAD_ARRAY: array_delete(wad_get_array(element)); break;
     case WAD_STRING: string_delete(wad_get_string(element)); break;
     }
-    free(element);
+    Free(element);
 }
 
-static usize skip_space(String *str, usize i) {
+static usize skip_space(String *s, usize i) {
+    usize len = string_len(s);
+    if (i + 1 >= len) {
+        fprintf(stderr, "Wad error at index %zu, for: %s", i, s);
+        exit(1);
+    }
     i++;
-    char c = str[i];
+    char c = s[i];
     if (c != '\n' and c != ' ') {
         return i - 1;
     }
-    usize len = string_len(str);
     do {
         i++;
         if (i == len) {
             return i;
         }
-        c = str[i];
+        c = s[i];
     } while (c == '\n' or c == ' ');
     return i - 1;
 }
 
 MaybeWad wad_parse(String *input) {
+    printf("parsing wad...\n");
     Wad *wad = new_wad_object();
 
     Array *stack = new_array(0);
@@ -202,12 +207,12 @@ MaybeWad wad_parse(String *input) {
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
                 array_push(wad_get_array(head), map);
-                parsing_key = true;
             } else {
                 wad_add_to_object(head, key, map);
                 string_zero(key);
             }
             array_insert(stack, 0, map);
+            parsing_key = true;
             pc = c;
             i = skip_space(input, i);
         } else if (c == '[') {
@@ -256,8 +261,9 @@ MaybeWad wad_parse(String *input) {
             i = skip_space(input, i);
         } else if (c == '"') {
             i++;
-            if (i == len)
+            if (i == len) {
                 break;
+            }
             char e = input[i];
             while (i < len) {
                 if (e == '"' or e == '\n') {
@@ -290,6 +296,7 @@ MaybeWad wad_parse(String *input) {
     string_delete(key);
     string_delete(value);
 
+    printf("done parsing wad...\n");
     return (MaybeWad){wad, NULL};
 }
 
@@ -304,7 +311,7 @@ String *wad_to_string(Wad *element) {
             String *in = wad_to_string(pair.value);
             str = string_append(str, pair.key);
             if (in[0] != '[' and in[0] != '{') {
-                str = string_append_char(str, '=');
+                str = string_append_char(str, ':');
             }
             str = string_append(str, in);
             if (table_iterator_has_next(&iter)) {

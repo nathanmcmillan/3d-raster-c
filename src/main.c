@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#define SDL_MAIN_HANDLED
+
 #include <SDL.h>
 
 #include <inttypes.h>
@@ -30,7 +32,6 @@ struct Window {
     SDL_Window *window;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
-    Canvas *canvas;
 };
 
 struct Main {
@@ -42,12 +43,9 @@ struct Main {
     State *state;
 };
 
-static const int SCREEN_WIDTH = 640;
-static const int SCREEN_HEIGHT = 400;
-
 static bool run = true;
 
-static void window_init(SDL_Window **win, SDL_Renderer **ren) {
+static void WindowInit(SDL_Window **win, SDL_Renderer **ren) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         fprintf(stderr, "Could not initialize SDL: %s\n", SDL_GetError());
         exit(1);
@@ -132,30 +130,25 @@ static void poll_events(Input *in) {
     }
 }
 
-static void main_load(Main *game) {
-    String *font_string = cat("pack/paint/tic_80_wide_font.wad");
-    Wad *font_wad = wad_parse(font_string).wad;
-    wad_delete(font_wad);
-    string_delete(font_string);
-
-    String *map = cat("pack/maps/home.wad");
+static void MainLoad(Main *game) {
+    // String *map = Read("pack/maps/base.wad");
+    String *map = Read("pack/maps/home.wad");
     game_open(game->game, map);
     string_delete(map);
 
     char *error = hymn_call(game->vm, "load", 0);
     if (error != NULL) {
-        fprintf(stderr, error);
-        fflush(stderr);
+        fprintf(stderr, "%s\n", error);
         exit(1);
     }
 }
 
-static void window_update(Window *win) {
-    SDL_UpdateTexture(win->texture, NULL, win->canvas->pixels, win->canvas->width * sizeof(u32));
+static void WindowUpdate(Window *win) {
+    SDL_UpdateTexture(win->texture, NULL, PIXELS, SCREEN_WIDTH * sizeof(u32));
     SDL_RenderCopy(win->renderer, win->texture, NULL, NULL);
 }
 
-static void main_loop(Main *game) {
+static void MainLoop(Main *game) {
     Window *win = game->win;
     SDL_Renderer *renderer = win->renderer;
 
@@ -167,7 +160,7 @@ static void main_loop(Main *game) {
         game->state->update(game->state);
         game->state->draw(game->state);
 
-        window_update(win);
+        WindowUpdate(win);
 
         sleeping(time);
         SDL_RenderPresent(renderer);
@@ -176,12 +169,11 @@ static void main_loop(Main *game) {
     }
 }
 
-static void main_delete(Main *game) {
+static void MainFree(Main *game) {
     hymn_delete(game->vm);
-    free(game->win->canvas->pixels);
-    free(game->win->canvas);
-    free(game->win);
-    free(game);
+    CanvasFree();
+    Free(game->win);
+    Free(game);
 }
 
 static void switch_state(Main *game, void *state) {
@@ -201,19 +193,21 @@ static HymnValue read_file(Hymn *this, int count, HymnValue *arguments) {
         return hymn_new_none();
     }
     HymnString *string = hymn_as_string(arguments[0]);
-    HymnString *content = cat(string);
+    HymnString *content = Read(string);
     HymnObjectString *object = hymn_new_string_object(content);
     return hymn_new_string_value(object);
 }
 
 int main(int argc, char **argv) {
-    (int)argc;
-    (void *)argv;
+    (void)argc;
+    (void)argv;
 
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
 
-    window_init(&window, &renderer);
+    CanvasInit(640, 400);
+
+    WindowInit(&window, &renderer);
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -222,13 +216,10 @@ int main(int argc, char **argv) {
     u32 pixel_format = SDL_PIXELFORMAT_ARGB8888;
     SDL_Texture *texture = SDL_CreateTexture(renderer, pixel_format, SDL_TEXTUREACCESS_STREAMING, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    Canvas *canvas = new_canvas(SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    Window *win = safe_calloc(1, sizeof(Window));
+    Window *win = Calloc(1, sizeof(Window));
     win->window = window;
     win->renderer = renderer;
     win->texture = texture;
-    win->canvas = canvas;
 
     Hymn *vm = new_hymn();
 
@@ -241,23 +232,20 @@ int main(int argc, char **argv) {
     }
 
     hymn_add_function(vm, "read_file", read_file);
-    hymn_add_function(vm, "graphics_rect", canvas_rectangle_vm);
-    hymn_add_pointer(vm, "canvas", canvas);
+    hymn_add_function(vm, "graphics_rect", CanvasRectangleHymn);
 
-    Resources *assets = new_resources();
-
-    Main *game = safe_calloc(sizeof(Main), 1);
+    Main *game = Calloc(sizeof(Main), 1);
     game->win = win;
     game->vm = vm;
-    game->game = new_game(canvas, game->vm, &game->input, assets);
-    game->paint = new_paint(canvas, &game->input, assets);
+    game->game = new_game(game->vm, &game->input);
+    game->paint = new_paint(&game->input);
     switch_state(game, game->game);
 
-    main_load(game);
+    MainLoad(game);
 
     SDL_StartTextInput();
 
-    main_loop(game);
+    MainLoop(game);
 
     SDL_StopTextInput();
     SDL_DestroyTexture(texture);
@@ -265,11 +253,10 @@ int main(int argc, char **argv) {
     SDL_DestroyWindow(window);
     SDL_Quit();
 
-    main_delete(game);
-    resources_delete(assets);
+    MainFree(game);
+    ResourceFree();
 
     printf("exiting...\n");
-    fflush(stdout);
 
     return 0;
 }

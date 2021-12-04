@@ -5,15 +5,16 @@
 #ifndef MEM_H
 #define MEM_H
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "super.h"
 
-void *safe_malloc(usize size);
-void *safe_calloc(usize members, usize member_size);
-void *safe_realloc(void *mem, usize size);
-void *safe_box(void *stack_struct, usize size);
+void *Malloc(usize size);
+void *Calloc(usize members, usize member_size);
+void *Realloc(void *mem, usize size);
+void Free(void *mem);
 
 #endif

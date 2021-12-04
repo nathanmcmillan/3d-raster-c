@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "Set.h"
+#include "set.h"
 
 static const float LOAD_FACTOR = 0.80f;
 
@@ -33,12 +33,12 @@ usize set_address_hashcode(void *key) {
 }
 
 Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
-    Set *this = safe_malloc(sizeof(Set));
+    Set *this = Malloc(sizeof(Set));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
     this->size = 0;
     this->bins = INITIAL_BINS;
-    this->items = safe_calloc(this->bins, sizeof(SetItem *));
+    this->items = Calloc(this->bins, sizeof(SetItem *));
     return this;
 }
 
@@ -63,7 +63,7 @@ static void resize(Set *this) {
     }
 
     SetItem **old_items = this->items;
-    SetItem **items = safe_calloc(bins, sizeof(SetItem *));
+    SetItem **items = Calloc(bins, sizeof(SetItem *));
 
     for (unsigned int i = 0; i < old_bins; i++) {
         SetItem *item = old_items[i];
@@ -108,7 +108,7 @@ static void resize(Set *this) {
         }
     }
 
-    free(old_items);
+    Free(old_items);
 
     this->bins = bins;
     this->items = items;
@@ -126,7 +126,7 @@ void set_add(Set *this, void *key) {
         previous = item;
         item = item->next;
     }
-    item = safe_malloc(sizeof(SetItem));
+    item = Malloc(sizeof(SetItem));
     item->hash = hash;
     item->key = key;
     item->next = NULL;
@@ -180,7 +180,7 @@ void set_clear(Set *this) {
         SetItem *item = this->items[i];
         while (item != NULL) {
             SetItem *next = item->next;
-            free(item);
+            Free(item);
             item = next;
         }
         this->items[i] = NULL;
@@ -202,12 +202,12 @@ unsigned int set_size(Set *this) {
 
 void set_release(Set *this) {
     set_clear(this);
-    free(this->items);
+    Free(this->items);
 }
 
 void set_delete(Set *this) {
     set_release(this);
-    free(this);
+    Free(this);
 }
 
 SetIterator new_set_iterator(Set *this) {

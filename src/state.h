@@ -28,10 +28,8 @@ typedef struct Game Game;
 typedef struct Paint Paint;
 
 struct State {
-    Canvas *canvas;
     Hymn *vm;
     Input *input;
-    Resources *resources;
     void (*update)(void *);
     void (*draw)(void *);
 };
@@ -41,7 +39,6 @@ struct Game {
     World *world;
     Camera *camera;
     Thing *hero;
-    u32 *palette;
 };
 
 struct Paint {

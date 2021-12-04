@@ -10,7 +10,6 @@ use "texture"
 
 let game = {}
 
-let canvas = none
 let graphics_rect = none
 
 let tic = none
@@ -39,5 +38,5 @@ function update()
 end
 
 function draw()
-  graphics_rect(canvas, rgb(255, 0, 255), x, 60, x + 32, 92)
+  graphics_rect(rgb(255, 0, 255), x, 60, x + 32, 92)
 end

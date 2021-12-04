@@ -33,12 +33,12 @@ usize table_address_hashcode(void *key) {
 }
 
 Table *new_table(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
-    Table *this = safe_malloc(sizeof(Table));
+    Table *this = Malloc(sizeof(Table));
     this->equals_fn = equals_fn;
     this->hashcode_fn = hashcode_fn;
     this->size = 0;
     this->bins = INITIAL_BINS;
-    this->items = safe_calloc(this->bins, sizeof(TableItem *));
+    this->items = Calloc(this->bins, sizeof(TableItem *));
     return this;
 }
 
@@ -67,7 +67,7 @@ static void resize(Table *this) {
     }
 
     TableItem **old_items = this->items;
-    TableItem **items = safe_calloc(bins, sizeof(TableItem *));
+    TableItem **items = Calloc(bins, sizeof(TableItem *));
 
     for (unsigned int i = 0; i < old_bins; i++) {
         TableItem *item = old_items[i];
@@ -112,7 +112,7 @@ static void resize(Table *this) {
         }
     }
 
-    free(old_items);
+    Free(old_items);
 
     this->bins = bins;
     this->items = items;
@@ -131,7 +131,7 @@ void table_put(Table *this, void *key, void *value) {
         previous = item;
         item = item->next;
     }
-    item = safe_malloc(sizeof(TableItem));
+    item = Malloc(sizeof(TableItem));
     item->hash = hash;
     item->key = key;
     item->value = value;
@@ -192,7 +192,7 @@ void table_clear(Table *this) {
         TableItem *item = this->items[i];
         while (item != NULL) {
             TableItem *next = item->next;
-            free(item);
+            Free(item);
             item = next;
         }
         this->items[i] = NULL;
@@ -214,12 +214,12 @@ unsigned int table_size(Table *this) {
 
 void table_release(Table *this) {
     table_clear(this);
-    free(this->items);
+    Free(this->items);
 }
 
 void table_delete(Table *this) {
     table_release(this);
-    free(this);
+    Free(this);
 }
 
 TableIter new_table_iterator(Table *this) {

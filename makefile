@@ -7,7 +7,7 @@ DEPENDENCY = $(patsubst %.o,%.d,$(OBJECTS))
 
 INCLUDE = -Isrc
 
-COMPILER_FLAGS = -Wall -Wextra -Werror -pedantic -std=c11 $(INCLUDE)
+COMPILER_FLAGS = -Wall -Wextra -Werror -pedantic -Wno-unused-function -std=c11 $(INCLUDE)
 LINKER_FLAGS = -lSDL2
 LIBS = -lm
 PREFIX =
@@ -18,7 +18,7 @@ ifneq ($(shell uname), Linux)
 	COMPILER_FLAGS += -Wno-nullability-extension -Wno-deprecated-declarations
 endif
 
-.PHONY: all analysis address valgrind clean test list-source list-objects
+.PHONY: all analysis address valgrind clean
 
 all: $(NAME)
 

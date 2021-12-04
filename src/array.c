@@ -12,7 +12,7 @@ void array_init_with_capacity(Array *this, usize length, usize capacity) {
     if (capacity == 0) {
         this->items = NULL;
     } else {
-        this->items = safe_calloc(capacity, sizeof(void *));
+        this->items = Calloc(capacity, sizeof(void *));
     }
     this->length = length;
     this->capacity = capacity;
@@ -23,7 +23,7 @@ void array_init(Array *this, usize length) {
 }
 
 Array *new_array_with_capacity(usize length, usize capacity) {
-    Array *this = safe_malloc(sizeof(Array));
+    Array *this = Malloc(sizeof(Array));
     array_init_with_capacity(this, length, capacity);
     return this;
 }
@@ -33,7 +33,7 @@ Array *new_array(usize length) {
 }
 
 Array *new_array_with_items(usize length, usize capacity, void **items) {
-    Array *this = safe_malloc(sizeof(Array));
+    Array *this = Malloc(sizeof(Array));
     this->items = items;
     this->length = length;
     this->capacity = capacity;
@@ -42,13 +42,13 @@ Array *new_array_with_items(usize length, usize capacity, void **items) {
 
 void **array_copy_items(Array *this) {
     usize size = this->length * sizeof(void *);
-    void **copy = safe_malloc(size);
+    void **copy = Malloc(size);
     memcpy(copy, this->items, size);
     return copy;
 }
 
 Array *new_array_copy(Array *from) {
-    Array *this = safe_malloc(sizeof(Array));
+    Array *this = Malloc(sizeof(Array));
     this->items = array_copy_items(from);
     this->length = from->length;
     this->capacity = from->length;
@@ -59,10 +59,10 @@ static void update_capacity(Array *this, usize length) {
     if (length > this->capacity) {
         if (this->capacity == 0) {
             this->capacity = length;
-            this->items = safe_calloc(length, sizeof(void *));
+            this->items = Calloc(length, sizeof(void *));
         } else {
             this->capacity = length * 2;
-            this->items = safe_realloc(this->items, this->capacity * sizeof(void *));
+            this->items = Realloc(this->items, this->capacity * sizeof(void *));
             memset(this->items + this->length, 0, this->capacity - this->length);
         }
     }
@@ -168,10 +168,10 @@ usize array_size(Array *this) {
 }
 
 void array_release(Array *this) {
-    free(this->items);
+    Free(this->items);
 }
 
 void array_delete(Array *this) {
     array_release(this);
-    free(this);
+    Free(this);
 }

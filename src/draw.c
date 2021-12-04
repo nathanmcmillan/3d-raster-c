@@ -54,18 +54,17 @@ Vec intersect(float x1, float y1, float x2, float y2, float x3, float y3, float 
     };
 }
 
-void draw_vertical_line(i32 width, i32 height, u32 *pixels, i32 x, i32 y1, i32 y2, u32 top, u32 middle, u32 bottom) {
-    height--;
-    y1 = clamp32(y1, 0, height);
-    y2 = clamp32(y2, 0, height);
+void draw_vertical_line(i32 x, i32 y1, i32 y2, u32 top, u32 middle, u32 bottom) {
+    y1 = clamp32(y1, 0, SCREEN_HEIGHT - 1);
+    y2 = clamp32(y2, 0, SCREEN_HEIGHT - 1);
     if (y2 == y1) {
-        pixels[y1 * width + x] = middle;
+        PIXELS[y1 * SCREEN_WIDTH + x] = middle;
     } else if (y2 > y1) {
-        pixels[y1 * width + x] = top;
+        PIXELS[y1 * SCREEN_WIDTH + x] = top;
         for (i32 y = y1 + 1; y < y2; y++) {
-            pixels[y * width + x] = middle;
+            PIXELS[y * SCREEN_WIDTH + x] = middle;
         }
-        pixels[y2 * width + x] = bottom;
+        PIXELS[y2 * SCREEN_WIDTH + x] = bottom;
     }
 }
 
@@ -92,43 +91,37 @@ static int scaler_next(struct Scaler *i) {
     return i->result;
 }
 
-void draw_vertical_line_image(i32 width, i32 height, u32 *pixels, i32 x, i32 y1, i32 y2, Scaler scaler, i32 txtx, Image *image, u32 *palette) {
-    height--;
-    y1 = clamp32(y1, 0, height);
-    y2 = clamp32(y2, 0, height);
-    pixels += y1 * width + x;
+void draw_vertical_line_image(i32 x, i32 y1, i32 y2, Scaler scaler, i32 txtx, Image *image, u32 *palette) {
+    y1 = clamp32(y1, 0, SCREEN_HEIGHT - 1);
+    y2 = clamp32(y2, 0, SCREEN_HEIGHT - 1);
+    u32 *pixels = PIXELS + (y1 * SCREEN_WIDTH + x);
     i32 image_width = image->width;
     for (i32 y = y1; y <= y2; y++) {
         i32 txty = scaler_next(&scaler);
         *pixels = palette[image->pixels[txtx % image_width + (txty % image_width) * image_width]];
-        pixels += width;
+        pixels += SCREEN_WIDTH;
     }
 }
 
 #define YAW(y, z) (y + z * camera_look)
 
 void draw_world(Game *game) {
-    Canvas *canvas = game->state.canvas;
-    i32 width = canvas->width;
-    i32 height = canvas->height;
-    u32 *pixels = canvas->pixels;
-
-    i32 width_half = width / 2;
-    i32 height_half = height / 2;
+    i32 width_half = SCREEN_WIDTH / 2;
+    i32 height_half = SCREEN_HEIGHT / 2;
 
     World *world = game->world;
     Camera *camera = game->camera;
 
-    canvas_clear(canvas);
+    CanvasClear();
 
-    canvas_rectangle(canvas, rgb(255, 255, 0), 10, 60, 42, 92);
+    CanvasRectangle(rgb(255, 255, 0), 10, 60, 42, 92);
 
     // float perspective[16];
     // float view[16];
     // float projection[16];
 
     // float fov = 60.0f;
-    // float ratio = (float)width / (float)height;
+    // float ratio = (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT;
     // float near = 0.01f;
     // float far = 100.0f;
 
@@ -144,17 +137,17 @@ void draw_world(Game *game) {
     Sector *find = world_find_sector(world, camera_x, camera_z);
     if (find) game->camera->sector = find;
 
-    float horizontal_fov = 0.73f * (float)width;
-    float vertical_fov = 0.2f * (float)width;
+    float horizontal_fov = 0.73f * (float)SCREEN_WIDTH;
+    float vertical_fov = 0.2f * (float)SCREEN_WIDTH;
 
     const float near_z = 1e-4f;
     const float far_z = 5.0f;
     const float near_side = 1e-5f;
     const float far_side = 20.0f;
 
-    RenderY *remaining = safe_calloc(width, sizeof(RenderY));
-    for (i32 i = 0; i < width; i++) {
-        remaining[i].bottom = height - 1;
+    RenderY *remaining = Calloc(SCREEN_WIDTH, sizeof(RenderY));
+    for (i32 i = 0; i < SCREEN_WIDTH; i++) {
+        remaining[i].bottom = SCREEN_HEIGHT - 1;
     }
 
 #define QUEUE_COUNT 32
@@ -166,7 +159,7 @@ void draw_world(Game *game) {
     Visit *head = queue + 1;
     Visit *tail = queue;
 
-    *tail = (Visit){camera->sector, 0, width - 1};
+    *tail = (Visit){camera->sector, 0, SCREEN_WIDTH - 1};
     while (true) {
         Visit current = *tail;
         Sector *sector = current.sector;
@@ -261,19 +254,19 @@ void draw_world(Game *game) {
                 i32 cya = clamp32(ya, remaining[x].top, remaining[x].bottom);
                 i32 yb = (x - x1) * (y2b - y1b) / (x2 - x1) + y1b;
                 i32 cyb = clamp32(yb, remaining[x].top, remaining[x].bottom);
-                draw_vertical_line(width, height, pixels, x, remaining[x].top, cya - 1, 0x111111, 0x222222, 0x111111);
-                draw_vertical_line(width, height, pixels, x, cyb + 1, remaining[x].bottom, 0x0000ff, 0x0000aa, 0x0000ff);
+                draw_vertical_line(x, remaining[x].top, cya - 1, 0x111111, 0x222222, 0x111111);
+                draw_vertical_line(x, cyb + 1, remaining[x].bottom, 0x0000ff, 0x0000aa, 0x0000ff);
                 if (neighbor != NULL) {
                     i32 nya = (x - x1) * (ny2a - ny1a) / (x2 - x1) + ny1a;
                     i32 cnya = clamp32(nya, remaining[x].top, remaining[x].bottom);
                     i32 nyb = (x - x1) * (ny2b - ny1b) / (x2 - x1) + ny1b;
                     i32 cnyb = clamp32(nyb, remaining[x].top, remaining[x].bottom);
-                    remaining[x].top = clamp32(max32(cya, cnya), remaining[x].top, height - 1);
+                    remaining[x].top = clamp32(max32(cya, cnya), remaining[x].top, SCREEN_HEIGHT - 1);
                     remaining[x].bottom = clamp32(min32(cyb, cnyb), 0, remaining[x].bottom);
-                    draw_vertical_line(width, height, pixels, x, cya, cnya - 1, 0, x == x1 || x == x2 ? 0 : 0x010101, 0);
-                    draw_vertical_line(width, height, pixels, x, cnyb + 1, cyb, 0, x == x1 || x == x2 ? 0 : 0x040007, 0);
+                    draw_vertical_line(x, cya, cnya - 1, 0, x == x1 || x == x2 ? 0 : 0x010101, 0);
+                    draw_vertical_line(x, cnyb + 1, cyb, 0, x == x1 || x == x2 ? 0 : 0x040007, 0);
                 } else {
-                    draw_vertical_line(width, height, pixels, x, cya, cyb, 0, x == x1 || x == x2 ? 0 : 0xaaaaaa, 0);
+                    draw_vertical_line(x, cya, cyb, 0, x == x1 || x == x2 ? 0 : 0xaaaaaa, 0);
                 }
             }
             // schedule neighbor for rendering

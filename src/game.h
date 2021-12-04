@@ -8,7 +8,7 @@
 #include "draw.h"
 #include "state.h"
 
-Game *new_game(Canvas *canvas, Hymn *vm, Input *input, Resources *resources);
+Game *new_game(Hymn *vm, Input *input);
 void game_open(Game *this, String *content);
 void game_update(void *state);
 void game_draw(void *state);

@@ -4,35 +4,33 @@
 
 #include "mem.h"
 
-void *safe_malloc(usize size) {
+void *Malloc(usize size) {
     void *mem = malloc(size);
-    if (mem) {
+    if (mem != NULL) {
         return mem;
     }
-    fprintf(stderr, "malloc failed.\n");
+    fprintf(stderr, "Malloc failed.\n");
     exit(1);
 }
 
-void *safe_calloc(usize members, usize member_size) {
+void *Calloc(usize members, usize member_size) {
     void *mem = calloc(members, member_size);
-    if (mem) {
+    if (mem != NULL) {
         return mem;
     }
-    fprintf(stderr, "calloc failed.\n");
+    fprintf(stderr, "Calloc failed.\n");
     exit(1);
 }
 
-void *safe_realloc(void *mem, usize size) {
+void *Realloc(void *mem, usize size) {
     mem = realloc(mem, size);
-    if (mem) {
+    if (mem != NULL) {
         return mem;
     }
-    fprintf(stderr, "realloc failed.\n");
+    fprintf(stderr, "Realloc failed.\n");
     exit(1);
 }
 
-void *safe_box(void *stack_struct, usize size) {
-    void *mem = safe_malloc(size);
-    memcpy(mem, stack_struct, size);
-    return mem;
+void Free(void *mem) {
+    free(mem);
 }

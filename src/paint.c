@@ -4,11 +4,9 @@
 
 #include "paint.h"
 
-Paint *new_paint(Canvas *canvas, Input *input, Resources *resources) {
-    Paint *this = safe_calloc(1, sizeof(Paint));
-    this->state.canvas = canvas;
+Paint *new_paint(Input *input) {
+    Paint *this = Calloc(1, sizeof(Paint));
     this->state.input = input;
-    this->state.resources = resources;
     this->state.update = paint_update;
     this->state.draw = paint_draw;
     return this;
@@ -16,14 +14,14 @@ Paint *new_paint(Canvas *canvas, Input *input, Resources *resources) {
 
 void paint_update(void *state) {
     Paint *this = (Paint *)state;
-    (void *)this;
+    (void)this;
 }
 
 void paint_draw(void *state) {
     Paint *this = (Paint *)state;
-    (void *)this;
+    (void)this;
 }
 
 void paint_delete(Paint *this) {
-    free(this);
+    Free(this);
 }
