@@ -41,7 +41,7 @@ String *string_copy(String *this);
 
 usize string_len(String *this);
 usize string_cap(String *this);
-void string_delete(String *this);
+void StringFree(String *this);
 
 String *string_concat(String *a, String *b);
 String *string_concat_list(String **list, int size);

@@ -109,7 +109,7 @@ void *array_find(Array *this, bool(find)(void *, void *), void *has) {
     return NULL;
 }
 
-void *array_get(Array *this, usize index) {
+void *ArrayGet(Array *this, usize index) {
     if (index >= this->length) {
         return NULL;
     }

@@ -11,9 +11,6 @@
 #include "super.h"
 #include "table.h"
 
-typedef Table WadObject;
-typedef Array WadArray;
-
 typedef struct Wad Wad;
 typedef struct MaybeWad MaybeWad;
 
@@ -24,9 +21,9 @@ enum WadType {
 };
 
 union WadUnion {
-    WadObject *object;
-    WadArray *array;
-    String *str;
+    Table *object;
+    Array *array;
+    String *string;
 };
 
 struct Wad {
@@ -39,32 +36,35 @@ struct MaybeWad {
     char *error;
 };
 
-Wad *new_wad_object();
-Wad *new_wad_array();
-Wad *new_wad_string(String *value);
+Wad *NewWadTable();
+Wad *NewWadArray();
+Wad *NewWadString(String *value);
 
-WadObject *wad_get_object(Wad *element);
-bool wad_has(Wad *element, char *key);
-WadArray *wad_get_array(Wad *element);
-String *wad_get_string(Wad *element);
-int wad_get_int(Wad *element);
-float wad_get_float(Wad *element);
-bool wad_get_bool(Wad *element);
+bool WadHas(Wad *element, char *key);
 
-void wad_add_to_object(Wad *element, char *key, Wad *value);
-Wad *wad_get_from_object(Wad *object, char *key);
-Wad *wad_get_required_from_object(Wad *object, char *key);
-String *wad_get_string_from_object(Wad *object, char *key);
-WadArray *wad_get_array_from_object(Wad *object, char *key);
-Wad *wad_get_from_array(Wad *array, unsigned int index);
-Wad *wad_get_required_from_array(Wad *array, unsigned int index);
-TableIter wad_object_iterator(Wad *object);
-usize wad_get_size(Wad *element);
+Table *WadAsTable(Wad *element);
+Array *WadAsArray(Wad *element);
+String *WadAsString(Wad *element);
+i32 WadAsInt(Wad *element);
+float WadAsFloat(Wad *element);
+bool WadAsBool(Wad *element);
 
-void wad_delete(Wad *element);
+void WadAddToTable(Wad *element, char *key, Wad *value);
 
-MaybeWad wad_parse(String *str);
+Wad *WadGetFromTable(Wad *object, char *key);
+Wad *WadGetFromArray(Wad *array, unsigned int index);
 
-String *wad_to_string(Wad *element);
+i32 WadGetIntFromTable(Wad *object, char *key);
+float WadGetFloatFromTable(Wad *object, char *key);
+String *WadGetStringFromTable(Wad *object, char *key);
+Array *WadGetArrayFromTable(Wad *object, char *key);
+
+usize WadSize(Wad *element);
+
+void WadFree(Wad *element);
+
+MaybeWad WadParse(String *str);
+
+String *WadToString(Wad *element);
 
 #endif

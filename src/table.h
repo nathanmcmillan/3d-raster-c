@@ -42,9 +42,9 @@ Table *new_table(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)
 Table *new_string_table();
 Table *new_pointer_table();
 
-void table_put(Table *this, void *key, void *value);
-void *table_get(Table *this, void *key);
-bool table_has(Table *this, void *key);
+void TablePut(Table *this, void *key, void *value);
+void *TableGet(Table *this, void *key);
+bool TableHas(Table *this, void *key);
 
 void *table_remove(Table *this, void *key);
 void table_clear(Table *this);

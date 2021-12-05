@@ -5,13 +5,45 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "draw.h"
-#include "state.h"
+#include <math.h>
 
-Game *new_game(Hymn *vm, Input *input);
-void game_open(Game *this, String *content);
-void game_update(void *state);
-void game_draw(void *state);
-void game_delete(Game *this);
+#include "camera.h"
+#include "canvas.h"
+#include "draw.h"
+#include "hymn.h"
+#include "image.h"
+#include "input.h"
+#include "matrix.h"
+#include "mem.h"
+#include "resources.h"
+#include "string_util.h"
+#include "super.h"
+#include "vec.h"
+#include "wad.h"
+#include "world.h"
+
+enum Mode {
+    MODE_GAME,
+    MODE_PAINT,
+};
+
+extern Hymn *VM;
+
+extern Input INPUT;
+
+extern World *WORLD;
+extern Camera *CAMERA;
+extern Thing *PLAYER;
+
+extern enum Mode MODE;
+
+void GameInit();
+void GameOpen(String *content);
+void GameTick();
+void GameFree();
+
+void PaintInit();
+void PaintTick();
+void PaintFree();
 
 #endif

@@ -9,11 +9,11 @@
 #include <math.h>
 
 #include "array.h"
+#include "image.h"
 #include "math_util.h"
 #include "mem.h"
 #include "sector.h"
 #include "set.h"
-#include "sprite.h"
 #include "super.h"
 #include "world.h"
 

@@ -33,13 +33,13 @@ void thing_add_to_cells(Thing *this) {
 
 bool thing_collision(Thing *this, Thing *b) {
     float block = this->box + b->box;
-    return !(fabs(this->x - b->x) > block or fabs(this->z - b->z) > block);
+    return !(fabs(this->x - b->x) > block || fabs(this->z - b->z) > block);
 }
 
 void thing_resolve_collision(Thing *this, Thing *b) {
     float block = this->box + b->box;
 
-    if (fabs(this->x - b->x) > block or fabs(this->z - b->z) > block)
+    if (fabs(this->x - b->x) > block || fabs(this->z - b->z) > block)
         return;
 
     if (fabs(this->previous_x - b->x) > fabs(this->previous_z - b->z)) {
@@ -94,7 +94,7 @@ void thing_line_collision(Thing *this, Line *ld) {
     if (ld->side_front.middle != LINE_NO_SIDE) {
         collision = true;
     } else {
-        if (this->y + this->height > ld->front->ceiling or this->y + 1.0f < ld->front->floor) {
+        if (this->y + this->height > ld->front->ceiling || this->y + 1.0f < ld->front->floor) {
             collision = true;
         }
     }
@@ -143,7 +143,7 @@ void thing_standard_update(Thing *this) {
         this->dz *= RESISTANCE;
     }
 
-    if (FLOAT_NOT_ZERO(this->dx) or FLOAT_NOT_ZERO(this->dz)) {
+    if (FLOAT_NOT_ZERO(this->dx) || FLOAT_NOT_ZERO(this->dz)) {
         this->previous_x = this->x;
         this->previous_z = this->z;
 
@@ -214,7 +214,7 @@ void thing_standard_update(Thing *this) {
         thing_add_to_cells(this);
     }
 
-    if (this->ground == false or FLOAT_NOT_ZERO(this->dy)) {
+    if (this->ground == false || FLOAT_NOT_ZERO(this->dy)) {
         this->dy -= GRAVITY;
         this->y += this->dy;
 

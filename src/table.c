@@ -118,13 +118,13 @@ static void resize(Table *this) {
     this->items = items;
 }
 
-void table_put(Table *this, void *key, void *value) {
+void TablePut(Table *this, void *key, void *value) {
     usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     TableItem *item = this->items[bin];
     TableItem *previous = NULL;
     while (item != NULL) {
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             item->value = value;
             return;
         }
@@ -147,12 +147,12 @@ void table_put(Table *this, void *key, void *value) {
     }
 }
 
-void *table_get(Table *this, void *key) {
+void *TableGet(Table *this, void *key) {
     usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     TableItem *item = this->items[bin];
     while (item != NULL) {
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             return item->value;
         }
         item = item->next;
@@ -160,8 +160,8 @@ void *table_get(Table *this, void *key) {
     return NULL;
 }
 
-bool table_has(Table *this, void *key) {
-    return table_get(this, key) != NULL;
+bool TableHas(Table *this, void *key) {
+    return TableGet(this, key) != NULL;
 }
 
 void *table_remove(Table *this, void *key) {
@@ -171,7 +171,7 @@ void *table_remove(Table *this, void *key) {
     TableItem *previous = NULL;
     while (item != NULL) {
         // FIXME: free item
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             if (previous == NULL) {
                 this->items[bin] = item->next;
             } else {

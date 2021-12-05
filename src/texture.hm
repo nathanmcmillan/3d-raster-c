@@ -7,7 +7,7 @@ function load_texture(wad)
   let width = int(wad_get(wad, "columns"))
   let height = int(wad_get(wad, "rows"))
   let transparency = 0
-  if wad_has(wad, "transparency") transparency = int(wad_get(wad, "transparency")) end
+  if WadHas(wad, "transparency") transparency = int(wad_get(wad, "transparency")) end
   let data = wad_get(wad, "pixels")
   let pixels = []
   for h = 0, h < height

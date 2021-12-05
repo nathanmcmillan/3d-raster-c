@@ -105,12 +105,12 @@ void draw_vertical_line_image(i32 x, i32 y1, i32 y2, Scaler scaler, i32 txtx, Im
 
 #define YAW(y, z) (y + z * camera_look)
 
-void draw_world(Game *game) {
-    i32 width_half = SCREEN_WIDTH / 2;
-    i32 height_half = SCREEN_HEIGHT / 2;
+void DrawWorld() {
+    i32 screen_width_half = SCREEN_WIDTH / 2;
+    i32 screen_height_half = SCREEN_HEIGHT / 2;
 
-    World *world = game->world;
-    Camera *camera = game->camera;
+    World *world = WORLD;
+    Camera *camera = CAMERA;
 
     CanvasClear();
 
@@ -135,7 +135,7 @@ void draw_world(Game *game) {
     float camera_cos = cosf(camera->angle);
 
     Sector *find = world_find_sector(world, camera_x, camera_z);
-    if (find) game->camera->sector = find;
+    if (find) camera->sector = find;
 
     float horizontal_fov = 0.73f * (float)SCREEN_WIDTH;
     float vertical_fov = 0.2f * (float)SCREEN_WIDTH;
@@ -214,10 +214,10 @@ void draw_world(Game *game) {
             // perspective transformation
             float xscale1 = horizontal_fov / tz1;
             float yscale1 = vertical_fov / tz1;
-            i32 x1 = width_half - (i32)(tx1 * xscale1);
+            i32 x1 = screen_width_half - (i32)(tx1 * xscale1);
             float xscale2 = horizontal_fov / tz2;
             float yscale2 = vertical_fov / tz2;
-            i32 x2 = width_half - (i32)(tx2 * xscale2);
+            i32 x2 = screen_width_half - (i32)(tx2 * xscale2);
             // is visible
             if (x1 >= x2 || x2 < current.sx1 || x1 > current.sx2) {
                 continue;
@@ -238,14 +238,14 @@ void draw_world(Game *game) {
                 nyfloor = neighbor->floor - camera_y;
             }
             // project floor and ceiling to screen coordinates
-            i32 y1a = height_half - (i32)(YAW(yceil, tz1) * yscale1);
-            i32 y1b = height_half - (i32)(YAW(yfloor, tz1) * yscale1);
-            i32 y2a = height_half - (i32)(YAW(yceil, tz2) * yscale2);
-            i32 y2b = height_half - (i32)(YAW(yfloor, tz2) * yscale2);
-            i32 ny1a = height_half - (i32)(YAW(nyceil, tz1) * yscale1);
-            i32 ny1b = height_half - (i32)(YAW(nyfloor, tz1) * yscale1);
-            i32 ny2a = height_half - (i32)(YAW(nyceil, tz2) * yscale2);
-            i32 ny2b = height_half - (i32)(YAW(nyfloor, tz2) * yscale2);
+            i32 y1a = screen_height_half - (i32)(YAW(yceil, tz1) * yscale1);
+            i32 y1b = screen_height_half - (i32)(YAW(yfloor, tz1) * yscale1);
+            i32 y2a = screen_height_half - (i32)(YAW(yceil, tz2) * yscale2);
+            i32 y2b = screen_height_half - (i32)(YAW(yfloor, tz2) * yscale2);
+            i32 ny1a = screen_height_half - (i32)(YAW(nyceil, tz1) * yscale1);
+            i32 ny1b = screen_height_half - (i32)(YAW(nyfloor, tz1) * yscale1);
+            i32 ny2a = screen_height_half - (i32)(YAW(nyceil, tz2) * yscale2);
+            i32 ny2b = screen_height_half - (i32)(YAW(nyfloor, tz2) * yscale2);
             // render
             i32 beginx = max32(x1, current.sx1);
             i32 endx = min32(x2, current.sx2);

@@ -57,7 +57,7 @@ usize string_cap(String *this) {
     return head->capacity;
 }
 
-void string_delete(String *this) {
+void StringFree(String *this) {
     if (this == NULL) {
         return;
     }

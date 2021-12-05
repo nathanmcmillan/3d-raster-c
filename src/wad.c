@@ -4,137 +4,121 @@
 
 #include "wad.h"
 
-Wad *new_wad_object() {
+Wad *NewWadTable() {
     Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_OBJECT;
     e->value.object = new_string_table();
     return e;
 }
 
-Wad *new_wad_array() {
+Wad *NewWadArray() {
     Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_ARRAY;
     e->value.array = new_array(0);
     return e;
 }
 
-Wad *new_wad_string(String *value) {
+Wad *NewWadString(String *value) {
     Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_STRING;
-    e->value.str = string_copy(value);
+    e->value.string = string_copy(value);
     return e;
 }
 
-WadObject *wad_get_object(Wad *element) {
+Table *WadAsTable(Wad *element) {
     if (element == NULL) {
         return NULL;
     }
     return element->value.object;
 }
 
-bool wad_has(Wad *element, char *key) {
+bool WadHas(Wad *element, char *key) {
     if (element == NULL) {
         return false;
     }
-    return table_has(wad_get_object(element), key);
+    return TableHas(element->value.object, key);
 }
 
-WadArray *wad_get_array(Wad *element) {
+Array *WadAsArray(Wad *element) {
     if (element == NULL) {
         return NULL;
     }
     return element->value.array;
 }
 
-String *wad_get_string(Wad *element) {
+String *WadAsString(Wad *element) {
     if (element == NULL) {
         return NULL;
     }
-    return element->value.str;
+    return element->value.string;
 }
 
-int wad_get_int(Wad *element) {
+i32 WadAsInt(Wad *element) {
     if (element == NULL) {
         return 0;
     }
-    String *str = element->value.str;
-    return string_to_int32(str);
+    String *string = element->value.string;
+    return string_to_int32(string);
 }
 
-float wad_get_float(Wad *element) {
+float WadAsFloat(Wad *element) {
     if (element == NULL) {
         return 0.0f;
     }
-    String *str = element->value.str;
-    return string_to_float(str);
+    String *string = element->value.string;
+    return string_to_float(string);
 }
 
-bool wad_get_bool(Wad *element) {
+bool WadAsBool(Wad *element) {
     if (element == NULL) {
         return false;
     }
-    String *str = element->value.str;
-    return string_to_bool(str);
+    String *string = element->value.string;
+    return string_to_bool(string);
 }
 
-void wad_add_to_object(Wad *object, char *key, Wad *value) {
-    table_put(wad_get_object(object), new_string(key), value);
+void WadAddToTable(Wad *object, char *key, Wad *value) {
+    TablePut(WadAsTable(object), new_string(key), value);
 }
 
-Wad *wad_get_from_object(Wad *object, char *key) {
-    return table_get(wad_get_object(object), key);
+Wad *WadGetFromTable(Wad *object, char *key) {
+    return TableGet(WadAsTable(object), key);
 }
 
-Wad *wad_get_required_from_object(Wad *object, char *key) {
-    Wad *element = wad_get_from_object(object, key);
-    if (element == NULL) {
-        fprintf(stderr, "Error: Wad key \"%s\" not found: %s\n", key, wad_to_string(object));
-        exit(1);
-    }
-    return element;
+Wad *WadGetFromArray(Wad *array, unsigned int index) {
+    return ArrayGet(WadAsArray(array), index);
 }
 
-String *wad_get_string_from_object(Wad *object, char *key) {
-    Wad *element = table_get(wad_get_object(object), key);
-    return wad_get_string(element);
+i32 WadGetIntFromTable(Wad *object, char *key) {
+    return WadAsInt(WadGetFromTable(object, key));
 }
 
-WadArray *wad_get_array_from_object(Wad *object, char *key) {
-    Wad *element = table_get(wad_get_object(object), key);
-    return wad_get_array(element);
+float WadGetFloatFromTable(Wad *object, char *key) {
+    return WadAsFloat(WadGetFromTable(object, key));
 }
 
-Wad *wad_get_from_array(Wad *array, unsigned int index) {
-    return array_get(wad_get_array(array), index);
+String *WadGetStringFromTable(Wad *object, char *key) {
+    return WadAsString(WadGetFromTable(object, key));
 }
 
-Wad *wad_get_required_from_array(Wad *array, unsigned int index) {
-    Wad *element = wad_get_from_array(array, index);
-    if (element == NULL) {
-        fprintf(stderr, "Error: Wad index %d not found: %s\n", index, wad_to_string(array));
-        exit(1);
-    }
-    return element;
+Array *WadGetArrayFromTable(Wad *object, char *key) {
+    return WadAsArray(WadGetFromTable(object, key));
 }
 
-TableIter wad_object_iterator(Wad *object) {
-    return new_table_iterator(wad_get_object(object));
-}
-
-usize wad_get_size(Wad *element) {
+usize WadSize(Wad *element) {
     switch (element->type) {
-    case WAD_OBJECT: return table_size(wad_get_object(element));
-    case WAD_ARRAY: return array_size(wad_get_array(element));
-    case WAD_STRING: return string_len(wad_get_string(element));
+    case WAD_OBJECT: return table_size(WadAsTable(element));
+    case WAD_ARRAY: return array_size(WadAsArray(element));
+    case WAD_STRING: return string_len(WadAsString(element));
     }
     return 0;
 }
 
-void wad_delete(Wad *element) {
+void WadFree(Wad *element) {
     switch (element->type) {
-    case WAD_OBJECT: table_delete(wad_get_object(element)); break;
-    case WAD_ARRAY: array_delete(wad_get_array(element)); break;
-    case WAD_STRING: string_delete(wad_get_string(element)); break;
+    case WAD_OBJECT: table_delete(WadAsTable(element)); break;
+    case WAD_ARRAY: array_delete(WadAsArray(element)); break;
+    case WAD_STRING: StringFree(WadAsString(element)); break;
     }
     Free(element);
 }
@@ -147,7 +131,7 @@ static usize skip_space(String *s, usize i) {
     }
     i++;
     char c = s[i];
-    if (c != '\n' and c != ' ') {
+    if (c != '\n' && c != ' ') {
         return i - 1;
     }
     do {
@@ -156,13 +140,13 @@ static usize skip_space(String *s, usize i) {
             return i;
         }
         c = s[i];
-    } while (c == '\n' or c == ' ');
+    } while (c == '\n' || c == ' ');
     return i - 1;
 }
 
-MaybeWad wad_parse(String *input) {
+MaybeWad WadParse(String *input) {
     printf("parsing wad...\n");
-    Wad *wad = new_wad_object();
+    Wad *wad = NewWadTable();
 
     Array *stack = new_array(0);
     array_push(stack, wad);
@@ -180,17 +164,17 @@ MaybeWad wad_parse(String *input) {
         if (c == '#') {
             pc = c;
             i++;
-            while (i < len and input[i] != '\n') {
+            while (i < len && input[i] != '\n') {
                 i++;
             }
-        } else if (c == '\n' or c == ' ') {
-            if (!parsing_key and pc != '}' and pc != ']') {
+        } else if (c == '\n' || c == ' ') {
+            if (!parsing_key && pc != '}' && pc != ']') {
                 Wad *head = stack->items[0];
-                Wad *child = new_wad_string(value);
+                Wad *child = NewWadString(value);
                 if (head->type == WAD_ARRAY) {
-                    array_push(wad_get_array(head), child);
+                    array_push(WadAsArray(head), child);
                 } else {
-                    wad_add_to_object(head, key, child);
+                    WadAddToTable(head, key, child);
                     string_zero(key);
                     parsing_key = true;
                 }
@@ -203,12 +187,12 @@ MaybeWad wad_parse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == '{') {
-            Wad *map = new_wad_object();
+            Wad *map = NewWadTable();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
-                array_push(wad_get_array(head), map);
+                array_push(WadAsArray(head), map);
             } else {
-                wad_add_to_object(head, key, map);
+                WadAddToTable(head, key, map);
                 string_zero(key);
             }
             array_insert(stack, 0, map);
@@ -216,12 +200,12 @@ MaybeWad wad_parse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == '[') {
-            Wad *ls = new_wad_array();
+            Wad *ls = NewWadArray();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
-                array_push(wad_get_array(head), ls);
+                array_push(WadAsArray(head), ls);
             } else {
-                wad_add_to_object(head, key, ls);
+                WadAddToTable(head, key, ls);
                 string_zero(key);
             }
             array_insert(stack, 0, ls);
@@ -229,9 +213,9 @@ MaybeWad wad_parse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == '}') {
-            if (pc != ' ' and pc != ']' and pc != '{' and pc != '}' and pc != '\n') {
+            if (pc != ' ' && pc != ']' && pc != '{' && pc != '}' && pc != '\n') {
                 Wad *head = stack->items[0];
-                wad_add_to_object(head, key, new_wad_string(value));
+                WadAddToTable(head, key, NewWadString(value));
                 string_zero(key);
                 string_zero(value);
             }
@@ -245,9 +229,9 @@ MaybeWad wad_parse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == ']') {
-            if (pc != ' ' and pc != '}' and pc != '[' and pc != ']' and pc != '\n') {
+            if (pc != ' ' && pc != '}' && pc != '[' && pc != ']' && pc != '\n') {
                 Wad *head = stack->items[0];
-                array_push(wad_get_array(head), new_wad_string(value));
+                array_push(WadAsArray(head), NewWadString(value));
                 string_zero(value);
             }
             array_remove_index(stack, 0);
@@ -266,9 +250,9 @@ MaybeWad wad_parse(String *input) {
             }
             char e = input[i];
             while (i < len) {
-                if (e == '"' or e == '\n') {
+                if (e == '"' || e == '\n') {
                     break;
-                } else if (e == '\\' and i + 1 < len and input[i + 1] == '"') {
+                } else if (e == '\\' && i + 1 < len && input[i + 1] == '"') {
                     value = string_append_char(value, '"');
                     i += 2;
                     e = input[i];
@@ -288,56 +272,56 @@ MaybeWad wad_parse(String *input) {
         }
     }
 
-    if (pc != ' ' and pc != ']' and pc != '}' and pc != '\n') {
+    if (pc != ' ' && pc != ']' && pc != '}' && pc != '\n') {
         Wad *head = stack->items[0];
-        wad_add_to_object(head, key, new_wad_string(value));
+        WadAddToTable(head, key, NewWadString(value));
     }
 
-    string_delete(key);
-    string_delete(value);
+    StringFree(key);
+    StringFree(value);
 
     printf("done parsing wad...\n");
     return (MaybeWad){wad, NULL};
 }
 
-String *wad_to_string(Wad *element) {
+String *WadToString(Wad *element) {
     switch (element->type) {
     case WAD_OBJECT: {
-        WadObject *map = wad_get_object(element);
-        String *str = new_string("{");
+        Table *map = WadAsTable(element);
+        String *string = new_string("{");
         TableIter iter = new_table_iterator(map);
         while (table_iterator_has_next(&iter)) {
             TablePair pair = table_iterator_next(&iter);
-            String *in = wad_to_string(pair.value);
-            str = string_append(str, pair.key);
-            if (in[0] != '[' and in[0] != '{') {
-                str = string_append_char(str, ':');
+            String *in = WadToString(pair.value);
+            string = string_append(string, pair.key);
+            if (in[0] != '[' && in[0] != '{') {
+                string = string_append_char(string, ':');
             }
-            str = string_append(str, in);
+            string = string_append(string, in);
             if (table_iterator_has_next(&iter)) {
-                str = string_append_char(str, ' ');
+                string = string_append_char(string, ' ');
             }
-            string_delete(in);
+            StringFree(in);
         }
-        str = string_append_char(str, '}');
-        return str;
+        string = string_append_char(string, '}');
+        return string;
     }
     case WAD_ARRAY: {
-        WadArray *ls = wad_get_array(element);
-        String *str = new_string("[");
+        Array *ls = WadAsArray(element);
+        String *string = new_string("[");
         usize len = ls->length;
         for (usize i = 0; i < len; i++) {
-            String *in = wad_to_string(ls->items[i]);
-            str = string_append(str, in);
+            String *in = WadToString(ls->items[i]);
+            string = string_append(string, in);
             if (i < len - 1) {
-                str = string_append_char(str, ' ');
+                string = string_append_char(string, ' ');
             }
-            string_delete(in);
+            StringFree(in);
         }
-        str = string_append_char(str, ']');
-        return str;
+        string = string_append_char(string, ']');
+        return string;
     }
-    case WAD_STRING: return string_copy(wad_get_string(element));
+    case WAD_STRING: return string_copy(WadAsString(element));
     }
     return NULL;
 }

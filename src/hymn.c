@@ -1174,7 +1174,7 @@ static void table_resize(HymnTable *this) {
     this->items = items;
 }
 
-static HymnValue table_put(HymnTable *this, HymnObjectString *key, HymnValue value) {
+static HymnValue TablePut(HymnTable *this, HymnObjectString *key, HymnValue value) {
     unsigned int bin = table_get_bin(this, key->hash);
     HymnTableItem *item = this->items[bin];
     HymnTableItem *previous = NULL;
@@ -1203,7 +1203,7 @@ static HymnValue table_put(HymnTable *this, HymnObjectString *key, HymnValue val
     return hymn_new_undefined();
 }
 
-static HymnValue table_get(HymnTable *this, HymnObjectString *key) {
+static HymnValue TableGet(HymnTable *this, HymnObjectString *key) {
     unsigned int bin = table_get_bin(this, key->hash);
     HymnTableItem *item = this->items[bin];
     while (item != NULL) {
@@ -2018,7 +2018,7 @@ static void array_insert(HymnArray *this, int64_t index, HymnValue value) {
     items[index] = value;
 }
 
-static HymnValue array_get(HymnArray *this, int64_t index) {
+static HymnValue ArrayGet(HymnArray *this, int64_t index) {
     if (index >= this->length) {
         return hymn_new_undefined();
     }
@@ -2080,7 +2080,7 @@ static HymnTable *new_table_copy(HymnTable *from) {
     for (unsigned int i = 0; i < bins; i++) {
         HymnTableItem *item = from->items[i];
         while (item != NULL) {
-            table_put(this, item->key, item->value);
+            TablePut(this, item->key, item->value);
             reference_string(item->key);
             reference(item->value);
             item = item->next;
@@ -3948,7 +3948,7 @@ static HymnString *value_to_string_recusive(HymnValue value, struct PointerSet *
             if (i != 0) {
                 string = hymn_string_append(string, ", ");
             }
-            HymnValue item = table_get(table, keys[i]);
+            HymnValue item = TableGet(table, keys[i]);
             HymnString *add = value_to_string_recusive(item, set, true);
             string = string_append_format(string, "%s: %s", keys[i]->string, add);
             hymn_string_delete(add);
@@ -4395,7 +4395,7 @@ static HymnFrame *machine_import(Hymn *H, HymnObjectString *file) {
         hymn_string_delete(path);
         hymn_string_delete(replace);
 
-        if (!hymn_is_undefined(table_get(imports, use))) {
+        if (!hymn_is_undefined(TableGet(imports, use))) {
             dereference_string(H, use);
             if (parent) hymn_string_delete(parent);
             return current_frame(H);
@@ -4441,7 +4441,7 @@ static HymnFrame *machine_import(Hymn *H, HymnObjectString *file) {
         hymn_string_delete(parent);
     }
 
-    table_put(imports, module, hymn_new_bool(true));
+    TablePut(imports, module, hymn_new_bool(true));
 
     HymnString *source = hymn_read_file(module->string);
 
@@ -5295,7 +5295,7 @@ dispatch:
     case OP_DEFINE_GLOBAL: {
         HymnObjectString *name = hymn_as_hymn_string(READ_CONSTANT(frame));
         HymnValue value = pop(H);
-        HymnValue previous = table_put(&H->globals, name, value);
+        HymnValue previous = TablePut(&H->globals, name, value);
         if (!hymn_is_undefined(previous)) {
             THROW("Global `%s` was previously defined.", name->string)
         }
@@ -5304,7 +5304,7 @@ dispatch:
     case OP_SET_GLOBAL: {
         HymnObjectString *name = hymn_as_hymn_string(READ_CONSTANT(frame));
         HymnValue value = peek(H, 1);
-        HymnValue previous = table_put(&H->globals, name, value);
+        HymnValue previous = TablePut(&H->globals, name, value);
         if (hymn_is_undefined(previous)) {
             THROW("Undefined variable `%s`.", name->string)
         } else {
@@ -5315,7 +5315,7 @@ dispatch:
     }
     case OP_GET_GLOBAL: {
         HymnObjectString *name = hymn_as_hymn_string(READ_CONSTANT(frame));
-        HymnValue get = table_get(&H->globals, name);
+        HymnValue get = TableGet(&H->globals, name);
         if (hymn_is_undefined(get)) {
             THROW("Undefined variable `%s`.", name->string)
         }
@@ -5390,7 +5390,7 @@ dispatch:
         }
         HymnTable *table = hymn_as_table(table_value);
         HymnObjectString *name = hymn_as_hymn_string(READ_CONSTANT(frame));
-        HymnValue previous = table_put(table, name, value);
+        HymnValue previous = TablePut(table, name, value);
         if (hymn_is_undefined(previous)) {
             reference_string(name);
         } else {
@@ -5410,7 +5410,7 @@ dispatch:
         }
         HymnTable *table = hymn_as_table(v);
         HymnObjectString *name = hymn_as_hymn_string(READ_CONSTANT(frame));
-        HymnValue g = table_get(table, name);
+        HymnValue g = TableGet(table, name);
         if (hymn_is_undefined(g)) {
             g.is = HYMN_VALUE_NONE;
         } else {
@@ -5465,7 +5465,7 @@ dispatch:
             }
             HymnTable *table = hymn_as_table(object);
             HymnObjectString *name = hymn_as_hymn_string(property);
-            HymnValue previous = table_put(table, name, value);
+            HymnValue previous = TablePut(table, name, value);
             if (hymn_is_undefined(previous)) {
                 reference_string(name);
             } else {
@@ -5537,7 +5537,7 @@ dispatch:
                     THROW("Array index out of bounds %d", index)
                 }
             }
-            HymnValue g = array_get(array, index);
+            HymnValue g = ArrayGet(array, index);
             reference(g);
             push(H, g);
             dereference(H, v);
@@ -5552,7 +5552,7 @@ dispatch:
             }
             HymnTable *table = hymn_as_table(v);
             HymnObjectString *name = hymn_as_hymn_string(i);
-            HymnValue g = table_get(table, name);
+            HymnValue g = TableGet(table, name);
             if (hymn_is_undefined(g)) {
                 g.is = HYMN_VALUE_NONE;
             } else {
@@ -6125,7 +6125,7 @@ Hymn *new_hymn() {
     H->paths->items[2] = hymn_new_string_value(search_libs);
 
     HymnValue paths_value = hymn_new_array_value(H->paths);
-    table_put(&H->globals, paths, paths_value);
+    TablePut(&H->globals, paths, paths_value);
     reference_string(paths);
     reference(paths_value);
 
@@ -6134,7 +6134,7 @@ Hymn *new_hymn() {
 
     H->imports = new_table();
     HymnValue imports_value = hymn_new_table_value(H->imports);
-    table_put(&H->globals, imports, imports_value);
+    TablePut(&H->globals, imports, imports_value);
     reference_string(imports);
     reference(imports_value);
 
@@ -6207,7 +6207,7 @@ void hymn_add_function(Hymn *H, const char *name, HymnNativeCall func) {
     HymnObjectString *string = machine_intern_string(H, hymn_new_string(name));
     HymnString *string_name = string_copy(string->string);
     HymnNativeFunction *value = new_native_function(string_name, func);
-    HymnValue previous = table_put(&H->globals, string, hymn_new_native(value));
+    HymnValue previous = TablePut(&H->globals, string, hymn_new_native(value));
     if (hymn_is_undefined(previous)) {
         reference_string(string);
     } else {
@@ -6217,7 +6217,7 @@ void hymn_add_function(Hymn *H, const char *name, HymnNativeCall func) {
 
 void hymn_add_pointer(Hymn *H, const char *name, void *pointer) {
     HymnObjectString *string = machine_intern_string(H, hymn_new_string(name));
-    HymnValue previous = table_put(&H->globals, string, hymn_new_pointer(pointer));
+    HymnValue previous = TablePut(&H->globals, string, hymn_new_pointer(pointer));
     if (hymn_is_undefined(previous)) {
         reference_string(string);
     } else {
@@ -6257,7 +6257,7 @@ char *hymn_call(Hymn *H, const char *name, int arguments) {
 
     HymnObjectString *string = machine_intern_string(H, hymn_new_string(name));
 
-    HymnValue function = table_get(&H->globals, string);
+    HymnValue function = TableGet(&H->globals, string);
     if (hymn_is_undefined(function)) {
         dereference_string(H, string);
         return NULL;

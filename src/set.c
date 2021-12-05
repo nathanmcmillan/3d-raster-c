@@ -120,7 +120,7 @@ void set_add(Set *this, void *key) {
     SetItem *item = this->items[bin];
     SetItem *previous = NULL;
     while (item != NULL) {
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             return;
         }
         previous = item;
@@ -146,7 +146,7 @@ bool set_has(Set *this, void *key) {
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
     while (item != NULL) {
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             return true;
         }
         item = item->next;
@@ -160,7 +160,7 @@ void set_remove(Set *this, void *key) {
     SetItem *item = this->items[bin];
     SetItem *previous = NULL;
     while (item != NULL) {
-        if (hash == item->hash and this->equals_fn(key, item->key)) {
+        if (hash == item->hash && this->equals_fn(key, item->key)) {
             if (previous == NULL) {
                 this->items[bin] = item->next;
             } else {

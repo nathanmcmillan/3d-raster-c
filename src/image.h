@@ -10,19 +10,32 @@
 #include "wad.h"
 
 typedef struct Image Image;
+typedef struct Sprite Sprite;
 
 struct Image {
     char name[16];
     u8 *pixels;
-    // sprites
+    Sprite *sprites;
+    i32 width;
+    i32 height;
+    i16 sprite_count;
+};
+
+struct Sprite {
+    char name[16];
+    Image *image;
+    i32 left;
+    i32 top;
+    i32 right;
+    i32 bottom;
     i32 width;
     i32 height;
 };
 
 Image *NewImage(char name[16], u8 *pixels, i32 width, i32 height);
-
 Image *ImageRead(String *string);
-
+int ImageSpriteIndex(Image *image, char *name);
+Sprite *ImageSpriteSearch(Image *image, char *name);
 void ImageFree(Image *image);
 
 #endif

@@ -37,7 +37,7 @@ void array_insert(Array *this, usize index, void *item);
 void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item);
 
 void *array_find(Array *this, bool(find)(void *, void *), void *has);
-void *array_get(Array *this, usize index);
+void *ArrayGet(Array *this, usize index);
 
 void *array_pop(Array *this);
 void array_remove(Array *this, void *item);

@@ -5,8 +5,8 @@
 #ifndef DRAW_H
 #define DRAW_H
 
-#include "state.h"
+#include "game.h"
 
-void draw_world(Game *game);
+void DrawWorld();
 
 #endif
