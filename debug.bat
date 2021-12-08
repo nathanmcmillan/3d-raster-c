@@ -1,0 +1,1 @@
+clang -g -fsanitize=address src/*.c -Isrc -I%SDL%\include -Wall -Wextra -Werror -pedantic -std=c11 -Wno-unused-function -Wno-deprecated-declarations -Wno-gnu-zero-variadic-macro-arguments -Wno-language-extension-token -l%SDL%\lib\x64\SDL2 -o SCRLSIGL.exe

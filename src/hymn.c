@@ -1959,14 +1959,14 @@ static void array_init(HymnArray *this, int64_t length) {
     array_init_with_capacity(this, length, length);
 }
 
-static HymnArray *new_array_with_capacity(int64_t length, int64_t capacity) {
+static HymnArray *NewArrayWithCapacity(int64_t length, int64_t capacity) {
     HymnArray *this = hymn_calloc(1, sizeof(HymnArray));
     array_init_with_capacity(this, length, capacity);
     return this;
 }
 
-static HymnArray *new_array(int64_t length) {
-    return new_array_with_capacity(length, length);
+static HymnArray *NewArray(int64_t length) {
+    return NewArrayWithCapacity(length, length);
 }
 
 static HymnArray *new_array_slice(HymnArray *from, int64_t start, int64_t end) {
@@ -2000,14 +2000,14 @@ static void array_update_capacity(HymnArray *this, int64_t length) {
     }
 }
 
-static void array_push(HymnArray *this, HymnValue value) {
+static void ArrayPush(HymnArray *this, HymnValue value) {
     int64_t length = this->length + 1;
     array_update_capacity(this, length);
     this->length = length;
     this->items[length - 1] = value;
 }
 
-static void array_insert(HymnArray *this, int64_t index, HymnValue value) {
+static void ArrayInsert(HymnArray *this, int64_t index, HymnValue value) {
     int64_t length = this->length + 1;
     array_update_capacity(this, length);
     this->length = length;
@@ -2053,7 +2053,7 @@ static HymnValue array_remove_index(HymnArray *this, int64_t index) {
     return deleted;
 }
 
-static void array_clear(Hymn *H, HymnArray *this) {
+static void ArrayClear(Hymn *H, HymnArray *this) {
     int64_t len = this->length;
     HymnValue *items = this->items;
     for (int64_t i = 0; i < len; i++) {
@@ -2062,8 +2062,8 @@ static void array_clear(Hymn *H, HymnArray *this) {
     this->length = 0;
 }
 
-static void array_delete(Hymn *H, HymnArray *this) {
-    array_clear(H, this);
+static void ArrayFree(Hymn *H, HymnArray *this) {
+    ArrayClear(H, this);
     free(this->items);
     free(this);
 }
@@ -2091,7 +2091,7 @@ static HymnTable *new_table_copy(HymnTable *from) {
 
 static HymnArray *table_keys(HymnTable *this) {
     unsigned int size = this->size;
-    HymnArray *array = new_array_with_capacity(size, size);
+    HymnArray *array = NewArrayWithCapacity(size, size);
     if (size == 0) {
         return array;
     }
@@ -4123,7 +4123,7 @@ static void dereference(Hymn *H, HymnValue value) {
         int count = --(array->object.count);
         assert(count >= 0);
         if (count == 0) {
-            array_delete(H, array);
+            ArrayFree(H, array);
         }
         break;
     }
@@ -5278,7 +5278,7 @@ dispatch:
         HymnValue constant = READ_CONSTANT(frame);
         switch (constant.is) {
         case HYMN_VALUE_ARRAY: {
-            constant = hymn_new_array_value(new_array(0));
+            constant = hymn_new_array_value(NewArray(0));
             break;
         }
         case HYMN_VALUE_TABLE: {
@@ -5450,7 +5450,7 @@ dispatch:
                 }
             }
             if (index == size) {
-                array_push(array, value);
+                ArrayPush(array, value);
             } else {
                 dereference(H, array->items[index]);
                 array->items[index] = value;
@@ -5619,7 +5619,7 @@ dispatch:
             dereference(H, value);
             THROW("Push: Expected `Array` for 1st argument, but was `%s`.", is)
         } else {
-            array_push(hymn_as_array(array), value);
+            ArrayPush(hymn_as_array(array), value);
             push(H, value);
             reference(value);
             dereference(H, array);
@@ -5657,9 +5657,9 @@ dispatch:
                 }
             }
             if (index == size) {
-                array_push(array, p);
+                ArrayPush(array, p);
             } else {
-                array_insert(array, index, p);
+                ArrayInsert(array, index, p);
             }
             push(H, p);
             reference(p);
@@ -5871,7 +5871,7 @@ dispatch:
             break;
         case HYMN_VALUE_ARRAY: {
             HymnArray *array = hymn_as_array(value);
-            array_clear(H, array);
+            ArrayClear(H, array);
             push(H, value);
             break;
         }
@@ -6119,7 +6119,7 @@ Hymn *new_hymn() {
     HymnObjectString *paths = machine_intern_string(H, hymn_new_string("__paths"));
     reference_string(paths);
 
-    H->paths = new_array(3);
+    H->paths = NewArray(3);
     H->paths->items[0] = hymn_new_string_value(search_this);
     H->paths->items[1] = hymn_new_string_value(search_relative);
     H->paths->items[2] = hymn_new_string_value(search_libs);

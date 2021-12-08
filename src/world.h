@@ -65,7 +65,7 @@ World *new_world();
 int world_cell(float f);
 float world_float_cell(float f);
 
-void world_clear(World *this);
+void WorldClear(World *this);
 void world_add_thing(World *this, Thing *t);
 void world_remove_thing(World *this, Thing *t);
 void world_add_particle(World *this, Particle *t);
@@ -74,8 +74,8 @@ void world_add_decal(World *this, Decal *t);
 void world_remove_decal(World *this, Decal *t);
 void world_add_sector(World *this, Sector *s);
 Sector *world_find_sector(World *this, float x, float y);
-void world_build(World *this, Array *lines);
-void world_update(World *this);
+void WorldBuild(World *this, Line **lines, int lint_count);
+void WorldUpdate(World *this);
 
 struct Cell {
     Line **lines;

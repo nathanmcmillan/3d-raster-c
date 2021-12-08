@@ -26,37 +26,37 @@ typedef struct StringHead StringHead;
 #endif
 
 PACK(struct StringHead {
-    usize length;
-    usize capacity;
+    int length;
+    int capacity;
     char **chars;
 });
 
 #undef PACK
 
-String *new_string_with_length(char *init, usize length);
-String *new_string_from_substring(char *init, usize start, usize end);
-String *new_string(char *init);
-String *string_allocate(usize length);
+String *new_string_with_length(char *init, int length);
+String *new_string_from_substring(char *init, int start, int end);
+String *NewString(char *init);
+String *string_allocate(int length);
 String *string_copy(String *this);
 
-usize string_len(String *this);
-usize string_cap(String *this);
+int StringLen(String *this);
+int string_cap(String *this);
 void StringFree(String *this);
 
 String *string_concat(String *a, String *b);
 String *string_concat_list(String **list, int size);
 String *string_concat_varg(int size, ...);
 
-String *substring(String *this, usize start, usize end);
+String *substring(String *this, int start, int end);
 
 String *string_append(String *this, char *b);
 String *string_append_char(String *this, char b);
-String *string_append_substring(String *this, char *b, usize start, usize end);
+String *string_append_substring(String *this, char *b, int start, int end);
 
 int string_compare(String *a, String *b);
 bool string_equal(String *a, String *b);
 
-bool string_find(String *this, String *sub, usize *out);
+bool string_find(String *this, String *sub, int *out);
 
 void string_zero(String *this);
 

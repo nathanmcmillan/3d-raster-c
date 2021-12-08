@@ -18,6 +18,23 @@ void ResourceAddImage(Image *image) {
     }
     IMAGES[IMAGE_COUNT] = image;
     IMAGE_COUNT++;
+
+    for (int s = 0; s < image->sprite_count; s++) {
+        Sprite *sprite = &image->sprites[s];
+        i32 width = sprite->width;
+        i32 height = sprite->height;
+        u8 *source = sprite->image->pixels;
+        i32 bound = sprite->image->width;
+        u8 *pixels = Malloc(width * height * sizeof(u8));
+        i32 i = 0;
+        for (i32 y = sprite->top; y < sprite->bottom; y++) {
+            for (i32 x = sprite->left; x < sprite->right; x++) {
+                pixels[i++] = source[x + y * bound];
+            }
+        }
+        Image *sprite_image = NewImage(sprite->name, pixels, width, height);
+        ResourceAddImage(sprite_image);
+    }
 }
 
 Image *ResourceImage(int index) {

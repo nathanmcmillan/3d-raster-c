@@ -16,9 +16,9 @@ struct Image {
     char name[16];
     u8 *pixels;
     Sprite *sprites;
+    int sprite_count;
     i32 width;
     i32 height;
-    i16 sprite_count;
 };
 
 struct Sprite {
@@ -34,8 +34,8 @@ struct Sprite {
 
 Image *NewImage(char name[16], u8 *pixels, i32 width, i32 height);
 Image *ImageRead(String *string);
-int ImageSpriteIndex(Image *image, char *name);
-Sprite *ImageSpriteSearch(Image *image, char *name);
+int SpriteIndex(Image *image, char *name);
+Sprite *SpriteSearch(Image *image, char *name);
 void ImageFree(Image *image);
 
 #endif

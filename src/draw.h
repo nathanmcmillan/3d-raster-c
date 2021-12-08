@@ -7,6 +7,8 @@
 
 #include "game.h"
 
+void DrawInit();
 void DrawWorld();
+void DrawFree();
 
 #endif

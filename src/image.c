@@ -30,7 +30,7 @@ static void SpriteInit(Sprite *sprite, char name[16], Image *image, i32 left, i3
     sprite->right = right;
     sprite->bottom = bottom;
     sprite->width = right - left;
-    sprite->height = top - bottom;
+    sprite->height = bottom - top;
 }
 
 Image *ImageRead(String *string) {
@@ -41,8 +41,8 @@ Image *ImageRead(String *string) {
     }
     Wad *wad = maybe_wad.wad;
     String *name = WadGetStringFromTable(wad, "image");
-    i32 width = WadGetIntFromTable(wad, "columns");
-    i32 height = WadGetIntFromTable(wad, "rows");
+    int width = WadGetIntFromTable(wad, "columns");
+    int height = WadGetIntFromTable(wad, "rows");
     int transparency = 0;
     if (WadHas(wad, "transparency")) {
         transparency = WadGetIntFromTable(wad, "transparency");
@@ -60,15 +60,15 @@ Image *ImageRead(String *string) {
     Image *image = NewImage(name, pixels, width, height);
     if (WadHas(wad, "sprites")) {
         Array *array = WadGetArrayFromTable(wad, "sprites");
-        i16 sprite_count = (i16)array->length;
+        int sprite_count = ArraySize(array);
         Sprite *sprites = Calloc(sprite_count, sizeof(Sprite));
-        for (i16 s = 0; s < sprite_count; s++) {
+        for (int s = 0; s < sprite_count; s++) {
             Wad *sprite = ArrayGet(array, s);
             String *id = WadGetStringFromTable(sprite, "id");
-            i32 left = WadGetIntFromTable(sprite, "left");
-            i32 top = WadGetIntFromTable(sprite, "top");
-            i32 right = WadGetIntFromTable(sprite, "right");
-            i32 bottom = WadGetIntFromTable(sprite, "bottom");
+            int left = WadGetIntFromTable(sprite, "left");
+            int top = WadGetIntFromTable(sprite, "top");
+            int right = WadGetIntFromTable(sprite, "right");
+            int bottom = WadGetIntFromTable(sprite, "bottom");
             SpriteInit(&sprites[s], id, image, left, top, right, bottom);
         }
         image->sprites = sprites;
@@ -78,8 +78,8 @@ Image *ImageRead(String *string) {
     return image;
 }
 
-int ImageSpriteIndex(Image *image, char *name) {
-    for (i16 i = 0; i < image->sprite_count; i++) {
+int SpriteIndex(Image *image, char *name) {
+    for (int i = 0; i < image->sprite_count; i++) {
         if (strcmp(image->sprites[i].name, name) == 0) {
             return i;
         }
@@ -87,8 +87,8 @@ int ImageSpriteIndex(Image *image, char *name) {
     return -1;
 }
 
-Sprite *ImageSpriteSearch(Image *image, char *name) {
-    int index = ImageSpriteIndex(image, name);
+Sprite *SpriteSearch(Image *image, char *name) {
+    int index = SpriteIndex(image, name);
     if (index == -1) {
         return NULL;
     }

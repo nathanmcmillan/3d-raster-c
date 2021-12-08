@@ -4,7 +4,7 @@
 
 #include "string_util.h"
 
-static StringHead *string_head_init(usize length, usize capacity) {
+static StringHead *string_head_init(int length, int capacity) {
     usize memory = sizeof(StringHead) + length + 1;
     StringHead *head = (StringHead *)Malloc(memory);
     memset(head, 0, memory);
@@ -13,7 +13,7 @@ static StringHead *string_head_init(usize length, usize capacity) {
     return head;
 }
 
-String *new_string_with_length(char *init, usize length) {
+String *new_string_with_length(char *init, int length) {
     StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memcpy(s, init, length);
@@ -21,8 +21,8 @@ String *new_string_with_length(char *init, usize length) {
     return (String *)s;
 }
 
-String *new_string_from_substring(char *init, usize start, usize end) {
-    usize length = end - start;
+String *new_string_from_substring(char *init, int start, int end) {
+    int length = end - start;
     StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memcpy(s, &init[start], length);
@@ -30,15 +30,15 @@ String *new_string_from_substring(char *init, usize start, usize end) {
     return (String *)s;
 }
 
-String *string_allocate(usize length) {
+String *string_allocate(int length) {
     StringHead *head = string_head_init(length, length);
     char *s = (char *)(head + 1);
     memset(s, '\0', length + 1);
     return (String *)s;
 }
 
-String *new_string(char *init) {
-    usize len = strlen(init);
+String *NewString(char *init) {
+    int len = strlen(init);
     return new_string_with_length(init, len);
 }
 
@@ -47,12 +47,12 @@ String *string_copy(String *this) {
     return new_string_with_length(this, head->length);
 }
 
-usize string_len(String *this) {
+int StringLen(String *this) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return head->length;
 }
 
-usize string_cap(String *this) {
+int string_cap(String *this) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return head->capacity;
 }
@@ -65,9 +65,9 @@ void StringFree(String *this) {
 }
 
 String *string_concat(String *a, String *b) {
-    usize len1 = string_len(a);
-    usize len2 = string_len(b);
-    usize len = len1 + len2;
+    int len1 = StringLen(a);
+    int len2 = StringLen(b);
+    int len = len1 + len2;
     StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
     memcpy(s, a, len1);
@@ -77,15 +77,15 @@ String *string_concat(String *a, String *b) {
 }
 
 String *string_concat_list(String **list, int size) {
-    usize len = 0;
+    int len = 0;
     for (int i = 0; i < size; i++) {
-        len += string_len(list[i]);
+        len += StringLen(list[i]);
     }
     StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
-    usize pos = 0;
+    int pos = 0;
     for (int i = 0; i < size; i++) {
-        usize len_i = string_len(list[i]);
+        int len_i = StringLen(list[i]);
         memcpy(s + pos, list[i], len_i);
         pos += len_i;
     }
@@ -96,21 +96,21 @@ String *string_concat_list(String **list, int size) {
 String *string_concat_varg(int size, ...) {
     va_list ap;
 
-    usize len = 0;
+    int len = 0;
     va_start(ap, size);
     for (int i = 0; i < size; i++) {
-        len += string_len(va_arg(ap, String *));
+        len += StringLen(va_arg(ap, String *));
     }
     va_end(ap);
 
     StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
 
-    usize pos = 0;
+    int pos = 0;
     va_start(ap, size);
     for (int i = 0; i < size; i++) {
         String *param = va_arg(ap, String *);
-        usize len_i = string_len(param);
+        int len_i = StringLen(param);
         memcpy(s + pos, param, len_i);
         pos += len_i;
     }
@@ -120,8 +120,8 @@ String *string_concat_varg(int size, ...) {
     return (String *)s;
 }
 
-String *substring(String *this, usize start, usize end) {
-    usize len = end - start;
+String *substring(String *this, int start, int end) {
+    int len = end - start;
     StringHead *head = string_head_init(len, len);
     char *s = (char *)(head + 1);
     memcpy(s, this + start, len);
@@ -129,7 +129,7 @@ String *substring(String *this, usize start, usize end) {
     return (String *)s;
 }
 
-static StringHead *string_resize(StringHead *head, usize capacity) {
+static StringHead *string_resize(StringHead *head, int capacity) {
     usize memory = sizeof(StringHead) + capacity + 1;
     StringHead *new = Realloc(head, memory);
     new->capacity = capacity;
@@ -138,9 +138,9 @@ static StringHead *string_resize(StringHead *head, usize capacity) {
 
 String *string_append(String *this, char *b) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
-    usize len_a = head->length;
-    usize len_b = strlen(b);
-    usize len = len_a + len_b;
+    int len_a = head->length;
+    int len_b = strlen(b);
+    int len = len_a + len_b;
     if (len > head->capacity) {
         head = string_resize(head, len * 2);
     }
@@ -153,7 +153,7 @@ String *string_append(String *this, char *b) {
 
 String *string_append_char(String *this, char b) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
-    usize len = head->length + 1;
+    int len = head->length + 1;
     if (len > head->capacity) {
         head = string_resize(head, len * 2);
     }
@@ -164,11 +164,11 @@ String *string_append_char(String *this, char b) {
     return (String *)s;
 }
 
-String *string_append_substring(String *this, char *b, usize start, usize end) {
+String *string_append_substring(String *this, char *b, int start, int end) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
-    usize len_a = head->length;
-    usize len_b = end - start;
-    usize len = len_a + len_b;
+    int len_a = head->length;
+    int len_b = end - start;
+    int len = len_a + len_b;
     if (len > head->capacity) {
         head = string_resize(head, len * 2);
     }
@@ -180,8 +180,8 @@ String *string_append_substring(String *this, char *b, usize start, usize end) {
 }
 
 int string_compare(String *a, String *b) {
-    usize len_a = string_len(a);
-    usize len_b = string_len(b);
+    int len_a = StringLen(a);
+    int len_b = StringLen(b);
     if (len_a == len_b) {
         return strcmp(a, b);
     }
@@ -192,21 +192,21 @@ bool string_equal(String *a, String *b) {
     return 0 == string_compare(a, b);
 }
 
-bool string_find(String *this, String *sub, usize *out) {
+bool string_find(String *this, String *sub, int *out) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     StringHead *head_sub = (StringHead *)((char *)sub - sizeof(StringHead));
-    usize len = head->length;
-    usize len_sub = head_sub->length;
+    int len = head->length;
+    int len_sub = head_sub->length;
     if (len_sub > len) {
         return false;
     } else if (len == 0) {
         *out = 0;
         return true;
     }
-    usize end = len - len_sub + 1;
-    for (usize i = 0; i < end; i++) {
+    int end = len - len_sub + 1;
+    for (int i = 0; i < end; i++) {
         bool match = true;
-        for (usize k = 0; k < len_sub; k++) {
+        for (int k = 0; k < len_sub; k++) {
             if (sub[k] != this[i + k]) {
                 match = false;
                 break;
@@ -426,7 +426,7 @@ double string_to_float64(String *this) {
 }
 
 char *string_to_chars(String *this) {
-    usize len = string_len(this);
+    int len = StringLen(this);
     char *s = Malloc((len + 1) * sizeof(char));
     memcpy(s, this, len);
     s[len] = '\0';

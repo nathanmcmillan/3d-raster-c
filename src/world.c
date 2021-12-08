@@ -16,7 +16,7 @@ float world_float_cell(float f) {
     return f / (1 << WORLD_CELL_SHIFT);
 }
 
-void world_clear(World *world) {
+void WorldClear(World *world) {
     Free(world->sectors_visited);
     Free(world->lines_visited);
 }
@@ -127,8 +127,8 @@ Sector *world_find_sector(World *this, float x, float y) {
         Sector *sector = this->sectors[i];
         if (sector->outside != NULL) {
             continue;
-        } else if (sector_contains(sector, x, y)) {
-            return sector_find(sector, x, y);
+        } else if (SectorContains(sector, x, y)) {
+            return SectorFind(sector, x, y);
         }
     }
     return NULL;
@@ -185,10 +185,10 @@ static void world_build_cell_lines(World *this, Line *line) {
     }
 }
 
-void world_build(World *this, Array *lines) {
+void WorldBuild(World *this, Line **lines, int line_count) {
     printf("building world...\n");
-    this->lines = (Line **)array_copy_items(lines);
-    this->line_count = (int)array_size(lines);
+    this->lines = lines;
+    this->line_count = line_count;
     float top = 0.0f;
     float right = 0.0f;
     Sector **sectors = this->sectors;
@@ -212,8 +212,8 @@ void world_build(World *this, Array *lines) {
     this->columns = (int)ceil(right / size);
     this->cell_count = this->rows * this->columns;
     this->cells = Calloc(this->cell_count, sizeof(Cell));
-    sector_inside_outside(this->sectors, this->sector_count);
-    sector_neighbors(this->sectors, this->sector_count, this->lines, this->line_count);
+    SectorInsideOutside(this->sectors, this->sector_count);
+    SectorNeighbors(this->sectors, this->sector_count, this->lines, this->line_count);
     for (int i = 0; i < this->line_count; i++) {
         world_build_cell_lines(this, this->lines[i]);
     }
@@ -222,7 +222,7 @@ void world_build(World *this, Array *lines) {
     printf("done building world...\n");
 }
 
-void world_update(World *world) {
+void WorldUpdate(World *world) {
     Thing **things = world->things;
     int t = world->thing_count;
     while (t-- != 0) {
@@ -244,6 +244,6 @@ void world_update(World *world) {
 }
 
 void world_delete(World *world) {
-    world_clear(world);
+    WorldClear(world);
     Free(world);
 }

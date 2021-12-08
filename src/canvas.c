@@ -127,66 +127,56 @@ void CavnasPixel(u32 color, i32 x, i32 y) {
     }
 }
 
-// void canvas_line(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
-//     i32 width = this->width;
-//     i32 height = this->height;
-//     u32 *pixels = this->pixels;
+void CanvasLine(u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
+    i32 dx = abs32(x1 - x0);
+    i32 sx = (x0 < x1) ? 1 : -1;
+    i32 dy = abs32(y1 - y0);
+    i32 sy = (y0 < y1) ? 1 : -1;
+    i32 err = ((dx > dy) ? dx : -dy) / 2;
+    i32 err2;
+    i32 x = x0;
+    i32 y = y0;
+    while (true) {
+        if (x < 0 || y < 0) {
+            return;
+        }
+        i32 px = x;
+        i32 py = y;
+        if (px >= SCREEN_WIDTH || py >= SCREEN_HEIGHT) {
+            return;
+        }
+        PIXELS[px + py * SCREEN_WIDTH] = color;
+        if (x == x1 && y == y1) {
+            break;
+        }
+        err2 = err;
+        if (err2 > -dx) {
+            err -= dy;
+            x += sx;
+        }
+        if (err2 < dy) {
+            err += dx;
+            y += sy;
+        }
+    }
+}
 
-//     i32 dx = abs32(x1 - x0);
-//     i32 sx = (x0 < x1) ? 1 : -1;
-//     i32 dy = abs32(y1 - y0);
-//     i32 sy = (y0 < y1) ? 1 : -1;
-//     i32 err = ((dx > dy) ? dx : -dy) / 2;
-//     i32 err2;
-//     i32 x = x0;
-//     i32 y = y0;
-
-//     while (true) {
-//         if (x < 0 || y < 0) {
-//             return;
-//         }
-//         i32 px = x;
-//         i32 py = y;
-//         if (px >= width || py >= height) {
-//             return;
-//         }
-//         pixels[px + py * width] = color;
-//         if (x == x1 && y == y1) {
-//             break;
-//         }
-//         err2 = err;
-//         if (err2 > -dx) {
-//             err -= dy;
-//             x += sx;
-//         }
-//         if (err2 < dy) {
-//             err += dx;
-//             y += sy;
-//         }
-//     }
-// }
-
-// void canvas_triangle(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2) {
-//     i32 width = this->width;
-//     i32 height = this->height;
-//     u32 *pixels = this->pixels;
-
-//     i32 min_x = max32(min32(min32(x0, x1), x2), 0);
-//     i32 min_y = max32(min32(min32(y0, y1), y2), 0);
-//     i32 max_x = min32(max32(max32(x0, x1), x2), width - 1);
-//     i32 max_y = min32(max32(max32(y0, y1), y2), height - 1);
-
-//     for (i32 y = min_y; y < max_y; y++) {
-//         for (i32 x = min_x; x < max_x; x++) {
-//             i32 w0 = orient(x1, y1, x2, y2, x, y);
-//             i32 w1 = orient(x2, y2, x0, y0, x, y);
-//             i32 w2 = orient(x0, y0, x1, y1, x, y);
-//             if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-//                 pixels[x + y * width] = color;
-//             }
-//         }
-//     }
-// }
+void CanvasTriangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2) {
+    i32 min_x = max32(min32(min32(x0, x1), x2), 0);
+    i32 min_y = max32(min32(min32(y0, y1), y2), 0);
+    i32 max_x = min32(max32(max32(x0, x1), x2), SCREEN_WIDTH - 1);
+    i32 max_y = min32(max32(max32(y0, y1), y2), SCREEN_HEIGHT - 1);
+    for (i32 y = min_y; y < max_y; y++) {
+        for (i32 x = min_x; x < max_x; x++) {
+            i32 w0 = orient(x1, y1, x2, y2, x, y);
+            i32 w1 = orient(x2, y2, x0, y0, x, y);
+            i32 w2 = orient(x0, y0, x1, y1, x, y);
+            if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                PIXELS[x + y * SCREEN_WIDTH] = color;
+            }
+        }
+    }
+}
 
 void CanvasRectangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
     i32 min_x = max32(min32(x0, x1), 0);
@@ -202,11 +192,11 @@ void CanvasRectangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1) {
 }
 
 void CanvasImage(Image *image, i32 x0, i32 y0) {
-    i32 w = image->width;
     u8 *source = image->pixels;
+    i32 span = image->width;
 
-    int columns = w;
-    int rows = image->height;
+    i32 columns = span;
+    i32 rows = image->height;
 
     if (x0 < 0) {
         source -= x0;
@@ -215,7 +205,7 @@ void CanvasImage(Image *image, i32 x0, i32 y0) {
     }
 
     if (y0 < 0) {
-        source += y0 * w;
+        source -= y0 * span;
         rows -= y0;
         y0 = 0;
     }
@@ -240,17 +230,19 @@ void CanvasImage(Image *image, i32 x0, i32 y0) {
             slice++;
             color++;
         }
-        source += w;
+        source += span;
         destination += SCREEN_WIDTH;
     }
 }
 
 void CanvasSprite(Sprite *sprite, i32 x0, i32 y0) {
-    i32 w = sprite->image->width;
     u8 *source = sprite->image->pixels;
+    i32 span = sprite->image->width;
 
-    int columns = w;
-    int rows = sprite->image->height;
+    i32 columns = sprite->width;
+    i32 rows = sprite->height;
+
+    source += sprite->left + sprite->top * span;
 
     if (x0 < 0) {
         source -= x0;
@@ -259,7 +251,7 @@ void CanvasSprite(Sprite *sprite, i32 x0, i32 y0) {
     }
 
     if (y0 < 0) {
-        source += y0 * w;
+        source -= y0 * span;
         rows -= y0;
         y0 = 0;
     }
@@ -284,79 +276,31 @@ void CanvasSprite(Sprite *sprite, i32 x0, i32 y0) {
             slice++;
             color++;
         }
-        source += w;
+        source += span;
         destination += SCREEN_WIDTH;
     }
 }
 
-// void canvas_project(Canvas *this, float *out, float *matrix, float *vec) {
-//     float x = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
-//     float y = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
-//     float z = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];
-//     float w = vec[0] * matrix[3] + vec[1] * matrix[7] + vec[2] * matrix[11] + matrix[15];
+void ScreenSpace(float *out, float *matrix, float *vec) {
+    float x = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
+    float y = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
+    float z = vec[0] * matrix[2] + vec[1] * matrix[6] + vec[2] * matrix[10] + matrix[14];
+    float w = vec[0] * matrix[3] + vec[1] * matrix[7] + vec[2] * matrix[11] + matrix[15];
 
-//     if (w != 1.0f) {
-//         x /= w;
-//         y /= w;
-//         z /= w;
-//     }
+    if (w != 1.0f) {
+        x /= w;
+        y /= w;
+        z /= w;
+    }
 
-//     x = x * (float)this->width + 0.5f * (float)this->width;
-//     y = -y * (float)this->height + 0.5f * (float)this->height;
+    x = x * (float)SCREEN_WIDTH + 0.5f * (float)SCREEN_WIDTH;
+    y = -y * (float)SCREEN_HEIGHT + 0.5f * (float)SCREEN_HEIGHT;
 
-//     out[0] = x;
-//     out[1] = y;
-//     out[2] = z;
-//     out[3] = w;
-// }
-
-// static void rasterize(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2) {
-//     i32 width = this->width;
-//     i32 height = this->height;
-//     u32 *pixels = this->pixels;
-
-//     i32 min_x = max32(min32(min32(x0, x1), x2), 0);
-//     i32 min_y = max32(min32(min32(y0, y1), y2), 0);
-//     i32 max_x = min32(max32(max32(x0, x1), x2), width - 1);
-//     i32 max_y = min32(max32(max32(y0, y1), y2), height - 1);
-
-//     for (i32 y = min_y; y < max_y; y++) {
-//         for (i32 x = min_x; x < max_x; x++) {
-//             i32 w0 = orient(x1, y1, x2, y2, x, y);
-//             i32 w1 = orient(x2, y2, x0, y0, x, y);
-//             i32 w2 = orient(x0, y0, x1, y1, x, y);
-//             if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-//                 pixels[x + y * width] = color;
-//             }
-//         }
-//     }
-// }
-
-// void canvas_rasterize(Canvas *this, float *a, float *b, float *c) {
-//     i32 width = this->width;
-//     i32 height = this->height;
-//     u32 *pixels = this->pixels;
-
-//     i32 min_x = max32(min32(min32((i32)a[0], (i32)b[0]), (i32)c[0]), 0);
-//     i32 min_y = max32(min32(min32((i32)a[1], (i32)b[1]), (i32)c[1]), 0);
-//     i32 max_x = min32(max32(max32((i32)a[0], (i32)b[0]), (i32)c[0]), width - 1);
-//     i32 max_y = min32(max32(max32((i32)a[1], (i32)b[1]), (i32)c[1]), height - 1);
-
-//     for (i32 y = min_y; y < max_y; y++) {
-//         for (i32 x = min_x; x < max_x; x++) {
-//             i32 w0 = orient((i32)a[0], (i32)a[1], (i32)b[0], (i32)b[1], x, y);
-//             i32 w1 = orient((i32)c[0], (i32)c[1], (i32)a[0], (i32)a[1], x, y);
-//             i32 w2 = orient((i32)a[0], (i32)a[1], (i32)b[0], (i32)b[1], x, y);
-
-//             i32 color = rgb(255, 0, 0);
-
-//             if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
-//                 i32 i = x + y * width;
-//                 pixels[i] = color;
-//             }
-//         }
-//     }
-// }
+    out[0] = x;
+    out[1] = y;
+    out[2] = z;
+    out[3] = w;
+}
 
 HymnValue CanvasRectangleHymn(Hymn *vm, int count, HymnValue *arguments) {
     (void)vm;

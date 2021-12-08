@@ -45,7 +45,7 @@ bool WadHas(Wad *element, char *key);
 Table *WadAsTable(Wad *element);
 Array *WadAsArray(Wad *element);
 String *WadAsString(Wad *element);
-i32 WadAsInt(Wad *element);
+int WadAsInt(Wad *element);
 float WadAsFloat(Wad *element);
 bool WadAsBool(Wad *element);
 
@@ -54,12 +54,12 @@ void WadAddToTable(Wad *element, char *key, Wad *value);
 Wad *WadGetFromTable(Wad *object, char *key);
 Wad *WadGetFromArray(Wad *array, unsigned int index);
 
-i32 WadGetIntFromTable(Wad *object, char *key);
+int WadGetIntFromTable(Wad *object, char *key);
 float WadGetFloatFromTable(Wad *object, char *key);
 String *WadGetStringFromTable(Wad *object, char *key);
 Array *WadGetArrayFromTable(Wad *object, char *key);
 
-usize WadSize(Wad *element);
+int WadSize(Wad *element);
 
 void WadFree(Wad *element);
 

@@ -36,13 +36,12 @@ void CanvasClear();
 void CanvasFree();
 
 void CanvasPixel(u32 color, i32 x, i32 y);
-// void canvas_line(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1);
-// void canvas_triangle(Canvas *this, u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2);
+void CanvasLine(u32 color, i32 x0, i32 y0, i32 x1, i32 y1);
+void CanvasTriangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2);
 void CanvasRectangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1);
 void CanvasImage(Image *image, i32 x0, i32 y0);
 void CanvasSprite(Sprite *sprite, i32 x0, i32 y0);
-// void canvas_project(Canvas *this, float *out, float *matrix, float *vec);
-// void canvas_rasterize(Canvas *this, float *a, float *b, float *c);
+void ScreenSpace(float *out, float *matrix, float *vec);
 
 HymnValue CanvasRectangleHymn(Hymn *vm, int count, HymnValue *arguments);
 

@@ -23,6 +23,8 @@ static int texture(char *name) {
     if (strcmp(name, "none") == 0) {
         return -1;
     }
+    // Sprite ID as name in image index?
+    // Special walls/floors/ceils sprite index
     return ResourceImageIndex(name);
 }
 
@@ -45,7 +47,7 @@ void GameOpen(String *content) {
 
     // ...
 
-    world_clear(world);
+    WorldClear(world);
 
     MaybeWad parse = WadParse(content);
     if (parse.error) {
@@ -58,55 +60,67 @@ void GameOpen(String *content) {
     Array *map_lines = WadGetArrayFromTable(wad, "line");
     Array *map_sectors = WadGetArrayFromTable(wad, "sector");
 
-    Array *vecs = new_array(0);
-    Array *lines = new_array(0);
+    int vec_count = ArraySize(map_vecs);
+    int line_count = ArraySize(map_lines);
 
-    for (usize i = 0; i < map_vecs->length; i++) {
+    Vec **vecs = Malloc(vec_count * sizeof(Vec *));
+    Line **lines = Malloc(line_count * sizeof(Line *));
+
+    for (int i = 0; i < vec_count; i++) {
         Wad *point = ((Wad *)map_vecs->items[i]);
         float x = WadGetFloatFromTable(point, "x");
         float z = WadGetFloatFromTable(point, "z");
-        array_push(vecs, new_vec(x, z));
+        vecs[i] = new_vec(x, z);
     }
 
-    int line_id = 0;
-    for (usize i = 0; i < map_lines->length; i++) {
+    for (int i = 0; i < line_count; i++) {
         Wad *line = ((Wad *)map_lines->items[i]);
-        int s = WadAsInt(WadGetFromTable(line, "s"));
-        int e = WadAsInt(WadGetFromTable(line, "e"));
-        Vec *a = ArrayGet(vecs, s);
-        Vec *b = ArrayGet(vecs, e);
-        array_push(lines, new_line(line_id, a, b, LINE_NO_SIDE, LINE_NO_SIDE, LINE_NO_SIDE));
-        line_id++;
+        int s = WadGetIntFromTable(line, "s");
+        int e = WadGetIntFromTable(line, "e");
+        Vec *a = vecs[s];
+        Vec *b = vecs[e];
+        Side front = {0};
+        Side back = {0};
+        Wad *p = WadGetFromTable(line, "f");
+        Wad *m = WadGetFromTable(line, "b");
+        if (p != NULL) {
+            front.top = texture(WadGetStringFromTable(p, "t"));
+            front.middle = texture(WadGetStringFromTable(p, "m"));
+            front.bottom = texture(WadGetStringFromTable(p, "b"));
+        }
+        if (m != NULL) {
+            back.top = texture(WadGetStringFromTable(m, "t"));
+            back.middle = texture(WadGetStringFromTable(m, "m"));
+            back.bottom = texture(WadGetStringFromTable(m, "b"));
+        }
+        lines[i] = NewLine(i, a, b, front, back);
     }
 
-    int sector_id = 0;
-    for (usize i = 0; i < map_sectors->length; i++) {
+    for (int i = 0; i < ArraySize(map_sectors); i++) {
         Wad *sector = ((Wad *)map_sectors->items[i]);
         float floor = WadGetFloatFromTable(sector, "f");
         float ceiling = WadGetFloatFromTable(sector, "c");
         int floor_image = texture(WadGetStringFromTable(sector, "b"));
         int ceiling_image = texture(WadGetStringFromTable(sector, "t"));
         Array *line_pointers = WadGetArrayFromTable(sector, "w");
-        int line_count = (int)array_size(line_pointers);
-        Line **sector_lines = Calloc(line_count, sizeof(Line *));
-        for (int d = 0; d < line_count; d++) {
-            sector_lines[d] = ArrayGet(lines, WadAsInt((Wad *)line_pointers->items[d]));
+        int sector_line_count = ArraySize(line_pointers);
+        Line **sector_lines = Calloc(sector_line_count, sizeof(Line *));
+        for (int d = 0; d < sector_line_count; d++) {
+            sector_lines[d] = lines[WadAsInt(line_pointers->items[d])];
         }
-        Sector *sector_object = new_sector(sector_id, sector_lines, line_count, floor, ceiling, floor_image, ceiling_image);
+        Sector *sector_object = NewSector(i, sector_lines, sector_line_count, floor, ceiling, floor_image, ceiling_image);
         world_add_sector(world, sector_object);
-        sector_id++;
     }
 
-    world_build(world, lines);
+    WorldBuild(world, lines, line_count);
 
     Array *map_things = WadGetArrayFromTable(wad, "thing");
-    if (map_things) {
-        for (usize i = 0; i < map_things->length; i++) {
+    if (map_things != NULL) {
+        for (int i = 0; i < ArraySize(map_things); i++) {
             Wad *thing = (Wad *)(map_things->items[i]);
             float x = WadGetFloatFromTable(thing, "x");
             float z = WadGetFloatFromTable(thing, "z");
             String *id = WadGetStringFromTable(thing, "id");
-
             if (strcmp(id, "hero")) {
                 CAMERA->x = x;
                 CAMERA->z = z;
@@ -116,7 +130,7 @@ void GameOpen(String *content) {
         }
     }
 
-    array_delete(vecs);
+    Free(vecs);
     WadFree(wad);
 
     printf("done game open...\n");
@@ -177,12 +191,11 @@ static void GameDraw() {
     DrawWorld();
     hymn_call(VM, "draw", 0);
 
-    // Image *font = ResourceImageSearch("TIC80WIDE");
-    Image *font = ResourceImageSearch("TILES");
-
+    Image *font = ResourceImageSearch("TIC80WIDE");
     CanvasImage(font, 15, 15);
 
-    CanvasSprite(ImageSpriteSearch(font, "PLANKFLOOR"), 15, 300);
+    // Image *tiles = ResourceImageSearch("TILES");
+    // CanvasImage(tiles, 115, 15);
 }
 
 void GameTick() {

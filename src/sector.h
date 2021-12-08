@@ -39,7 +39,7 @@ struct Line {
     Side side_back;
 };
 
-Line *new_line(int id, Vec *a, Vec *b, int bottom, int middle, int top);
+Line *NewLine(int id, Vec *a, Vec *b, Side front, Side back);
 
 struct Sector {
     int id;
@@ -60,12 +60,12 @@ struct Sector {
     int neighbor_count;
 };
 
-Sector *new_sector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image);
-bool sector_contains(Sector *this, float x, float y);
-Sector *sector_find(Sector *this, float x, float y);
-bool sector_has_floor(Sector *this);
-bool sector_has_ceiling(Sector *this);
-void sector_inside_outside(Sector **sectors, int sector_count);
-void sector_neighbors(Sector **sectors, int sector_count, Line **lines, int line_count);
+Sector *NewSector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image);
+bool SectorContains(Sector *this, float x, float y);
+Sector *SectorFind(Sector *this, float x, float y);
+bool SectorHasFloor(Sector *this);
+bool SectorHasCeiling(Sector *this);
+void SectorInsideOutside(Sector **sectors, int sector_count);
+void SectorNeighbors(Sector **sectors, int sector_count, Line **lines, int line_count);
 
 #endif

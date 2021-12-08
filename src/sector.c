@@ -4,7 +4,18 @@
 
 #include "sector.h"
 
-Sector *new_sector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image) {
+Line *NewLine(int id, Vec *a, Vec *b, Side front, Side back) {
+    Line *line = Calloc(1, sizeof(Line));
+    line->id = id;
+    line->a = a;
+    line->b = b;
+    line->normal = vec_normal(a, b);
+    line->side_front = front;
+    line->side_back = back;
+    return line;
+}
+
+Sector *NewSector(int id, Line **lines, int line_count, float floor, float ceiling, int floor_image, int ceiling_image) {
     Sector *s = Calloc(1, sizeof(Sector));
     s->id = id;
     int vec_count = line_count - 1;
@@ -22,7 +33,7 @@ Sector *new_sector(int id, Line **lines, int line_count, float floor, float ceil
     return s;
 }
 
-bool sector_contains(Sector *this, float x, float y) {
+bool SectorContains(Sector *this, float x, float y) {
     bool odd = false;
     Vec **vecs = this->vecs;
     int count = this->vec_count;
@@ -41,31 +52,31 @@ bool sector_contains(Sector *this, float x, float y) {
     return odd;
 }
 
-Sector *sector_find(Sector *this, float x, float y) {
+Sector *SectorFind(Sector *this, float x, float y) {
     Sector **inside = this->inside;
     int count = this->inside_count;
     for (int i = 0; i < count; i++) {
         Sector *s = inside[i];
-        if (sector_contains(s, x, y)) {
-            return sector_find(s, x, y);
+        if (SectorContains(s, x, y)) {
+            return SectorFind(s, x, y);
         }
     }
     return this;
 }
 
 Sector *search_for(Sector *this, float x, float y) {
-    if (sector_contains(this, x, y)) {
-        return sector_find(this, x, y);
+    if (SectorContains(this, x, y)) {
+        return SectorFind(this, x, y);
     }
     // ...
     return NULL;
 }
 
-bool sector_has_floor(Sector *this) {
+bool SectorHasFloor(Sector *this) {
     return this->floor_image != SECTOR_NO_SURFACE;
 }
 
-bool sector_has_ceiling(Sector *this) {
+bool SectorHasCeiling(Sector *this) {
     return this->ceiling_image != SECTOR_NO_SURFACE;
 }
 
@@ -87,7 +98,7 @@ void sector_delete_inside(Set *set, Sector *in) {
     }
 }
 
-void sector_inside_outside(Sector **sectors, int sector_count) {
+void SectorInsideOutside(Sector **sectors, int sector_count) {
     for (int sa = 0; sa < sector_count; sa++) {
         Sector *sector = sectors[sa];
         Vec **sector_vecs = sector->vecs;
@@ -113,7 +124,7 @@ void sector_inside_outside(Sector **sectors, int sector_count) {
                 if (shared) {
                     continue;
                 }
-                if (sector_contains(sector, vec->x, vec->y)) {
+                if (SectorContains(sector, vec->x, vec->y)) {
                     inside++;
                 } else {
                     outside++;
@@ -198,7 +209,7 @@ void sector_add_neighbor(Sector *this, Sector *neighbor) {
     this->neighbor_count++;
 }
 
-void sector_neighbors(Sector **sectors, int sector_count, Line **lines, int line_count) {
+void SectorNeighbors(Sector **sectors, int sector_count, Line **lines, int line_count) {
     for (int s = 0; s < sector_count; s++) {
         Sector *sector = sectors[s];
         for (int w = 0; w < sector->line_count; w++) {
