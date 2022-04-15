@@ -2,147 +2,149 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "world.h"
+#include "sector.h"
 
-World *new_world() {
-    return Calloc(1, sizeof(World));
+World *WORLD = NULL;
+
+void WorldInit() {
+    WORLD = Calloc(1, sizeof(World));
 }
 
-int world_cell(float f) {
+int WorldCell(float f) {
     return ((int)floorf(f)) >> WORLD_CELL_SHIFT;
 }
 
-float world_float_cell(float f) {
+float WorldFloatCell(float f) {
     return f / (1 << WORLD_CELL_SHIFT);
 }
 
-void WorldClear(World *world) {
-    Free(world->sectors_visited);
-    Free(world->lines_visited);
+void WorldClear() {
+    Free(WORLD->sectors);
+    Free(CELLS);
 }
 
-void world_add_thing(World *this, Thing *t) {
-    if (this->thing_cap == 0) {
-        this->things = Malloc(sizeof(Thing *));
-        this->things[0] = t;
-        this->thing_cap = 1;
-        this->thing_count = 1;
+void WorldAddThing(Thing *thing) {
+    if (WORLD->thing_capacity == 0) {
+        WORLD->things = Malloc(sizeof(Thing *));
+        WORLD->things[0] = thing;
+        WORLD->thing_capacity = 1;
+        WORLD->thing_count = 1;
     } else {
-        if (this->thing_count == this->thing_cap) {
-            this->thing_cap += 8;
-            this->things = Realloc(this->things, this->thing_cap * sizeof(Thing *));
+        if (WORLD->thing_count == WORLD->thing_capacity) {
+            WORLD->thing_capacity += 8;
+            WORLD->things = Realloc(WORLD->things, WORLD->thing_capacity * sizeof(Thing *));
         }
-        this->things[this->thing_count] = t;
-        this->thing_count++;
+        WORLD->things[WORLD->thing_count] = thing;
+        WORLD->thing_count++;
     }
 }
 
-void world_remove_thing(World *this, Thing *t) {
-    int count = this->thing_count;
-    Thing **things = this->things;
+void WorldRemoveThing(Thing *thing) {
+    int count = WORLD->thing_count;
+    Thing **things = WORLD->things;
     for (int i = 0; i < count; i++) {
-        if (things[i] == t) {
+        if (things[i] == thing) {
             things[i] = things[count - 1];
-            this->thing_count--;
+            WORLD->thing_count--;
             return;
         }
     }
 }
 
-void world_add_particle(World *this, Particle *t) {
-    if (this->particle_cap == 0) {
-        this->particles = Malloc(sizeof(Particle *));
-        this->particles[0] = t;
-        this->particle_cap = 1;
-        this->particle_count = 1;
+void WorldAddParticle(Particle *particle) {
+    if (WORLD->particle_capacity == 0) {
+        WORLD->particles = Malloc(sizeof(Particle *));
+        WORLD->particles[0] = particle;
+        WORLD->particle_capacity = 1;
+        WORLD->particle_count = 1;
     } else {
-        if (this->particle_count == this->particle_cap) {
-            this->particle_cap += 8;
-            this->particles = Realloc(this->particles, this->particle_cap * sizeof(Particle *));
+        if (WORLD->particle_count == WORLD->particle_capacity) {
+            WORLD->particle_capacity += 8;
+            WORLD->particles = Realloc(WORLD->particles, WORLD->particle_capacity * sizeof(Particle *));
         }
-        this->particles[this->particle_count] = t;
-        this->particle_count++;
+        WORLD->particles[WORLD->particle_count] = particle;
+        WORLD->particle_count++;
     }
 }
 
-void world_remove_particle(World *this, Particle *t) {
-    int count = this->particle_count;
-    Particle **particles = this->particles;
+void WorldRemoveParticle(Particle *particle) {
+    int count = WORLD->particle_count;
+    Particle **particles = WORLD->particles;
     for (int i = 0; i < count; i++) {
-        if (particles[i] == t) {
+        if (particles[i] == particle) {
             particles[i] = particles[count - 1];
-            this->particle_count--;
+            WORLD->particle_count--;
             return;
         }
     }
 }
 
-void world_add_decal(World *this, Decal *t) {
-    if (this->decal_cap == 0) {
-        this->decals = Malloc(sizeof(Decal *));
-        this->decals[0] = t;
-        this->decal_cap = 1;
-        this->decal_count = 1;
+void WorldAddDecal(Decal *decal) {
+    if (WORLD->decal_capacity == 0) {
+        WORLD->decals = Malloc(sizeof(Decal *));
+        WORLD->decals[0] = decal;
+        WORLD->decal_capacity = 1;
+        WORLD->decal_count = 1;
     } else {
-        if (this->decal_count == this->decal_cap) {
-            this->decal_cap += 8;
-            this->decals = Realloc(this->decals, this->decal_cap * sizeof(Decal *));
+        if (WORLD->decal_count == WORLD->decal_capacity) {
+            WORLD->decal_capacity += 8;
+            WORLD->decals = Realloc(WORLD->decals, WORLD->decal_capacity * sizeof(Decal *));
         }
-        this->decals[this->decal_count] = t;
-        this->decal_count++;
+        WORLD->decals[WORLD->decal_count] = decal;
+        WORLD->decal_count++;
     }
 }
 
-void world_remove_decal(World *this, Decal *t) {
-    int count = this->decal_count;
-    Decal **decals = this->decals;
+void WorldRemoveDecal(Decal *decal) {
+    int count = WORLD->decal_count;
+    Decal **decals = WORLD->decals;
     for (int i = 0; i < count; i++) {
-        if (decals[i] == t) {
+        if (decals[i] == decal) {
             decals[i] = decals[count - 1];
-            this->decal_count--;
+            WORLD->decal_count--;
             return;
         }
     }
 }
 
-void world_add_sector(World *this, Sector *s) {
-    if (this->sector_cap == 0) {
-        this->sectors = Malloc(sizeof(Sector *));
-        this->sectors[0] = s;
-        this->sector_cap = 1;
-        this->sector_count = 1;
+void WorldAddSector(Sector *sector) {
+    if (WORLD->sector_capacity == 0) {
+        WORLD->sectors = Malloc(sizeof(Sector *));
+        WORLD->sectors[0] = sector;
+        WORLD->sector_capacity = 1;
+        WORLD->sector_count = 1;
     } else {
-        if (this->sector_count == this->sector_cap) {
-            this->sector_cap += 8;
-            this->sectors = Realloc(this->sectors, this->sector_cap * sizeof(Sector *));
+        if (WORLD->sector_count == WORLD->sector_capacity) {
+            WORLD->sector_capacity += 8;
+            WORLD->sectors = Realloc(WORLD->sectors, WORLD->sector_capacity * sizeof(Sector *));
         }
-        this->sectors[this->sector_count] = s;
-        this->sector_count++;
+        WORLD->sectors[WORLD->sector_count] = sector;
+        WORLD->sector_count++;
     }
 }
 
-Sector *world_find_sector(World *this, float x, float y) {
-    int i = this->sector_count;
+Sector *WorldFindSector(float x, float z) {
+    Sector **sectors = WORLD->sectors;
+    int i = WORLD->sector_count;
     while (i-- != 0) {
-        Sector *sector = this->sectors[i];
-        if (sector->outside != NULL) {
+        Sector *sector = sectors[i];
+        if (sector->outside != NULL)
             continue;
-        } else if (SectorContains(sector, x, y)) {
-            return SectorFind(sector, x, y);
-        }
+        else if (SectorContains(sector, x, z))
+            return SectorFind(sector, x, z);
     }
     return NULL;
 }
 
-static void world_build_cell_lines(World *this, Line *line) {
-    float xf = world_float_cell(line->a->x);
-    float yf = world_float_cell(line->a->y);
-    float dx = fabsf(world_float_cell(line->b->x) - xf);
-    float dy = fabsf(world_float_cell(line->b->y) - yf);
-    int x = world_cell(line->a->x);
-    int y = world_cell(line->a->y);
-    int xb = world_cell(line->b->x);
-    int yb = world_cell(line->b->y);
+static void WorldBuildCellLines(Line *line) {
+    float xf = WorldFloatCell(line->a->x);
+    float yf = WorldFloatCell(line->a->y);
+    float dx = fabsf(WorldFloatCell(line->b->x) - xf);
+    float dy = fabsf(WorldFloatCell(line->b->y) - yf);
+    int x = WorldCell(line->a->x);
+    int y = WorldCell(line->a->y);
+    int xb = WorldCell(line->b->x);
+    int yb = WorldCell(line->b->y);
     int n = 1;
     float error;
     int increment_x;
@@ -172,8 +174,8 @@ static void world_build_cell_lines(World *this, Line *line) {
         error -= (yf - y) * dx;
     }
     while (n > 0) {
-        Cell *c = &this->cells[(x >> WORLD_CELL_SHIFT) + (y >> WORLD_CELL_SHIFT) * this->columns];
-        cell_add_line(c, line);
+        Cell *c = &CELLS[(x >> WORLD_CELL_SHIFT) + (y >> WORLD_CELL_SHIFT) * CELL_COLUMNS];
+        CellAddLine(c, line);
         if (error > 0.0) {
             y += increment_y;
             error -= dx;
@@ -185,14 +187,14 @@ static void world_build_cell_lines(World *this, Line *line) {
     }
 }
 
-void WorldBuild(World *this, Line **lines, int line_count) {
+void WorldBuild(Line **lines, int line_count) {
     printf("building world...\n");
-    this->lines = lines;
-    this->line_count = line_count;
+    WORLD->lines = lines;
+    WORLD->line_count = line_count;
     float top = 0.0f;
     float right = 0.0f;
-    Sector **sectors = this->sectors;
-    int sector_count = this->sector_count;
+    Sector **sectors = WORLD->sectors;
+    int sector_count = WORLD->sector_count;
     for (int s = 0; s < sector_count; s++) {
         Sector *sector = sectors[s];
         int vector_count = sector->vec_count;
@@ -208,42 +210,45 @@ void WorldBuild(World *this, Line **lines, int line_count) {
         }
     }
     const int size = 1 << WORLD_CELL_SHIFT;
-    this->rows = (int)ceil(top / size);
-    this->columns = (int)ceil(right / size);
-    this->cell_count = this->rows * this->columns;
-    this->cells = Calloc(this->cell_count, sizeof(Cell));
-    SectorInsideOutside(this->sectors, this->sector_count);
-    SectorNeighbors(this->sectors, this->sector_count, this->lines, this->line_count);
-    for (int i = 0; i < this->line_count; i++) {
-        world_build_cell_lines(this, this->lines[i]);
+    CELL_ROWS = (int)ceil(top / size);
+    CELL_COLUMNS = (int)ceil(right / size);
+    CELLS = Calloc(CELL_ROWS * CELL_COLUMNS, sizeof(Cell));
+    SectorInsideOutside(WORLD->sectors, WORLD->sector_count);
+    SectorNeighbors(WORLD->sectors, WORLD->sector_count, WORLD->lines, WORLD->line_count);
+    for (int i = 0; i < WORLD->line_count; i++) {
+        WorldBuildCellLines(WORLD->lines[i]);
     }
-    this->sectors_visited = calloc(sector_count, sizeof(u32));
-    this->lines_visited = calloc(this->line_count, sizeof(u32));
     printf("done building world...\n");
 }
 
-void WorldUpdate(World *world) {
-    Thing **things = world->things;
-    int t = world->thing_count;
+Thing *WorldSpawnEntity(String *id, float x, float y, float z) {
+    (void)id;
+    Thing *thing = NewThing(x, y, z);
+    return thing;
+}
+
+void WorldUpdate() {
+    Thing **things = WORLD->things;
+    int t = WORLD->thing_count;
     while (t-- != 0) {
         Thing *thing = things[t];
         thing->update(thing);
     }
 
-    Particle **particles = world->particles;
-    int p = world->particle_count;
+    Particle **particles = WORLD->particles;
+    int p = WORLD->particle_count;
     while (p-- != 0) {
         Particle *particle = particles[p];
         if (particle->update(particle)) {
-            world->particle_count--;
-            particles[p] = particles[world->particle_count];
+            WORLD->particle_count--;
+            particles[p] = particles[WORLD->particle_count];
         }
     }
 
-    world->tick++;
+    WORLD->tick++;
 }
 
-void world_delete(World *world) {
-    WorldClear(world);
-    Free(world);
+void WorldFree() {
+    WorldClear();
+    Free(WORLD);
 }

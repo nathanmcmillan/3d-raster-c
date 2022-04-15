@@ -235,6 +235,52 @@ void CanvasImage(Image *image, i32 x0, i32 y0) {
     }
 }
 
+void CanvasSubImage(Image *image, i32 x0, i32 y0, i32 left, i32 top, i32 right, i32 bottom) {
+    u8 *source = image->pixels;
+    i32 span = image->width;
+
+    i32 columns = right - left;
+    i32 rows = bottom - top;
+
+    source += left + top * span;
+
+    if (x0 < 0) {
+        source -= x0;
+        columns -= x0;
+        x0 = 0;
+    }
+
+    if (y0 < 0) {
+        source -= y0 * span;
+        rows -= y0;
+        y0 = 0;
+    }
+
+    if (x0 + columns > SCREEN_WIDTH - 1) {
+        columns = SCREEN_WIDTH - 1 - x0;
+    }
+
+    if (y0 + rows > SCREEN_HEIGHT - 1) {
+        rows = SCREEN_HEIGHT - 1 - y0;
+    }
+
+    u32 *destination = &PIXELS[x0 + y0 * SCREEN_WIDTH];
+
+    for (i32 r = 0; r < rows; r++) {
+        u8 *slice = source;
+        u32 *color = destination;
+        for (i32 c = 0; c < columns; c++) {
+            u8 pixel = *slice;
+            if (pixel != UINT8_MAX)
+                *color = PALETTE[pixel];
+            slice++;
+            color++;
+        }
+        source += span;
+        destination += SCREEN_WIDTH;
+    }
+}
+
 void CanvasSprite(Sprite *sprite, i32 x0, i32 y0) {
     u8 *source = sprite->image->pixels;
     i32 span = sprite->image->width;
@@ -281,6 +327,61 @@ void CanvasSprite(Sprite *sprite, i32 x0, i32 y0) {
     }
 }
 
+static const char *FONT = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+
+typedef struct Font Font;
+
+struct Font {
+    i32 width;
+    i32 height;
+    i32 base;
+    i32 columns;
+};
+
+static Font NewFont(i32 width, i32 height, i32 base) {
+    Font font = {0};
+    font.width = width;
+    font.height = height;
+    font.base = base;
+    font.columns = 128 / width;
+    return font;
+}
+
+static Font TIC_FONT = {0};
+
+void FontInit() {
+    TIC_FONT = NewFont(6, 6, 5);
+}
+
+void CanvasText(Image *image, i32 x0, i32 y0, const char *text) {
+    Font *font = &TIC_FONT;
+    i32 x = x0;
+    i32 y = y0;
+    i32 width = font->width;
+    i32 height = font->height;
+    i32 columns = font->columns;
+    usize length = strlen(text);
+    for (usize i = 0; i < length; i++) {
+        char c = text[i];
+        if (c == ' ') {
+            x += width;
+        } else if (c == '\n') {
+            x = x0;
+            y += height;
+        }
+        char *pointer = strchr(FONT, c);
+        if (pointer == NULL)
+            continue;
+        i32 index = pointer - FONT;
+        i32 left = (i32)floorf(index % columns) * width;
+        i32 top = (i32)floorf(index / columns) * height;
+        i32 right = left + width;
+        i32 bottom = top + height;
+        CanvasSubImage(image, x, y, left, top, right, bottom);
+        x += width;
+    }
+}
+
 void ScreenSpace(float *out, float *matrix, float *vec) {
     float x = vec[0] * matrix[0] + vec[1] * matrix[4] + vec[2] * matrix[8] + matrix[12];
     float y = vec[0] * matrix[1] + vec[1] * matrix[5] + vec[2] * matrix[9] + matrix[13];
@@ -302,16 +403,27 @@ void ScreenSpace(float *out, float *matrix, float *vec) {
     out[3] = w;
 }
 
-HymnValue CanvasRectangleHymn(Hymn *vm, int count, HymnValue *arguments) {
-    (void)vm;
-    if (count != 6) {
+HymnValue CanvasRectangleHymn(Hymn *hymn, int count, HymnValue *arguments) {
+    (void)hymn;
+    if (count != 6)
         return hymn_new_none();
-    }
     i64 color = hymn_as_int(arguments[1]);
     i64 x0 = hymn_as_int(arguments[2]);
     i64 y0 = hymn_as_int(arguments[3]);
     i64 x1 = hymn_as_int(arguments[4]);
     i64 y1 = hymn_as_int(arguments[5]);
     CanvasRectangle((u32)color, (i32)x0, (i32)y0, (i32)x1, (i32)y1);
+    return hymn_new_none();
+}
+
+HymnValue CanvasTextHymn(Hymn *hymn, int count, HymnValue *arguments) {
+    (void)hymn;
+    if (count != 4)
+        return hymn_new_none();
+    Image *image = hymn_as_pointer(arguments[0]);
+    i64 x0 = hymn_as_int(arguments[1]);
+    i64 y0 = hymn_as_int(arguments[2]);
+    char *text = hymn_as_string(arguments[3]);
+    CanvasText(image, (i32)x0, (i32)y0, text);
     return hymn_new_none();
 }

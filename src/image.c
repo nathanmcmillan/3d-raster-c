@@ -34,12 +34,7 @@ static void SpriteInit(Sprite *sprite, char name[16], Image *image, i32 left, i3
 }
 
 Image *ImageRead(String *string) {
-    MaybeWad maybe_wad = WadParse(string);
-    if (maybe_wad.error != NULL) {
-        fprintf(stderr, "%s\n", maybe_wad.error);
-        exit(1);
-    }
-    Wad *wad = maybe_wad.wad;
+    Wad *wad = WadParse(string);
     String *name = WadGetStringFromTable(wad, "image");
     int width = WadGetIntFromTable(wad, "columns");
     int height = WadGetIntFromTable(wad, "rows");

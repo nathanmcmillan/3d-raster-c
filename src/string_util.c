@@ -42,7 +42,7 @@ String *NewString(char *init) {
     return new_string_with_length(init, len);
 }
 
-String *string_copy(String *this) {
+String *StringCopy(String *this) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     return new_string_with_length(this, head->length);
 }
@@ -136,7 +136,7 @@ static StringHead *string_resize(StringHead *head, int capacity) {
     return new;
 }
 
-String *string_append(String *this, char *b) {
+String *StringAppend(String *this, char *b) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     int len_a = head->length;
     int len_b = strlen(b);
@@ -151,7 +151,7 @@ String *string_append(String *this, char *b) {
     return (String *)s;
 }
 
-String *string_append_char(String *this, char b) {
+String *StringAppendChar(String *this, char b) {
     StringHead *head = (StringHead *)((char *)this - sizeof(StringHead));
     int len = head->length + 1;
     if (len > head->capacity) {
@@ -456,7 +456,19 @@ String *string_append_format(String *this, const char *format, ...) {
     va_start(ap, format);
     len = vsnprintf(chars, len + 1, format, ap);
     va_end(ap);
-    this = string_append(this, chars);
+    this = StringAppend(this, chars);
     Free(chars);
     return this;
+}
+
+char *CharsFormat(const char *format, ...) {
+    va_list ap;
+    va_start(ap, format);
+    int len = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    char *chars = Malloc((len + 1) * sizeof(char));
+    va_start(ap, format);
+    len = vsnprintf(chars, len + 1, format, ap);
+    va_end(ap);
+    return chars;
 }

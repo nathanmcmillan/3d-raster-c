@@ -7,12 +7,12 @@
 
 #include "array.h"
 #include "file_io.h"
+#include "log.h"
 #include "string_util.h"
 #include "super.h"
 #include "table.h"
 
 typedef struct Wad Wad;
-typedef struct MaybeWad MaybeWad;
 
 enum WadType {
     WAD_OBJECT,
@@ -29,11 +29,6 @@ union WadUnion {
 struct Wad {
     enum WadType type;
     union WadUnion value;
-};
-
-struct MaybeWad {
-    Wad *wad;
-    char *error;
 };
 
 Wad *NewWadTable();
@@ -63,7 +58,7 @@ int WadSize(Wad *element);
 
 void WadFree(Wad *element);
 
-MaybeWad WadParse(String *str);
+Wad *WadParse(String *str);
 
 String *WadToString(Wad *element);
 

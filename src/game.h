@@ -7,7 +7,6 @@
 
 #include <math.h>
 
-#include "camera.h"
 #include "canvas.h"
 #include "draw.h"
 #include "hymn.h"
@@ -16,26 +15,25 @@
 #include "matrix.h"
 #include "mem.h"
 #include "resources.h"
+#include "sector.h"
 #include "string_util.h"
 #include "super.h"
 #include "vec.h"
+#include "view.h"
 #include "wad.h"
-#include "world.h"
 
 enum Mode {
     MODE_GAME,
     MODE_PAINT,
 };
 
+extern enum Mode MODE;
+
 extern Hymn *VM;
 
 extern Input INPUT;
 
-extern World *WORLD;
-extern Camera *CAMERA;
 extern Thing *PLAYER;
-
-extern enum Mode MODE;
 
 void GameInit();
 void GameOpen(String *content);

@@ -1,5 +1,5 @@
 map:home
-vector:[
+vertex:[
   { x:64.4 z:55.1 }
   { x:41.6 z:39.9 }
   { x:32.6 z:28.4 }
@@ -19,6 +19,6 @@ sector:[
   { f:1.5 c:6 t:plank b:plank-floor w:[2 3 4] }
 ]
 thing:[
-  { x:52 z:34.6 id:hero }
+  { x:52 z:34.6 id:player }
   { x:40 z:31.1 id:zombie }
 ]

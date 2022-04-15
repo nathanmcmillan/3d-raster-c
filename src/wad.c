@@ -21,7 +21,7 @@ Wad *NewWadArray() {
 Wad *NewWadString(String *value) {
     Wad *e = Calloc(1, sizeof(Wad));
     e->type = WAD_STRING;
-    e->value.string = string_copy(value);
+    e->value.string = StringCopy(value);
     return e;
 }
 
@@ -144,7 +144,7 @@ static int skip_space(String *s, int i) {
     return i - 1;
 }
 
-MaybeWad WadParse(String *input) {
+Wad *WadParse(String *input) {
     printf("parsing wad...\n");
     Wad *wad = NewWadTable();
 
@@ -161,14 +161,12 @@ MaybeWad WadParse(String *input) {
 
     for (int i = 0; i < len; i++) {
         char c = input[i];
-        if (c == '#') {
-            pc = c;
-            i++;
-            while (i < len && input[i] != '\n') {
-                i++;
-            }
-        } else if (c == '\n' || c == ' ') {
+        if (c == '\n' || c == ' ') {
             if (!parsing_key && pc != '}' && pc != ']') {
+                if (ArrayIsEmpty(stack)) {
+                    ERROR("Wad: Empty stack");
+                    exit(1);
+                }
                 Wad *head = stack->items[0];
                 Wad *child = NewWadString(value);
                 if (head->type == WAD_ARRAY) {
@@ -187,6 +185,10 @@ MaybeWad WadParse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == '{') {
+            if (ArrayIsEmpty(stack)) {
+                ERROR("Wad: Empty stack");
+                exit(1);
+            }
             Wad *map = NewWadTable();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
@@ -200,6 +202,10 @@ MaybeWad WadParse(String *input) {
             pc = c;
             i = skip_space(input, i);
         } else if (c == '[') {
+            if (ArrayIsEmpty(stack)) {
+                ERROR("Wad: Empty stack");
+                exit(1);
+            }
             Wad *ls = NewWadArray();
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
@@ -214,12 +220,20 @@ MaybeWad WadParse(String *input) {
             i = skip_space(input, i);
         } else if (c == '}') {
             if (pc != ' ' && pc != ']' && pc != '{' && pc != '}' && pc != '\n') {
+                if (ArrayIsEmpty(stack)) {
+                    ERROR("Wad: Empty stack");
+                    exit(1);
+                }
                 Wad *head = stack->items[0];
                 WadAddToTable(head, key, NewWadString(value));
                 string_zero(key);
                 string_zero(value);
             }
-            array_remove_index(stack, 0);
+            ArrayRemoveAt(stack, 0);
+            if (ArrayIsEmpty(stack)) {
+                ERROR("Wad: Empty stack");
+                exit(1);
+            }
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
                 parsing_key = false;
@@ -230,11 +244,19 @@ MaybeWad WadParse(String *input) {
             i = skip_space(input, i);
         } else if (c == ']') {
             if (pc != ' ' && pc != '}' && pc != '[' && pc != ']' && pc != '\n') {
+                if (ArrayIsEmpty(stack)) {
+                    ERROR("Wad: Empty stack");
+                    exit(1);
+                }
                 Wad *head = stack->items[0];
                 ArrayPush(WadAsArray(head), NewWadString(value));
                 string_zero(value);
             }
-            array_remove_index(stack, 0);
+            ArrayRemoveAt(stack, 0);
+            if (ArrayIsEmpty(stack)) {
+                ERROR("Wad: Empty stack");
+                exit(1);
+            }
             Wad *head = stack->items[0];
             if (head->type == WAD_ARRAY) {
                 parsing_key = false;
@@ -253,11 +275,11 @@ MaybeWad WadParse(String *input) {
                 if (e == '"' || e == '\n') {
                     break;
                 } else if (e == '\\' && i + 1 < len && input[i + 1] == '"') {
-                    value = string_append_char(value, '"');
+                    value = StringAppendChar(value, '"');
                     i += 2;
                     e = input[i];
                 } else {
-                    value = string_append_char(value, e);
+                    value = StringAppendChar(value, e);
                     i++;
                     e = input[i];
                 }
@@ -265,11 +287,16 @@ MaybeWad WadParse(String *input) {
             pc = c;
         } else if (parsing_key) {
             pc = c;
-            key = string_append_char(key, c);
+            key = StringAppendChar(key, c);
         } else {
             pc = c;
-            value = string_append_char(value, c);
+            value = StringAppendChar(value, c);
         }
+    }
+
+    if (ArrayIsEmpty(stack)) {
+        ERROR("Wad: Empty stack");
+        exit(1);
     }
 
     if (pc != ' ' && pc != ']' && pc != '}' && pc != '\n') {
@@ -281,7 +308,7 @@ MaybeWad WadParse(String *input) {
     StringFree(value);
 
     printf("done parsing wad...\n");
-    return (MaybeWad){wad, NULL};
+    return wad;
 }
 
 String *WadToString(Wad *element) {
@@ -289,21 +316,21 @@ String *WadToString(Wad *element) {
     case WAD_OBJECT: {
         Table *map = WadAsTable(element);
         String *string = NewString("{");
-        TableIter iter = new_table_iterator(map);
-        while (table_iterator_has_next(&iter)) {
-            TablePair pair = table_iterator_next(&iter);
+        TableIter iter = NewTableIterator(map);
+        while (TableIteratorHasNext(&iter)) {
+            TablePair pair = TableIteratorNext(&iter);
             String *in = WadToString(pair.value);
-            string = string_append(string, pair.key);
+            string = StringAppend(string, pair.key);
             if (in[0] != '[' && in[0] != '{') {
-                string = string_append_char(string, ':');
+                string = StringAppendChar(string, ':');
             }
-            string = string_append(string, in);
-            if (table_iterator_has_next(&iter)) {
-                string = string_append_char(string, ' ');
+            string = StringAppend(string, in);
+            if (TableIteratorHasNext(&iter)) {
+                string = StringAppendChar(string, ' ');
             }
             StringFree(in);
         }
-        string = string_append_char(string, '}');
+        string = StringAppendChar(string, '}');
         return string;
     }
     case WAD_ARRAY: {
@@ -312,16 +339,16 @@ String *WadToString(Wad *element) {
         int size = ls->size;
         for (int i = 0; i < size; i++) {
             String *in = WadToString(ls->items[i]);
-            string = string_append(string, in);
+            string = StringAppend(string, in);
             if (i < size - 1) {
-                string = string_append_char(string, ' ');
+                string = StringAppendChar(string, ' ');
             }
             StringFree(in);
         }
-        string = string_append_char(string, ']');
+        string = StringAppendChar(string, ']');
         return string;
     }
-    case WAD_STRING: return string_copy(WadAsString(element));
+    case WAD_STRING: return StringCopy(WadAsString(element));
     }
     return NULL;
 }

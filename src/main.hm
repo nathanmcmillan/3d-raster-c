@@ -8,12 +8,6 @@ use "thing"
 use "wad"
 use "texture"
 
-let game = {}
-
-let graphics_rect = none
-
-let tic = none
-
 let x = 10
 
 function rgb(r, g, b)
@@ -38,5 +32,7 @@ function update()
 end
 
 function draw()
-  graphics_rect(rgb(255, 0, 255), x, 60, x + 32, 92)
+  canvas_rectangle(rgb(255, 0, 255), x, 60, x + 32, 92)
+  let camera = GetCamera()
+  canvas_text(tic, 15, 15, "x: " + camera.x + ", z: " + camera.z)
 end

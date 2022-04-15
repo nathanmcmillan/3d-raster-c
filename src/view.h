@@ -13,11 +13,11 @@
 #include <stdlib.h>
 
 #include "mem.h"
-#include "world.h"
+#include "sector.h"
 
-typedef struct Camera Camera;
+typedef struct View View;
 
-struct Camera {
+struct View {
     float x;
     float y;
     float z;
@@ -28,7 +28,9 @@ struct Camera {
     Sector *sector;
 };
 
-Camera *new_camera(float radius);
-void camera_thrid_person_update(Camera *camera);
+extern View VIEW;
+
+void ViewInit(float radius);
+void ViewThirdPersonUpdate();
 
 #endif

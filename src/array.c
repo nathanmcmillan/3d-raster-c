@@ -4,10 +4,6 @@
 
 #include "array.h"
 
-bool find_address(void *item, void *has) {
-    return item == has;
-}
-
 static void init_with_capacity(Array *this, int size, int capacity) {
     if (capacity == 0) {
         this->items = NULL;
@@ -86,11 +82,22 @@ void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item) 
     ArrayPush(this, item);
 }
 
-void *array_find(Array *this, bool(find)(void *, void *), void *has) {
+void *ArrayFind(Array *this, bool(equals)(void *, void *), void *has) {
     int len = this->size;
     void **items = this->items;
     for (int i = 0; i < len; i++) {
-        if (find(items[i], has)) {
+        if (equals(items[i], has)) {
+            return items[i];
+        }
+    }
+    return NULL;
+}
+
+void *ArrayFindAddress(Array *this, void *has) {
+    int len = this->size;
+    void **items = this->items;
+    for (int i = 0; i < len; i++) {
+        if (items[i] == has) {
             return items[i];
         }
     }
@@ -129,7 +136,7 @@ void array_remove(Array *this, void *item) {
     }
 }
 
-void array_remove_index(Array *this, int index) {
+void ArrayRemoveAt(Array *this, int index) {
     this->size--;
     int len = this->size;
     void **items = this->items;

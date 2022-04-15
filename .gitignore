@@ -12,7 +12,7 @@ tags
 ctags.opts
 ctags.sh
 
-c.bat
+variables.bat
 clean.bat
 compile.bat
 run.bat

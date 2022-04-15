@@ -20,8 +20,6 @@ struct Array {
     int capacity;
 };
 
-bool find_address(void *item, void *has);
-
 Array *NewArrayWithCapacity(int size, int capacity);
 Array *NewArray(int size);
 
@@ -32,12 +30,13 @@ void ArrayPush(Array *this, void *item);
 void ArrayInsert(Array *this, int index, void *item);
 void array_insert_sort(Array *this, int (*compare)(void *, void *), void *item);
 
-void *array_find(Array *this, bool(find)(void *, void *), void *has);
+void *ArrayFind(Array *this, bool(equals)(void *, void *), void *has);
+void *ArrayFindAddress(Array *this, void *has);
 void *ArrayGet(Array *this, int index);
 
 void *array_pop(Array *this);
 void array_remove(Array *this, void *item);
-void array_remove_index(Array *this, int index);
+void ArrayRemoveAt(Array *this, int index);
 
 void ArrayClear(Array *this);
 

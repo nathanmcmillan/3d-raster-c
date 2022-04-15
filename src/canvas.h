@@ -35,14 +35,19 @@ void CanvasInit(i32 width, i32 height);
 void CanvasClear();
 void CanvasFree();
 
+void FontInit();
+
 void CanvasPixel(u32 color, i32 x, i32 y);
 void CanvasLine(u32 color, i32 x0, i32 y0, i32 x1, i32 y1);
 void CanvasTriangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1, i32 x2, i32 y2);
 void CanvasRectangle(u32 color, i32 x0, i32 y0, i32 x1, i32 y1);
 void CanvasImage(Image *image, i32 x0, i32 y0);
+void CanvasSubImage(Image *image, i32 x0, i32 y0, i32 left, i32 top, i32 right, i32 bottom);
 void CanvasSprite(Sprite *sprite, i32 x0, i32 y0);
+void CanvasText(Image *image, i32 x0, i32 y0, const char *text);
 void ScreenSpace(float *out, float *matrix, float *vec);
 
-HymnValue CanvasRectangleHymn(Hymn *vm, int count, HymnValue *arguments);
+HymnValue CanvasRectangleHymn(Hymn *hymn, int count, HymnValue *arguments);
+HymnValue CanvasTextHymn(Hymn *hymn, int count, HymnValue *arguments);
 
 #endif

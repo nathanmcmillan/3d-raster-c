@@ -2,71 +2,110 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "world.h"
+#include "sector.h"
 
-void thing_remove_from_cells(Thing *this) {
-    World *map = this->map;
-    for (int r = this->r_min; r <= this->r_max; r++) {
-        for (int c = this->c_min; c <= this->c_max; c++) {
-            cell_remove_thing(&map->cells[c + r * map->columns], this);
+void ThingDoNothing(void *thing) {
+    (void)thing;
+}
+
+void ThingAddToCells(Thing *thing) {
+    float box = thing->box;
+    int min_c = (int)(thing->x - box) >> WORLD_CELL_SHIFT;
+    int max_c = (int)(thing->x + box) >> WORLD_CELL_SHIFT;
+    int min_r = (int)(thing->z - box) >> WORLD_CELL_SHIFT;
+    int max_r = (int)(thing->z + box) >> WORLD_CELL_SHIFT;
+    if (min_c < 0) min_c = 0;
+    if (min_r < 0) min_r = 0;
+    if (max_c >= CELL_COLUMNS) max_c = CELL_COLUMNS - 1;
+    if (max_r >= CELL_ROWS) max_c = CELL_ROWS - 1;
+    for (int r = min_r; r <= max_r; r++) {
+        for (int c = min_c; c <= max_c; c++) {
+            CellAddThing(&CELLS[c + r * CELL_COLUMNS], thing);
+        }
+    }
+    thing->min_c = min_c;
+    thing->max_c = max_c;
+    thing->min_r = min_r;
+    thing->max_r = max_r;
+}
+
+void ThingUpdateSector(Thing *thing, Sector *sector) {
+    if (thing->sector == sector)
+        return;
+    SectorRemoveThing(thing->sector, thing);
+    thing->sector = sector;
+    SectorAddThing(sector, thing);
+}
+
+void ThingInit(Thing *thing) {
+    Sector *sector = WorldFindSector(thing->x, thing->z);
+    if (sector == NULL) {
+        fprintf(stderr, "THING NOT IN SECTOR <%g, %g>\n", thing->x, thing->z);
+        exit(1);
+    }
+    thing->sector = sector;
+    SectorAddThing(sector, thing);
+    if (thing->y == 0)
+        thing->y = sector->floor;
+    ThingAddToCells(thing);
+    WorldAddThing(thing);
+}
+
+void ThingRemoveFromCells(Thing *thing) {
+    for (int r = thing->min_r; r <= thing->max_r; r++) {
+        for (int c = thing->min_c; c <= thing->max_c; c++) {
+            CellRemoveThing(&CELLS[c + r * CELL_COLUMNS], thing);
         }
     }
 }
 
-void thing_add_to_cells(Thing *this) {
-    float box = this->box;
-    int c_min = (int)(this->x - box) >> WORLD_CELL_SHIFT;
-    int c_max = (int)(this->x + box) >> WORLD_CELL_SHIFT;
-    int r_min = (int)(this->z - box) >> WORLD_CELL_SHIFT;
-    int r_max = (int)(this->z + box) >> WORLD_CELL_SHIFT;
-
-    World *map = this->map;
-    for (int r = r_min; r <= r_max; r++)
-        for (int c = c_min; c <= c_max; c++)
-            cell_add_thing(&map->cells[c + r * map->columns], this);
-
-    this->c_min = c_min;
-    this->c_max = c_max;
-    this->r_min = r_min;
-    this->r_max = r_max;
+Thing *NewThing(float x, float y, float z) {
+    Thing *thing = Calloc(1, sizeof(Thing));
+    thing->x = x;
+    thing->y = y;
+    thing->z = z;
+    thing->box = 0.6f;
+    thing->update = ThingDoNothing;
+    ThingInit(thing);
+    return thing;
 }
 
-bool thing_collision(Thing *this, Thing *b) {
-    float block = this->box + b->box;
-    return !(fabs(this->x - b->x) > block || fabs(this->z - b->z) > block);
+bool thing_collision(Thing *thing, Thing *b) {
+    float block = thing->box + b->box;
+    return !(fabs(thing->x - b->x) > block || fabs(thing->z - b->z) > block);
 }
 
-void thing_resolve_collision(Thing *this, Thing *b) {
-    float block = this->box + b->box;
+void thing_resolve_collision(Thing *thing, Thing *b) {
+    float block = thing->box + b->box;
 
-    if (fabs(this->x - b->x) > block || fabs(this->z - b->z) > block)
+    if (fabs(thing->x - b->x) > block || fabs(thing->z - b->z) > block)
         return;
 
-    if (fabs(this->previous_x - b->x) > fabs(this->previous_z - b->z)) {
-        if (this->previous_x - b->x < 0) {
-            this->x = b->x - block;
+    if (fabs(thing->previous_x - b->x) > fabs(thing->previous_z - b->z)) {
+        if (thing->previous_x - b->x < 0) {
+            thing->x = b->x - block;
         } else {
-            this->x = b->x + block;
+            thing->x = b->x + block;
         }
-        this->dx = 0.0f;
+        thing->dx = 0.0f;
     } else {
-        if (this->previous_z - b->z < 0) {
-            this->z = b->z - block;
+        if (thing->previous_z - b->z < 0) {
+            thing->z = b->z - block;
         } else {
-            this->z = b->z + block;
+            thing->z = b->z + block;
         }
-        this->dz = 0.0f;
+        thing->dz = 0.0f;
     }
 }
 
-void thing_line_collision(Thing *this, Line *ld) {
-    float box = this->box;
+void thing_line_collision(Thing *thing, Line *ld) {
+    float box = thing->box;
 
     float vx = ld->b->x - ld->a->x;
     float vz = ld->b->y - ld->a->y;
 
-    float wx = this->x - ld->a->x;
-    float wz = this->z - ld->a->y;
+    float wx = thing->x - ld->a->x;
+    float wz = thing->z - ld->a->y;
 
     float t = (wx * vx + wz * vz) / (vx * vx + vz * vz);
 
@@ -83,8 +122,8 @@ void thing_line_collision(Thing *this, Line *ld) {
     float px = ld->a->x + vx * t;
     float pz = ld->a->y + vz * t;
 
-    px -= this->x;
-    pz -= this->z;
+    px -= thing->x;
+    pz -= thing->z;
 
     if ((px * px + pz * pz) > box * box)
         return;
@@ -94,13 +133,13 @@ void thing_line_collision(Thing *this, Line *ld) {
     if (ld->side_front.middle != LINE_NO_SIDE) {
         collision = true;
     } else {
-        if (this->y + this->height > ld->front->ceiling || this->y + 1.0f < ld->front->floor) {
+        if (thing->y + thing->height > ld->front->ceiling || thing->y + 1.0f < ld->front->floor) {
             collision = true;
         }
     }
 
     if (collision) {
-        if (this->sec == ld->front)
+        if (thing->sector == ld->front)
             return;
 
         float overlap;
@@ -128,121 +167,96 @@ void thing_line_collision(Thing *this, Line *ld) {
             normal_z = ld->normal.y;
         }
 
-        this->x += normal_x * overlap;
-        this->z += normal_z * overlap;
+        thing->x += normal_x * overlap;
+        thing->z += normal_z * overlap;
     }
 }
 
-void thing_nop_update(void *this) {
-    (void)this;
-}
-
-void thing_standard_update(Thing *this) {
-    if (this->ground) {
-        this->dx *= RESISTANCE;
-        this->dz *= RESISTANCE;
+void ThingIntegrate(Thing *thing) {
+    if (thing->ground) {
+        thing->dx *= RESISTANCE;
+        thing->dz *= RESISTANCE;
     }
 
-    if (FLOAT_NOT_ZERO(this->dx) || FLOAT_NOT_ZERO(this->dz)) {
-        this->previous_x = this->x;
-        this->previous_z = this->z;
+    if (FLOAT_NOT_ZERO(thing->dx) || FLOAT_NOT_ZERO(thing->dz)) {
+        thing->previous_x = thing->x;
+        thing->previous_z = thing->z;
 
-        this->x += this->dx;
-        this->z += this->dz;
+        thing->x += thing->dx;
+        thing->z += thing->dz;
 
-        thing_remove_from_cells(this);
+        ThingRemoveFromCells(thing);
 
-        float box = this->box;
-        int c_min = (int)(this->x - box) >> WORLD_CELL_SHIFT;
-        int c_max = (int)(this->x + box) >> WORLD_CELL_SHIFT;
-        int r_min = (int)(this->z - box) >> WORLD_CELL_SHIFT;
-        int r_max = (int)(this->z + box) >> WORLD_CELL_SHIFT;
+        float box = thing->box;
+        int min_c = (int)(thing->x - box) >> WORLD_CELL_SHIFT;
+        int max_c = (int)(thing->x + box) >> WORLD_CELL_SHIFT;
+        int min_r = (int)(thing->z - box) >> WORLD_CELL_SHIFT;
+        int max_r = (int)(thing->z + box) >> WORLD_CELL_SHIFT;
 
-        Set *collided = new_address_set();
-        Set *collisions = new_address_set();
+        Set *collided = NewAddressSet();
+        Set *collisions = NewAddressSet();
 
-        World *map = this->map;
-
-        for (int r = r_min; r <= r_max; r++) {
-            for (int c = c_min; c <= c_max; c++) {
-                Cell *current_cell = &map->cells[c + r * map->columns];
+        for (int r = min_r; r <= max_r; r++) {
+            for (int c = min_c; c <= max_c; c++) {
+                Cell *current_cell = &CELLS[c + r * CELL_COLUMNS];
                 for (int i = 0; i < current_cell->thing_count; i++) {
                     Thing *t = current_cell->things[i];
 
-                    if (set_has(collisions, t))
+                    if (SetHas(collisions, t))
                         continue;
 
-                    if (thing_collision(this, t))
-                        set_add(collided, t);
+                    if (thing_collision(thing, t))
+                        SetAdd(collided, t);
 
-                    set_add(collisions, t);
+                    SetAdd(collisions, t);
                 }
             }
         }
 
-        set_delete(collisions);
+        SetFree(collisions);
 
         while (set_not_empty(collided)) {
             Thing *closest = NULL;
             float manhattan = FLT_MAX;
 
-            SetIterator iter = new_set_iterator(collided);
-            while (set_iterator_has_next(&iter)) {
-                Thing *b = set_iterator_next(&iter);
-                float distance = fabsf(this->previous_x - b->x) + fabsf(this->previous_z - b->z);
+            SetIterator iter = NewSetIterator(collided);
+            while (SetIteratorHasNext(&iter)) {
+                Thing *b = SetIteratorNext(&iter);
+                float distance = fabsf(thing->previous_x - b->x) + fabsf(thing->previous_z - b->z);
                 if (distance < manhattan) {
                     manhattan = distance;
                     closest = b;
                 }
             }
 
-            thing_resolve_collision(this, closest);
+            thing_resolve_collision(thing, closest);
 
             set_remove(collided, closest);
         }
 
-        set_delete(collided);
+        SetFree(collided);
 
-        for (int r = r_min; r <= r_max; r++) {
-            for (int c = c_min; c <= c_max; c++) {
-                Cell *current_cell = &this->map->cells[c + r * this->map->columns];
+        for (int r = min_r; r <= max_r; r++) {
+            for (int c = min_c; c <= max_c; c++) {
+                Cell *current_cell = &CELLS[c + r * CELL_COLUMNS];
                 for (int i = 0; i < current_cell->line_count; i++)
-                    thing_line_collision(this, current_cell->lines[i]);
+                    thing_line_collision(thing, current_cell->lines[i]);
             }
         }
 
-        thing_add_to_cells(this);
+        ThingAddToCells(thing);
     }
 
-    if (this->ground == false || FLOAT_NOT_ZERO(this->dy)) {
-        this->dy -= GRAVITY;
-        this->y += this->dy;
+    if (thing->ground == false || FLOAT_NOT_ZERO(thing->dy)) {
+        thing->dy -= GRAVITY;
+        thing->y += thing->dy;
 
-        if (this->y < this->sec->floor) {
-            this->ground = true;
-            this->dy = 0;
-            this->y = this->sec->floor;
+        if (thing->y < thing->sector->floor) {
+            thing->ground = true;
+            thing->dy = 0;
+            thing->y = thing->sector->floor;
         } else {
-            this->ground = false;
+            thing->ground = false;
         }
     }
-}
-
-void thing_initialize(Thing *this, World *map, float x, float z, float r, float box, float height) {
-    this->map = map;
-    this->sec = world_find_sector(map, x, z);
-
-    this->x = x;
-    this->y = this->sec->floor;
-    this->z = z;
-    this->rotation = r;
-    this->rotation_target = r;
-    this->ground = true;
-
-    this->box = box;
-    this->height = height;
-
-    thing_add_to_cells(this);
-
-    world_add_thing(map, this);
 }

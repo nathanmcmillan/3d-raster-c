@@ -4,19 +4,30 @@
 
 #include "game.h"
 
+enum Mode MODE = MODE_GAME;
+
 Hymn *VM = NULL;
 
 Input INPUT = {0};
 
-World *WORLD = NULL;
-Camera *CAMERA = NULL;
 Thing *PLAYER = NULL;
 
-enum Mode MODE = MODE_GAME;
+static HymnValue GetCameraHymn(Hymn *hymn, int count, HymnValue *arguments) {
+    (void)hymn;
+    (void)count;
+    (void)arguments;
+    HymnTable *table = hymn_new_table();
+    return hymn_new_table_value(table);
+}
 
 void GameInit() {
-    WORLD = new_world();
-    CAMERA = new_camera(8.0);
+    VIEW.radius = 8.0f;
+    WorldInit();
+    FontInit();
+    SectorsInit();
+    DrawInit();
+
+    hymn_add_function(VM, "GetCamera", GetCameraHymn);
 }
 
 static int texture(char *name) {
@@ -31,32 +42,33 @@ static int texture(char *name) {
 void GameOpen(String *content) {
     printf("game open...\n");
 
-    World *world = WORLD;
-
     // ...
 
-    String *font_string = Read("pack/paint/tic_80_wide_font.wad");
+    String *font_string = Read("pack/pictures/tic_80_wide_font.wad");
     Image *font_image = ImageRead(font_string);
     ResourceAddImage(font_image);
     StringFree(font_string);
 
-    String *tiles_string = Read("pack/paint/tiles.wad");
+    String *tiles_string = Read("pack/pictures/tiles.wad");
     Image *tiles_image = ImageRead(tiles_string);
     ResourceAddImage(tiles_image);
     StringFree(tiles_string);
 
+    String *baron_string = Read("pack/pictures/baron.wad");
+    Image *baron_image = ImageRead(baron_string);
+    ResourceAddImage(baron_image);
+    StringFree(baron_string);
+
+    Image *font = ResourceImageSearch("TIC80WIDE");
+    hymn_add_pointer(VM, "tic", font);
+
     // ...
 
-    WorldClear(world);
+    WorldClear();
 
-    MaybeWad parse = WadParse(content);
-    if (parse.error) {
-        fprintf(stderr, "%s\n", parse.error);
-        exit(1);
-    }
-    Wad *wad = parse.wad;
+    Wad *wad = WadParse(content);
 
-    Array *map_vecs = WadGetArrayFromTable(wad, "vector");
+    Array *map_vecs = WadGetArrayFromTable(wad, "vertex");
     Array *map_lines = WadGetArrayFromTable(wad, "line");
     Array *map_sectors = WadGetArrayFromTable(wad, "sector");
 
@@ -109,25 +121,36 @@ void GameOpen(String *content) {
             sector_lines[d] = lines[WadAsInt(line_pointers->items[d])];
         }
         Sector *sector_object = NewSector(i, sector_lines, sector_line_count, floor, ceiling, floor_image, ceiling_image);
-        world_add_sector(world, sector_object);
+        WorldAddSector(sector_object);
     }
 
-    WorldBuild(world, lines, line_count);
+    WorldBuild(lines, line_count);
 
     Array *map_things = WadGetArrayFromTable(wad, "thing");
     if (map_things != NULL) {
         for (int i = 0; i < ArraySize(map_things); i++) {
-            Wad *thing = (Wad *)(map_things->items[i]);
-            float x = WadGetFloatFromTable(thing, "x");
-            float z = WadGetFloatFromTable(thing, "z");
-            String *id = WadGetStringFromTable(thing, "id");
-            if (strcmp(id, "hero")) {
-                CAMERA->x = x;
-                CAMERA->z = z;
-                Sector *sector = world_find_sector(world, x, z);
-                CAMERA->sector = sector != NULL ? sector : world->sectors[0];
+            Wad *thing_wad = (Wad *)(map_things->items[i]);
+            String *id = WadGetStringFromTable(thing_wad, "id");
+            float x = WadGetFloatFromTable(thing_wad, "x");
+            float z = WadGetFloatFromTable(thing_wad, "z");
+            Thing *thing = WorldSpawnEntity(id, x, 0, z);
+            if (strcmp(id, "player") == 0) {
+                VIEW.x = x;
+                VIEW.z = z;
+                Sector *sector = WorldFindSector(x, z);
+                if (sector == NULL) {
+                    fprintf(stderr, "PLAYER NOT IN SECTOR <%g, %g>\n", x, z);
+                    exit(1);
+                }
+                VIEW.sector = sector;
+                VIEW.target = thing;
             }
         }
+    }
+
+    if (VIEW.sector == NULL) {
+        fprintf(stderr, "PLAYER SECTOR NOT SET\n");
+        exit(1);
     }
 
     Free(vecs);
@@ -137,65 +160,64 @@ void GameOpen(String *content) {
 }
 
 static void GameUpdate() {
-    Input *input = &INPUT;
-    Camera *camera = CAMERA;
-
-    if (input->look_left) {
-        camera->angle -= 0.1f;
+    if (INPUT.look_left) {
+        VIEW.angle -= 0.1f;
     }
 
-    if (input->look_right) {
-        camera->angle += 0.1f;
+    if (INPUT.look_right) {
+        VIEW.angle += 0.1f;
     }
 
-    if (input->look_up) {
-        camera->look -= 0.1f;
+    if (INPUT.look_up) {
+        VIEW.look -= 0.1f;
     }
 
-    if (input->look_down) {
-        camera->look += 0.1f;
+    if (INPUT.look_down) {
+        VIEW.look += 0.1f;
     }
 
-    if (input->move_forward) {
-        camera->x += cosf(camera->angle) * 0.1f;
-        camera->z += sinf(camera->angle) * 0.1f;
+    if (INPUT.move_forward) {
+        VIEW.x += cosf(VIEW.angle) * 0.1f;
+        VIEW.z += sinf(VIEW.angle) * 0.1f;
     }
 
-    if (input->move_backward) {
-        camera->x -= cosf(camera->angle) * 0.1f;
-        camera->z -= sinf(camera->angle) * 0.1f;
+    if (INPUT.move_backward) {
+        VIEW.x -= cosf(VIEW.angle) * 0.1f;
+        VIEW.z -= sinf(VIEW.angle) * 0.1f;
     }
 
-    if (input->move_left) {
-        camera->x += sinf(camera->angle) * 0.1f;
-        camera->z -= cosf(camera->angle) * 0.1f;
+    if (INPUT.move_left) {
+        VIEW.x += sinf(VIEW.angle) * 0.1f;
+        VIEW.z -= cosf(VIEW.angle) * 0.1f;
     }
 
-    if (input->move_right) {
-        camera->x -= sinf(camera->angle) * 0.1f;
-        camera->z += cosf(camera->angle) * 0.1f;
+    if (INPUT.move_right) {
+        VIEW.x -= sinf(VIEW.angle) * 0.1f;
+        VIEW.z += cosf(VIEW.angle) * 0.1f;
     }
 
-    if (input->move_up) {
-        camera->y += 0.1f;
+    if (INPUT.move_up) {
+        VIEW.y += 0.1f;
     }
 
-    if (input->move_down) {
-        camera->y -= 0.1f;
+    if (INPUT.move_down) {
+        VIEW.y -= 0.1f;
     }
+
+    WorldUpdate();
 
     hymn_call(VM, "update", 0);
 }
 
 static void GameDraw() {
+    CanvasClear();
     DrawWorld();
-    hymn_call(VM, "draw", 0);
+    // hymn_call(VM, "draw", 0);
 
     Image *font = ResourceImageSearch("TIC80WIDE");
-    CanvasImage(font, 15, 15);
-
-    // Image *tiles = ResourceImageSearch("TILES");
-    // CanvasImage(tiles, 115, 15);
+    char *location = CharsFormat("x: %g, z: %g", VIEW.x, VIEW.z);
+    CanvasText(font, 15, 15, location);
+    Free(location);
 }
 
 void GameTick() {
@@ -204,4 +226,6 @@ void GameTick() {
 }
 
 void GameFree() {
+    SectorsFree();
+    WorldFree();
 }

@@ -2,114 +2,81 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "world.h"
+#include "sector.h"
 
-void cell_add_line(Cell *this, Line *ld) {
+Cell *CELLS = NULL;
+int CELL_COLUMNS = 0;
+int CELL_ROWS = 0;
+
+void CellAddLine(Cell *this, Line *line) {
     if (this->line_count == 0) {
         this->lines = Malloc(sizeof(Line *));
-        this->lines[0] = ld;
+        this->lines[0] = line;
         this->line_count = 1;
         return;
     }
-
-    int len = this->line_count;
+    int count = this->line_count;
     Line **lines = this->lines;
-    for (int i = 0; i < len; i++) {
-        if (lines[i] == ld) {
+    for (int i = 0; i < count; i++) {
+        if (lines[i] == line)
             return;
-        }
     }
-
-    this->lines = Realloc(this->lines, (len + 1) * sizeof(Line *));
-    this->lines[len] = ld;
+    this->lines = Realloc(this->lines, (count + 1) * sizeof(Line *));
+    this->lines[count] = line;
     this->line_count++;
 }
 
-void cell_add_thing(Cell *this, Thing *t) {
-    if (this->thing_cap == 0) {
+void CellAddThing(Cell *this, Thing *thing) {
+    if (this->thing_capacity == 0) {
         this->things = Malloc(sizeof(Thing *));
-        this->things[0] = t;
-        this->thing_cap = 1;
+        this->things[0] = thing;
+        this->thing_capacity = 1;
         this->thing_count = 1;
         return;
     }
-
-    if (this->thing_count == this->thing_cap) {
-        this->thing_cap += 8;
-        this->things = Realloc(this->things, this->thing_cap * sizeof(Thing *));
+    if (this->thing_count == this->thing_capacity) {
+        this->thing_capacity += 8;
+        this->things = Realloc(this->things, this->thing_capacity * sizeof(Thing *));
     }
-
-    this->things[this->thing_count] = t;
+    this->things[this->thing_count] = thing;
     this->thing_count++;
 }
 
-void cell_remove_thing(Cell *this, Thing *t) {
-    int len = this->thing_count;
+void CellRemoveThing(Cell *this, Thing *thing) {
+    int count = this->thing_count;
     Thing **things = this->things;
-    for (int i = 0; i < len; i++) {
-        if (things[i] == t) {
-            things[i] = things[len - 1];
+    for (int i = 0; i < count; i++) {
+        if (things[i] == thing) {
+            things[i] = things[count - 1];
             this->thing_count--;
             return;
         }
     }
 }
 
-void cell_add_particle(Cell *this, Particle *t) {
-    if (this->particle_cap == 0) {
+void CellAddParticle(Cell *this, Particle *particle) {
+    if (this->particle_capacity == 0) {
         this->particles = Malloc(sizeof(Particle *));
-        this->particles[0] = t;
-        this->particle_cap = 1;
+        this->particles[0] = particle;
+        this->particle_capacity = 1;
         this->particle_count = 1;
         return;
     }
-
-    if (this->particle_count == this->particle_cap) {
-        this->particle_cap += 8;
-        this->particles = Realloc(this->particles, this->particle_cap * sizeof(Particle *));
+    if (this->particle_count == this->particle_capacity) {
+        this->particle_capacity += 8;
+        this->particles = Realloc(this->particles, this->particle_capacity * sizeof(Particle *));
     }
-
-    this->particles[this->particle_count] = t;
+    this->particles[this->particle_count] = particle;
     this->particle_count++;
 }
 
-void cell_remove_particle(Cell *this, Particle *t) {
-    int len = this->particle_count;
+void CellRemoveParticle(Cell *this, Particle *particle) {
+    int count = this->particle_count;
     Particle **particles = this->particles;
-    for (int i = 0; i < len; i++) {
-        if (particles[i] == t) {
-            particles[i] = particles[len - 1];
+    for (int i = 0; i < count; i++) {
+        if (particles[i] == particle) {
+            particles[i] = particles[count - 1];
             this->particle_count--;
-            return;
-        }
-    }
-}
-
-void cell_add_decal(Cell *this, Decal *t) {
-    if (this->decal_cap == 0) {
-        this->decals = Malloc(sizeof(Decal *));
-        this->decals[0] = t;
-        this->decal_cap = 1;
-        this->decal_count = 1;
-        return;
-    }
-
-    if (this->decal_count == this->decal_cap) {
-        this->decal_cap += 8;
-        this->decals = Realloc(this->decals, this->decal_cap * sizeof(Decal *));
-    }
-
-    this->decals[this->decal_count] = t;
-    this->decal_count++;
-}
-
-void cell_remove_decal(Cell *this, Decal *t) {
-    int len = this->decal_count;
-    Decal **decals = this->decals;
-    for (int i = 0; i < len; i++) {
-        if (decals[i] == t) {
-            decals[i] = decals[len - 1];
-            this->decal_count--;
             return;
         }
     }

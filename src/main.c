@@ -111,8 +111,7 @@ static void PollEvents() {
 }
 
 static void MainLoad() {
-    // String *map = Read("pack/maps/base.wad");
-    String *map = Read("pack/maps/home.wad");
+    String *map = Read("pack/maps/base.wad");
     GameOpen(map);
     StringFree(map);
 
@@ -196,7 +195,8 @@ int main(int argc, char **argv) {
     }
 
     hymn_add_function(VM, "read_file", read_file);
-    hymn_add_function(VM, "graphics_rect", CanvasRectangleHymn);
+    hymn_add_function(VM, "canvas_rectangle", CanvasRectangleHymn);
+    hymn_add_function(VM, "canvas_text", CanvasTextHymn);
 
     GameInit();
     PaintInit();

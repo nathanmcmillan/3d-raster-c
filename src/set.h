@@ -38,20 +38,20 @@ usize set_address_hashcode(void *key);
 
 Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *));
 
-Set *new_address_set();
+Set *NewAddressSet();
 
-void set_add(Set *this, void *key);
-bool set_has(Set *this, void *key);
+void SetAdd(Set *this, void *key);
+bool SetHas(Set *this, void *key);
 
 void set_remove(Set *this, void *key);
-void set_clear(Set *this);
+void SetClear(Set *this);
 
 bool set_is_empty(Set *this);
 bool set_not_empty(Set *this);
 unsigned int set_size(Set *this);
 
 void set_release(Set *this);
-void set_delete(Set *this);
+void SetFree(Set *this);
 
 struct SetIterator {
     Set *pointer;
@@ -59,8 +59,8 @@ struct SetIterator {
     SetItem *item;
 };
 
-SetIterator new_set_iterator(Set *this);
-bool set_iterator_has_next(SetIterator *iter);
-void *set_iterator_next(SetIterator *iter);
+SetIterator NewSetIterator(Set *this);
+bool SetIteratorHasNext(SetIterator *iter);
+void *SetIteratorNext(SetIterator *iter);
 
 #endif

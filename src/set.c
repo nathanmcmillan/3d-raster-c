@@ -42,7 +42,7 @@ Set *new_set(bool (*equals_fn)(void *, void *), usize (*hashcode_fn)(void *)) {
     return this;
 }
 
-Set *new_address_set() {
+Set *NewAddressSet() {
     return new_set(set_address_equal, set_address_hashcode);
 }
 
@@ -114,7 +114,7 @@ static void resize(Set *this) {
     this->items = items;
 }
 
-void set_add(Set *this, void *key) {
+void SetAdd(Set *this, void *key) {
     usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
@@ -141,7 +141,7 @@ void set_add(Set *this, void *key) {
     }
 }
 
-bool set_has(Set *this, void *key) {
+bool SetHas(Set *this, void *key) {
     usize hash = hash_mix((*this->hashcode_fn)(key));
     unsigned int bin = get_bin(this, hash);
     SetItem *item = this->items[bin];
@@ -174,7 +174,7 @@ void set_remove(Set *this, void *key) {
     }
 }
 
-void set_clear(Set *this) {
+void SetClear(Set *this) {
     unsigned int bins = this->bins;
     for (unsigned int i = 0; i < bins; i++) {
         SetItem *item = this->items[i];
@@ -201,16 +201,16 @@ unsigned int set_size(Set *this) {
 }
 
 void set_release(Set *this) {
-    set_clear(this);
+    SetClear(this);
     Free(this->items);
 }
 
-void set_delete(Set *this) {
+void SetFree(Set *this) {
     set_release(this);
     Free(this);
 }
 
-SetIterator new_set_iterator(Set *this) {
+SetIterator NewSetIterator(Set *this) {
     SetIterator iter;
     iter.pointer = this;
     if (this->size == 0) {
@@ -230,11 +230,11 @@ SetIterator new_set_iterator(Set *this) {
     return iter;
 }
 
-bool set_iterator_has_next(SetIterator *iter) {
+bool SetIteratorHasNext(SetIterator *iter) {
     return iter->item;
 }
 
-void *set_iterator_next(SetIterator *iter) {
+void *SetIteratorNext(SetIterator *iter) {
     SetItem *item = iter->item;
     if (item == NULL) {
         return NULL;

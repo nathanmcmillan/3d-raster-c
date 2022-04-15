@@ -37,7 +37,7 @@ String *new_string_with_length(char *init, int length);
 String *new_string_from_substring(char *init, int start, int end);
 String *NewString(char *init);
 String *string_allocate(int length);
-String *string_copy(String *this);
+String *StringCopy(String *this);
 
 int StringLen(String *this);
 int string_cap(String *this);
@@ -49,8 +49,8 @@ String *string_concat_varg(int size, ...);
 
 String *substring(String *this, int start, int end);
 
-String *string_append(String *this, char *b);
-String *string_append_char(String *this, char b);
+String *StringAppend(String *this, char *b);
+String *StringAppendChar(String *this, char b);
 String *string_append_substring(String *this, char *b, int start, int end);
 
 int string_compare(String *a, String *b);
@@ -102,5 +102,7 @@ char *string_to_chars(String *this);
 
 String *string_format(const char *format, ...);
 String *string_append_format(String *this, const char *format, ...);
+
+char *CharsFormat(const char *format, ...);
 
 #endif

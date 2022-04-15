@@ -222,7 +222,7 @@ void table_delete(Table *this) {
     Free(this);
 }
 
-TableIter new_table_iterator(Table *this) {
+TableIter NewTableIterator(Table *this) {
     TableIter iter;
     iter.pointer = this;
     if (this->size == 0) {
@@ -242,11 +242,11 @@ TableIter new_table_iterator(Table *this) {
     return iter;
 }
 
-bool table_iterator_has_next(TableIter *iter) {
+bool TableIteratorHasNext(TableIter *iter) {
     return iter->item;
 }
 
-TablePair table_iterator_next(TableIter *iter) {
+TablePair TableIteratorNext(TableIter *iter) {
     TableItem *item = iter->item;
     if (item == NULL) {
         return (TablePair){NULL, NULL};

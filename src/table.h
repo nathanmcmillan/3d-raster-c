@@ -67,8 +67,8 @@ struct TableIter {
     TableItem *item;
 };
 
-TableIter new_table_iterator(Table *this);
-bool table_iterator_has_next(TableIter *iter);
-TablePair table_iterator_next(TableIter *iter);
+TableIter NewTableIterator(Table *this);
+bool TableIteratorHasNext(TableIter *iter);
+TablePair TableIteratorNext(TableIter *iter);
 
 #endif
